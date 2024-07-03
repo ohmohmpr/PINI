@@ -62,7 +62,14 @@ parser.add_argument('--save_merged_pc', '-p', action='store_true', help='Save th
 
 args, unknown = parser.parse_known_args()
 
+
 def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=None):
+
+    args.config_path = "./config/lidar_slam/run_m2dgr.yaml"
+    args.dataset_name = "rosbag"
+    args.input_path = "/mnt/data/m2dgr/street_01.bag"
+    args.data_loader_on = True
+
 
     config = Config()
     if config_path is not None: # use as a function

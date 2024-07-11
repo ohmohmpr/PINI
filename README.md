@@ -1,9 +1,14 @@
 # How to use:
 ```
-python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu -i path/to/your/fu**ing/rosbag.bag -dv
+python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu pc_ros_topic imu_ros_topic -i path/to/your/fu**ing/rosbag.bag -dv
 
 # Example
-python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu -i ./data/Newer_College_Dataset/2021-07-01-10-37-38-quad-easy.bag -dv
+# NCD
+python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /os_cloud_node/points /os_cloud_node/imu -i ./data/Newer_College_Dataset/2021-07-01-10-37-38-quad-easy.bag -dv
+
+
+# M2DGR
+python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /velodyne_points /handsfree/imu -i ./data/m2dgr/street_03/street_03.bag -dv
 
 ```
 

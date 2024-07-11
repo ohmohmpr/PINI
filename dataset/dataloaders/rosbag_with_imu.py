@@ -31,7 +31,7 @@ import natsort
 
 
 class RosbagIMUDataset:
-    def __init__(self, data_dir: Path, topic: str, *_, **__):
+    def __init__(self, data_dir: Path, topic: str, imu_topic: str, *_, **__):
         """ROS1 / ROS2 bagfile dataloader.
 
         It can take either one ROS2 bag file or one or more ROS1 bag files belonging to a split bag.
@@ -64,15 +64,17 @@ class RosbagIMUDataset:
             print("Reading multiple .bag files in directory:")
             print("\n".join(natsort.natsorted([path.name for path in self.bag.paths])))
 
+        # print(topic)
+
         self.bag.open()
         self.pc_topic = self.check_topic(topic)
-        # self.imu_topic = self.check_imu_topic(topic)
-        self.imu_topic = "/os_cloud_node/imu" # TODO: is directly given now
+        self.imu_topic = self.check_imu_topic(imu_topic)
+        # self.imu_topic = "/os_cloud_node/imu" # TODO: is directly given now
 
         self.n_scans = self.bag.topics[self.pc_topic].msgcount
 
         self.n_imus = self.bag.topics[self.imu_topic].msgcount
-        print('imu count:', self.n_imus)
+        # print('imu count:', self.n_imus)
 
         # limit connections to selected topic
         pc_connections = [x for x in self.bag.connections if x.topic == self.pc_topic] # connections just mean topics
@@ -105,19 +107,28 @@ class RosbagIMUDataset:
 
 
         points, point_ts = self.read_point_cloud(pc_msg)
-        # print(ts)
+        # print(point_ts)
 
         # lidar_timestamp = dt.datetime.fromtimestamp(int(lidar_timestamp_s))
         # lidar_timestamp += dt.timedelta(microseconds=(timestamp%1e9) / 1000) 
         # print(lidar_timestamp)
 
         if point_ts is not None:
-            point_ts = pc_timestamp_ns + point_ts # pointwise timestamp, unit: ns
             pc_min_ts = np.min(point_ts)
             pc_max_ts = np.max(point_ts)
+            point_ts_delta = pc_max_ts - pc_min_ts
+            if point_ts_delta < 1.0: # unit would be s instead of ns
+                # then convert to ns
+                point_ts *= 1e9
+                pc_min_ts *= 1e9
+                pc_max_ts *= 1e9
+            
+            point_ts = pc_timestamp_ns + point_ts # pointwise timestamp, unit: ns
+            pc_min_ts += pc_timestamp_ns
+            pc_max_ts += pc_timestamp_ns
         else:
             pc_min_ts = pc_timestamp_ns
-            pc_max_ts = pc_min_ts + 1e8
+            pc_max_ts = pc_min_ts + 1e8 # pointwise timestamp, unit: ns
 
         linear_acc = []
         angular_velo = []
@@ -131,7 +142,7 @@ class RosbagIMUDataset:
             self.imu_buffer.append(imu_msg)
             self.imu_buffer_ts.append(cur_ts_imu) # ns
 
-        imu_buffer_ts_np = np.array(self.imu_buffer_ts)
+        imu_buffer_ts_np = np.array(self.imu_buffer_ts) # ns
 
         frame_imu_begin_idx = closest_ts_idx(pc_min_ts, imu_buffer_ts_np)
         frame_imu_end_idx = closest_ts_idx(pc_max_ts, imu_buffer_ts_np)
@@ -203,14 +214,14 @@ class RosbagIMUDataset:
         # when user specified the topic check that exists
         if topic and topic not in point_cloud_topics:
             print(
-                f'[ERROR] Dataset does not containg any msg with the topic name "{topic}". '
-                "Specify the correct topic name by python pin_slam.py path/to/config/file.yaml rosbag your/topic ... ..."
+                f'[ERROR] Dataset does not containg any point cloud msg with the topic name "{topic}". '
+                "Specify the correct topic name by python pin_slam.py path/to/config/file.yaml rosbag_with_imu your/pc_topic your/imu_topic ... ..."
             )
             print_available_topics_and_exit()
         if len(point_cloud_topics) > 1:
             print(
                 "Multiple sensor_msgs/msg/PointCloud2 topics available."
-                "Specify the correct topic name by python pin_slam.py path/to/config/file.yaml rosbag your/topic ... ..."
+                "Specify the correct topic name by python pin_slam.py path/to/config/file.yaml rosbag_with_imu your/pc_topic your/imu_topic ... ..."
             )
             print_available_topics_and_exit()
 
@@ -241,14 +252,14 @@ class RosbagIMUDataset:
         # when user specified the topic check that exists
         if topic and topic not in imu_topics:
             print(
-                f'[ERROR] Dataset does not containg any msg with the topic name "{topic}". '
-                "Specify the correct topic name by python pin_slam.py path/to/config/file.yaml rosbag your/topic ... ..."
+                f'[ERROR] Dataset does not containg any IMU msg with the topic name "{topic}". '
+                "Specify the correct topic name by python pin_slam.py path/to/config/file.yaml rosbag_with_imu your/pc_topic your/imu_topic ... ..."
             )
             print_available_topics_and_exit()
         if len(imu_topics) > 1:
             print(
                 "Multiple sensor_msgs/msg/Imu topics available."
-                "Specify the correct topic name by python pin_slam.py path/to/config/file.yaml rosbag your/topic ... ..."
+                "Specify the correct topic name by python pin_slam.py path/to/config/file.yaml rosbag_with_imu your/pc_topic your/imu_topic ... ..."
             )
             print_available_topics_and_exit()
 

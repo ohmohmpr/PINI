@@ -48,6 +48,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('config_path', type=str, nargs='?', default='config/lidar_slam/run.yaml', help='[Optional] Path to *.yaml config file, if not set, default config would be used')
 parser.add_argument('dataset_name', type=str, nargs='?', help='[Optional] Name of a specific dataset, example: kitti, mulran, or rosbag (when -d is set)')
 parser.add_argument('sequence_name', type=str, nargs='?', help='[Optional] Name of a specific data sequence or the rostopic for point cloud (when -d is set)')
+parser.add_argument('imu_topic', type=str, nargs='?', help='[Optional] Name of the rostopic for imu (when -d is set)')
 parser.add_argument('--seed', type=int, default=42, help='Set the random seed (default 42)')
 parser.add_argument('--input_path', '-i', type=str, default=None, help='Path to the point cloud input directory (this will override the pc_path in config file)')
 parser.add_argument('--output_path', '-o', type=str, default=None, help='Path to the result output directory (this will override the output_root in config file)')
@@ -97,6 +98,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
             config.output_root = args.output_path
         if args.dataset_name is not None: # specific dataset [optional]
             set_dataset_path(config, args.dataset_name, args.sequence_name)
+        if args.imu_topic is not None:
+            config.imu_topic = args.imu_topic
         run_path = setup_experiment(config, argv)
         print("[bold green]PIN-SLAM starts[/bold green]","📍" )
 

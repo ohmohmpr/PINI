@@ -28,6 +28,7 @@ class Config:
         self.use_dataloader: bool = False # use the dataloader providied by kiss-icp or not
         self.data_loader_name: str = "generic"
         self.data_loader_seq: str = ""
+        self.imu_topic: str = ""
 
         self.load_model: bool = False  # load the pre-trained model or not
         self.model_path: str = "/"  # pre-trained model path

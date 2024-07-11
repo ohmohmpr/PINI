@@ -1,3 +1,15 @@
+# How to use:
+```
+python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu -i path/to/your/fu**ing/rosbag.bag -dv
+
+# Example
+python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu -i ./data/Newer_College_Dataset/2021-07-01-10-37-38-quad-easy.bag -dv
+
+```
+
+-------------------------
+
+
 <p align="center">
 
   <h1 align="center">📍PIN-SLAM: LiDAR SLAM Using a Point-Based Implicit Neural Representation for Achieving Global Map Consistency</h1>

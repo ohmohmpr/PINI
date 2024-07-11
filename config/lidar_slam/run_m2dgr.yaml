@@ -33,6 +33,5 @@ optimizer: # mapper
   iters: 15  # iterations per frame
   batch_size: 8192
 eval:
-  sensor_cad_path: ./cad/m2dgr.ply
   mesh_freq_frame: 50 # reconstruct the mesh every x frames
   mesh_min_nn: 15

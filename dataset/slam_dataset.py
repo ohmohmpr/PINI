@@ -203,7 +203,7 @@ class SLAMDataset(Dataset):
                 # normalized to 0-1
                 point_ts = (point_ts - min_timestamp) / (max_timestamp - min_timestamp) 
 
-        if point_ts is None:
+        if point_ts is None and not self.config.silence:
             print(
                 "The point cloud message does not contain the valid time stamp field"
             )
@@ -239,10 +239,15 @@ class SLAMDataset(Dataset):
         self.cur_point_cloud_torch = torch.tensor(points, device=self.device, dtype=self.dtype)
 
         if point_ts is not None:
-            if np.min(point_ts) == np.max(point_ts): # all ts are the same --> invalid
+            min_timestamp = np.min(point_ts)
+            max_timestamp = np.max(point_ts)
+            if min_timestamp == max_timestamp:
                 point_ts = None
+            else:
+                # normalized to 0-1 (switch back due to the torch32 rounding issue) # TODO
+                point_ts = (point_ts - min_timestamp) / (max_timestamp - min_timestamp) 
 
-        if point_ts is None:
+        if point_ts is None and not self.config.silence:
             print(
                 "The point cloud message does not contain the valid time stamp field"
             )
@@ -250,6 +255,7 @@ class SLAMDataset(Dataset):
         if self.config.deskew: 
             self.get_point_ts(point_ts)
 
+        # print(self.cur_point_ts_torch)
 
     def read_frame(self, frame_id):
 
@@ -486,6 +492,8 @@ class SLAMDataset(Dataset):
             else:
                 cur_source_ts = None
 
+            # print(cur_source_ts)
+
             # deskewing (motion undistortion) for source point cloud
             if self.config.deskew and not self.lose_track:
                 if self.cur_frame_imus is None:
@@ -496,7 +504,14 @@ class SLAMDataset(Dataset):
                             self.last_odom_tran, device=self.device, dtype=self.dtype
                         )
                     )  # T_last<-cur
-                # else:
+                else: # change this later to the imu version
+                    self.cur_source_points = deskewing( # normalization is done inside
+                        self.cur_source_points,
+                        cur_source_ts,
+                        torch.tensor(
+                            self.last_odom_tran, device=self.device, dtype=self.dtype
+                        )
+                    ) 
                 #     self.cur_source_points = imu_deskewing(
                 #         self.cur_source_points,
                 #         cur_source_ts,

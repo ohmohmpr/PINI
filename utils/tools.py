@@ -669,6 +669,7 @@ def deskewing(
     min_ts = torch.min(ts)
     max_ts = torch.max(ts)
     ts = (ts - min_ts) / (max_ts - min_ts)
+    # print(ts)
 
     # this is related to: https://github.com/PRBonn/kiss-icp/issues/299
     ts -= ts_mid_pose 

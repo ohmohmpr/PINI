@@ -128,7 +128,7 @@ class Config:
 
         # training data pool related (for replay)
         self.window_radius: float = 50.0 # unit: m
-        self.pool_capacity: int = int(1e7)
+        self.pool_capacity: int = int(5e6)
         self.bs_new_sample: int = 2048 # number of the sample per batch for the current frame's data, half of all the data
         self.new_certainty_thre: float = 1.0
         self.pool_filter_freq: int = 10 

@@ -176,6 +176,9 @@ class SLAMDataset(Dataset):
         self.cur_source_normals = None
         self.cur_source_colors = None
 
+        # imu data
+        self.cur_frame_imus = None
+
     def read_frame_ros(self, msg):
 
         from utils import point_cloud2
@@ -223,7 +226,8 @@ class SLAMDataset(Dataset):
                 points, point_ts = data
             elif len(data) == 3:
                 points, point_ts, imus = data
-                print(imus)
+                self.cur_frame_imus = imus
+                # print(imus)
             else:
                 sys.exit("Something wrong. does not support currently")
         else:
@@ -232,14 +236,8 @@ class SLAMDataset(Dataset):
         self.cur_point_cloud_torch = torch.tensor(points, device=self.device, dtype=self.dtype)
 
         if point_ts is not None:
-            min_timestamp = np.min(point_ts)
-            max_timestamp = np.max(point_ts)
-            # print(min_timestamp, max_timestamp)
-            if min_timestamp == max_timestamp:
+            if np.min(point_ts) == np.max(point_ts): # all ts are the same --> invalid
                 point_ts = None
-            else:
-                # normalized to 0-1
-                point_ts = (point_ts - min_timestamp) / (max_timestamp - min_timestamp) 
 
         if point_ts is None:
             print(
@@ -295,7 +293,7 @@ class SLAMDataset(Dataset):
     def get_point_ts(self, point_ts=None): 
         # point_ts is already the normalized timestamp in a scan frame # [0,1]
         if self.config.deskew:
-            if point_ts is not None and min(point_ts) < 1.0: # not all 1
+            if point_ts is not None:
                 if not self.silence:
                     print("Pointwise timestamp available")
                 self.cur_point_ts_torch = torch.tensor(
@@ -487,13 +485,24 @@ class SLAMDataset(Dataset):
 
             # deskewing (motion undistortion) for source point cloud
             if self.config.deskew and not self.lose_track:
-                self.cur_source_points = deskewing(
-                    self.cur_source_points,
-                    cur_source_ts,
-                    torch.tensor(
-                        self.last_odom_tran, device=self.device, dtype=self.dtype
-                    )
-                )  # T_last<-cur
+                if self.cur_frame_imus is None:
+                    self.cur_source_points = deskewing( # normalization is done inside
+                        self.cur_source_points,
+                        cur_source_ts,
+                        torch.tensor(
+                            self.last_odom_tran, device=self.device, dtype=self.dtype
+                        )
+                    )  # T_last<-cur
+                # else:
+                #     self.cur_source_points = imu_deskewing(
+                #         self.cur_source_points,
+                #         cur_source_ts,
+                #         torch.tensor(
+                #             self.last_odom_tran, device=self.device, dtype=self.dtype
+                #         )
+                #     )
+
+            # imu deskewing here
 
             # print("# Source point for registeration : ", cur_source_torch.shape[0])
 

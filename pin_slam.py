@@ -20,6 +20,7 @@ from dataset.slam_dataset import SLAMDataset
 from model.decoder import Decoder
 from model.neural_points import NeuralPoints
 from utils.config import Config
+from utils.imu_lib import IMUManager
 from utils.loop_detector import (
     NeuralPointMapContextManager,
     detect_local_loop,
@@ -122,8 +123,11 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     if config.load_model: # not used
         load_decoder(config, geo_mlp, sem_mlp, color_mlp)
 
+    # imu manager
+    imu = IMUManager(config)
+
     # dataset
-    dataset = SLAMDataset(config)
+    dataset = SLAMDataset(config, imu)
 
     # odometry tracker
     tracker = Tracker(config, neural_points, geo_mlp, sem_mlp, color_mlp)

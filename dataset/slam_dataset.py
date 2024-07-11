@@ -24,6 +24,7 @@ from tqdm import tqdm
 from dataset.dataloaders import dataset_factory
 from eval.eval_traj_utils import absolute_error, plot_trajectories, relative_error
 from utils.config import Config
+from utils.imu_lib import IMUManager
 from utils.semantic_kitti_utils import sem_kitti_color_map, sem_map_function
 from utils.tools import (
     deskewing,
@@ -35,7 +36,7 @@ from utils.tools import (
 )
 
 class SLAMDataset(Dataset):
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, imu: IMUManager) -> None:
 
         super().__init__()
 
@@ -44,6 +45,8 @@ class SLAMDataset(Dataset):
         self.dtype = config.dtype
         self.device = config.device
         self.run_path = config.run_path
+
+        self.imu = imu # the imu manager, TODO
 
         max_frame_number: int = 100000 # about 3 hours of operation
 

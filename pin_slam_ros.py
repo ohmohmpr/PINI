@@ -27,6 +27,7 @@ from dataset.slam_dataset import SLAMDataset
 from model.decoder import Decoder
 from model.neural_points import NeuralPoints
 from utils.config import Config
+from utils.imu_lib import IMUManager
 from utils.loop_detector import NeuralPointMapContextManager, detect_local_loop
 from utils.mapper import Mapper
 from utils.mesher import Mesher
@@ -79,8 +80,11 @@ class PINSLAMer:
         if self.config.load_model: # not used
             load_decoder(self.config, self.geo_mlp, self.sem_mlp, self.color_mlp)
 
+        # imu manager
+        self.imu = IMUManager(self.config)
+
         # dataset
-        self.dataset = SLAMDataset(self.config)
+        self.dataset = SLAMDataset(self.config, self.imu)
 
         # odometry tracker
         self.tracker = Tracker(self.config, self.neural_points, self.geo_mlp, self.sem_mlp, self.color_mlp)
@@ -90,6 +94,7 @@ class PINSLAMer:
 
         # mesh reconstructor
         self.mesher = Mesher(self.config, self.neural_points, self.geo_mlp, self.sem_mlp, self.color_mlp)
+
 
         # pose graph manager (for back-end optimization) initialization
         self.pgm = PoseGraphManager(self.config)

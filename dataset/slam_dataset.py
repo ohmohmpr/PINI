@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import List
 
+import datetime as dt
 import matplotlib.cm as cm
 import numpy as np
 import open3d as o3d
@@ -114,6 +115,11 @@ class SLAMDataset(Dataset):
                 # print('# Total frames:', self.total_pc_count)
                 if self.total_pc_count > 2000:
                     config.local_map_context = True
+
+        # load imu lidar calibration (or do the calibration online) # TODO
+        self.T_L_I = np.eye(4)
+        self.T_I_L = np.linalg.inv(self.T_L_I)
+
         
         # use pre-allocated numpy array
         self.odom_poses = None
@@ -181,9 +187,18 @@ class SLAMDataset(Dataset):
 
         points, point_ts = point_cloud2.read_point_cloud(msg)
 
+        if point_ts is not None:
+            min_timestamp = np.min(point_ts)
+            max_timestamp = np.max(point_ts)
+            if min_timestamp == max_timestamp:
+                point_ts = None
+            else:
+                # normalized to 0-1
+                point_ts = (point_ts - min_timestamp) / (max_timestamp - min_timestamp) 
+
         if point_ts is None:
             print(
-                "The point cloud message does not contain the time stamp field"
+                "The point cloud message does not contain the valid time stamp field"
             )
 
         self.cur_point_cloud_torch = torch.tensor(
@@ -203,10 +218,32 @@ class SLAMDataset(Dataset):
     
         point_ts = None
         if isinstance(data, tuple):
-            points, point_ts = data
+            if len(data) == 2:
+                points, point_ts = data
+            elif len(data) == 3:
+                points, point_ts, imus = data
+                print(imus)
+            else:
+                sys.exit("Something wrong. does not support currently")
         else:
             points = data
+        
         self.cur_point_cloud_torch = torch.tensor(points, device=self.device, dtype=self.dtype)
+
+        if point_ts is not None:
+            min_timestamp = np.min(point_ts)
+            max_timestamp = np.max(point_ts)
+            # print(min_timestamp, max_timestamp)
+            if min_timestamp == max_timestamp:
+                point_ts = None
+            else:
+                # normalized to 0-1
+                point_ts = (point_ts - min_timestamp) / (max_timestamp - min_timestamp) 
+
+        if point_ts is None:
+            print(
+                "The point cloud message does not contain the valid time stamp field"
+            )
 
         if self.config.deskew: 
             self.get_point_ts(point_ts)
@@ -254,7 +291,8 @@ class SLAMDataset(Dataset):
         # print(self.cur_point_ts_torch)
 
     # point-wise timestamp is now only used for motion undistortion (deskewing)
-    def get_point_ts(self, point_ts=None):
+    def get_point_ts(self, point_ts=None): 
+        # point_ts is already the normalized timestamp in a scan frame # [0,1]
         if self.config.deskew:
             if point_ts is not None and min(point_ts) < 1.0: # not all 1
                 if not self.silence:
@@ -344,7 +382,15 @@ class SLAMDataset(Dataset):
             # pose initial guess tensor
             self.cur_pose_guess_torch = torch.tensor(
                 cur_pose_init_guess, dtype=torch.float64, device=self.device
-            )
+            )   
+
+            # better pose initial guess predicted by IMU
+            # T_Wi_Icur = self.imu.preintegration(acc=self.imu_curinter['acc'],gyro=self.imu_curinter['gyro'],dts=self.imu_curinter['dt'],last_pose=T_Wi_Ilast, cur_id=self.processed_frame) # this is done in imu world frame
+            # T_Wl_Lcur = self.T_Wl_Wi @ T_Wi_Icur @ self.T_I_L  # tran to lidar frame
+            # T_Wl_I = self.T_Wl_Wi @ T_Wi_Icur
+            # T_Llast_Lcur =  np.linalg.inv(self.T_Wl_Llast) @ T_Wl_Lcur # trans under lidar frame
+            
+            # cur_pose_init_guess = T_Wl_Lcur # better initial guess # this is agian back in the lidar world frame
 
         if self.config.adaptive_range_on:
             pc_max_bound, _ = torch.max(self.cur_point_cloud_torch[:, :3], dim=0)
@@ -1121,13 +1167,19 @@ def read_tum_format_poses(filename: str):
     return poses, timestamps
 
 
-def write_kitti_format_poses(filename: str, poses_np: np.ndarray):
+def write_kitti_format_poses(filename: str, poses_np: np.ndarray, direct_use_filename = False):
     poses_out = poses_np[:, :3, :]
     poses_out_kitti = poses_out.reshape(poses_out.shape[0], -1)
-    
-    np.savetxt(fname=f"{filename}_kitti.txt", X=poses_out_kitti)
 
-def write_tum_format_poses(filename: str, poses_np: np.ndarray, timestamps=None, frame_s = 0.1):
+    if direct_use_filename:
+        fname = filename
+    else:
+        fname = f"{filename}_kitti.txt"
+    
+    np.savetxt(fname=fname, X=poses_out_kitti)
+
+def write_tum_format_poses(filename: str, poses_np: np.ndarray, timestamps=None, frame_s = 0.1, 
+                           with_header = False, direct_use_filename = False):
     from pyquaternion import Quaternion
 
     frame_count = poses_np.shape[0]
@@ -1141,7 +1193,17 @@ def write_tum_format_poses(filename: str, poses_np: np.ndarray, timestamps=None,
             ts = float(timestamps[i])
         tum_out[i] = np.array([ts, tx, ty, tz, qx, qy, qz, qw])
 
-    np.savetxt(fname=f"{filename}_tum.txt", X=tum_out, fmt="%.4f")
+    if with_header:
+        header = "timestamp tx ty tz qx qy qz qw"
+    else:
+        header = ''
+        
+    if direct_use_filename:
+        fname = filename
+    else:
+        fname = f"{filename}_tum.txt"
+
+    np.savetxt(fname=fname, X=tum_out, fmt="%.4f", header=header)
 
 def apply_kitti_format_calib(poses_np: np.ndarray, calib_T_cl: np.ndarray):
     """Converts from Velodyne to Camera Frame (# T_camera<-lidar)"""

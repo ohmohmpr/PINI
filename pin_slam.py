@@ -7,6 +7,7 @@ import argparse
 import os
 import sys
 
+import rerun as rr
 import numpy as np
 import open3d as o3d
 import torch
@@ -55,6 +56,7 @@ parser.add_argument('--data_loader_on', '-d', action='store_true', help='Use spe
 parser.add_argument('--visualize', '-v', action='store_true', help='Turn on the visualizer')
 parser.add_argument('--cpu_only', '-c', action='store_true', help='Run only on CPU')
 parser.add_argument('--log_on', '-l', action='store_true', help='Turn on the logs printing')
+parser.add_argument('--rerun_on', '-r', action='store_true', help='Turn on the rerun logging')
 parser.add_argument('--wandb_on', '-w', action='store_true', help='Turn on the weight & bias logging')
 parser.add_argument('--save_map', '-s', action='store_true', help='Save the PIN map after SLAM')
 parser.add_argument('--save_mesh', '-m', action='store_true', help='Save the reconstructed mesh after SLAM')
@@ -62,14 +64,7 @@ parser.add_argument('--save_merged_pc', '-p', action='store_true', help='Save th
 
 args, unknown = parser.parse_known_args()
 
-
 def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=None):
-
-    args.config_path = "./config/lidar_slam/run_m2dgr.yaml"
-    args.dataset_name = "rosbag"
-    args.input_path = "/mnt/data/m2dgr/street_01.bag"
-    args.data_loader_on = True
-
 
     config = Config()
     if config_path is not None: # use as a function
@@ -87,6 +82,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         config.seed = args.seed
         config.silence = not args.log_on
         config.wandb_vis_on = args.wandb_on
+        config.rerun_vis_on = args.rerun_on
         config.o3d_vis_on = args.visualize
         config.save_map = args.save_map
         config.save_mesh = args.save_mesh
@@ -107,6 +103,9 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # non-blocking visualizer
     if config.o3d_vis_on:
         o3d_vis = MapVisualizer(config)
+
+    if config.rerun_vis_on:
+        rr.init("pin_slam_rerun_viewer", spawn=True)
 
     # initialize the mlp decoder
     geo_mlp = Decoder(config, config.geo_mlp_hidden_dim, config.geo_mlp_level, 1)
@@ -279,7 +278,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         # IV: Mapping and bundle adjustment
         # if lose track, we will not update the map and data pool (don't let the wrong pose to corrupt the map)
         # if the robot stop, also don't process this frame, since there's no new oberservations
-        if not dataset.lose_track and not dataset.stop_status:
+        if frame_id < 5 or (not dataset.lose_track and not dataset.stop_status):
             mapper.process_frame(dataset.cur_point_cloud_torch, dataset.cur_sem_labels_torch,
                                  dataset.cur_pose_torch, frame_id, (config.dynamic_filter_on and frame_id > 0))
         else:
@@ -381,6 +380,14 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
             loop_edges = pgm.loop_edges_vis if config.pgo_on else None
             o3d_vis.update_traj(dataset.cur_pose_ref, odom_poses, gt_poses, pgo_poses, loop_edges)
             o3d_vis.update(dataset.cur_frame_o3d, dataset.cur_pose_ref, cur_sdf_slice, cur_mesh, neural_pcd, pool_pcd)
+
+            if config.rerun_vis_on:
+                if neural_pcd is not None:
+                    rr.log("world/neural_points", rr.Points3D(neural_pcd.points, colors=neural_pcd.colors, radii=0.05))
+                if dataset.cur_frame_o3d is not None:
+                    rr.log("world/input_scan", rr.Points3D(dataset.cur_frame_o3d.points, colors=dataset.cur_frame_o3d.colors, radii=0.03))
+                if cur_mesh is not None:
+                    rr.log("world/mesh_map", rr.Mesh3D(vertex_positions=cur_mesh.vertices, triangle_indices=cur_mesh.triangles, vertex_normals=cur_mesh.vertex_normals, vertex_colors=cur_mesh.vertex_colors))
             
             T8 = get_time()
 

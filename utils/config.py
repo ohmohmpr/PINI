@@ -253,6 +253,7 @@ class Config:
 
         # eval
         self.wandb_vis_on: bool = False # monitor the training on weight and bias or not
+        self.rerun_vis_on: bool = False # visualize the process using rerun visualizer or not
         self.silence: bool = True # print log in the terminal or not
         self.o3d_vis_on: bool = False # visualize the mesh in-the-fly using o3d visualzier or not [press space to pasue/resume]
         self.o3d_vis_raw: bool = False # visualize the raw point cloud or the weight source point cloud

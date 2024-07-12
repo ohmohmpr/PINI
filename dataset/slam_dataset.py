@@ -230,7 +230,7 @@ class SLAMDataset(Dataset):
             elif len(data) == 3:
                 points, point_ts, imus = data
                 self.cur_frame_imus = imus
-                # print(imus)
+                print(imus)
             else:
                 sys.exit("Something wrong. does not support currently")
         else:
@@ -242,10 +242,7 @@ class SLAMDataset(Dataset):
             min_timestamp = np.min(point_ts)
             max_timestamp = np.max(point_ts)
             if min_timestamp == max_timestamp:
-                point_ts = None
-            else:
-                # normalized to 0-1 (switch back due to the torch32 rounding issue) # TODO
-                point_ts = (point_ts - min_timestamp) / (max_timestamp - min_timestamp) 
+                point_ts = None 
 
         if point_ts is None and not self.config.silence:
             print(

@@ -86,10 +86,11 @@ class RosbagIMUDataset:
         # print(self.imu_msgs)
 
         self.timestamps = [] # framewise timestamp
+        self.first_pc_timestamp_ns = 0
 
         self.imu_buffer = []
         self.imu_buffer_ts = []
-        self.cur_ts_imu = 0 # unit: ns
+        self.cur_ts_imu = -1e9 # unit: ns
         self.last_ts_imu = 0
 
     def __del__(self):
@@ -101,6 +102,12 @@ class RosbagIMUDataset:
 
     def __getitem__(self, idx):
         pc_connection, pc_timestamp_ns, pc_data = next(self.pc_msgs)
+
+        if idx==0:
+            self.first_pc_timestamp_ns = pc_timestamp_ns
+
+        pc_timestamp_ns -= self.first_pc_timestamp_ns  # minus the beginning reference  
+
         # print(pc_timestamp_ns)
         self.timestamps.append(pc_timestamp_ns / 1e9) 
         pc_msg = self.bag.deserialize(pc_data, pc_connection.msgtype)
@@ -138,6 +145,7 @@ class RosbagIMUDataset:
         while self.cur_ts_imu < pc_max_ts: # ns
             imu_connection, cur_ts_imu, imu_data = next(self.imu_msgs) # ns
             imu_msg = self.bag.deserialize(imu_data, imu_connection.msgtype)
+            cur_ts_imu -= self.first_pc_timestamp_ns  # minus the beginning reference  
             self.cur_ts_imu = cur_ts_imu
             self.imu_buffer.append(imu_msg)
             self.imu_buffer_ts.append(cur_ts_imu) # ns

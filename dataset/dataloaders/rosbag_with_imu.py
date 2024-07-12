@@ -176,7 +176,7 @@ class RosbagIMUDataset:
                 if idx > 0:
                     dt = (self.imu_buffer_ts[idx] - self.imu_buffer_ts[idx-1])/1e9 # s
                 else:
-                    dt = 0.0
+                    dt = 1e-9
                 imu_dt.append(dt) # unit: s
 
             frame_imu_data = {
@@ -187,7 +187,7 @@ class RosbagIMUDataset:
             }
         
             # Remove used IMU messages from the buffer
-            buffer_left = 4
+            buffer_left = 10
 
             self.imu_buffer = [imu_msg for i, imu_msg in enumerate(self.imu_buffer) if i >= frame_imu_end_idx-buffer_left]
 

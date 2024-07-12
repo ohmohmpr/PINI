@@ -18,8 +18,6 @@ class PoseGraphManager:
         self.config = config
         self.silence = config.silence
 
-        self.imu_used = False
-
         self.fixed_cov = gtsam.noiseModel.Diagonal.Sigmas(
             np.array([1e-9, 1e-9, 1e-9, 1e-9, 1e-9, 1e-9])
         )  # fixed
@@ -45,10 +43,10 @@ class PoseGraphManager:
         self.robust_loop_cov = gtsam.noiseModel.Robust(mEst, self.loop_cov)
         self.robust_odom_cov = gtsam.noiseModel.Robust(mEst, self.odom_cov)
 
-        self.graph_factors = (
-            gtsam.NonlinearFactorGraph()
-        )  # edges # with pose and pose covariance
-        self.graph_initials = gtsam.Values()  # initial guess # as pose
+        self.isam = gtsam.ISAM2()
+
+        self.graph_factors = gtsam.NonlinearFactorGraph() # edges # with pose and pose covariance
+        self.graph_initials = gtsam.Values()  # initial guess of the nodes 
 
         self.cur_pose = None
         self.curr_node_idx = None
@@ -98,8 +96,6 @@ class PoseGraphManager:
 
         self.graph_factors.add(imu_factor)
 
-        self.imu_used = True
-
     def add_pose_prior(
         self, frame_id: int, prior_pose: np.ndarray, fixed: bool = False
     ):
@@ -141,13 +137,13 @@ class PoseGraphManager:
         if fixed:
             cov_model = gtsam.noiseModel.Diagonal.Sigmas(np.array([1e-6]*3))
         else:
-            vel_sigma = self.drift_radius + 1 #1e-4 TODO
+            vel_sigma = self.drift_radius + 1e-4 #1e-4 TODO
             cov_model = gtsam.noiseModel.Diagonal.Sigmas(np.array([vel_sigma, vel_sigma, vel_sigma])) # TODO: check
             # cov_model = gtsam.noiseModel.Isotropic.Sigma(3, vel_sigma)
         
         self.graph_factors.add(gtsam.PriorFactorVector(
             gtsam.symbol('v', frame_id), 
-            self.velocity, 
+            self.imu.velocity, 
             cov_model
         ))
 
@@ -157,14 +153,14 @@ class PoseGraphManager:
             cov_model = gtsam.noiseModel.Diagonal.Sigmas(np.array([1e-6]*6))
         else:
             # Combine accel_sigma and gyro_sigma into a single 6-element array
-            bias_sigma = np.concatenate((self.accel_sigma, self.gyro_sigma))
+            bias_sigma = np.concatenate((self.imu.accel_sigma, self.imu.gyro_sigma))
             # Create a diagonal covariance model with the combined sigma
             # bias_sigma = np.array([1e-3]*6)
             cov_model = gtsam.noiseModel.Diagonal.Sigmas(bias_sigma) # TODO: check
         
         self.graph_factors.add(gtsam.PriorFactorConstantBias(
             gtsam.symbol('b', frame_id), 
-            self.imu_bias, 
+            self.imu.imu_bias, 
             cov_model
         ))
 
@@ -239,33 +235,30 @@ class PoseGraphManager:
 
     def optimize_pose_graph(self):
 
-        if self.config.pgo_with_lm:
-            opt_param = gtsam.LevenbergMarquardtParams()
-            opt_param.setMaxIterations(self.config.pgo_max_iter)
-            opt = gtsam.LevenbergMarquardtOptimizer(
-                self.graph_factors, self.graph_initials, opt_param
-            )
-        else:  # pgo with dogleg
-            opt_param = gtsam.DoglegParams()
-            opt_param.setMaxIterations(self.config.pgo_max_iter)
-            opt = gtsam.DoglegOptimizer(
-                self.graph_factors, self.graph_initials, opt_param
-            )
+        self.isam.update(self.graph_factors, self.graph_initials)
+        self.graph_optimized = self.isam.calculateEstimate()
 
-        error_before = self.graph_factors.error(self.graph_initials)
+        # if self.config.pgo_with_lm:
+        #     opt_param = gtsam.LevenbergMarquardtParams()
+        #     opt_param.setMaxIterations(self.config.pgo_max_iter)
+        #     opt = gtsam.LevenbergMarquardtOptimizer(
+        #         self.graph_factors, self.graph_initials, opt_param
+        #     )
+        # else:  # pgo with dogleg
+        #     opt_param = gtsam.DoglegParams()
+        #     opt_param.setMaxIterations(self.config.pgo_max_iter)
+        #     opt = gtsam.DoglegOptimizer(
+        #         self.graph_factors, self.graph_initials, opt_param
+        #     )
 
-        self.graph_optimized = opt.optimizeSafely()
+        # self.graph_optimized = opt.optimizeSafely()
 
-        # Calculate marginal covariances for all variables
-        # marginals = gtsam.Marginals(self.graph_factors, self.graph_optimized)
-        # try to even visualize the covariance
-        # cov = get_node_cov(marginals, 50)
-        # print(cov)
 
-        error_after = self.graph_factors.error(self.graph_optimized)
-        if not self.silence:
-            print("[bold red]PGO done[/bold red]")
-            print("error %f --> %f:" % (error_before, error_after))
+        # error_before = self.graph_factors.error(self.graph_initials)
+        # error_after = self.graph_factors.error(self.graph_optimized)
+        # if not self.silence:
+        #     print("[bold red]PGO done[/bold red]")
+        #     print("error %f --> %f:" % (error_before, error_after))
 
         self.graph_initials = self.graph_optimized  # update the initial guess
 
@@ -276,7 +269,7 @@ class PoseGraphManager:
 
         self.cur_pose = self.pgo_poses[self.curr_node_idx]
 
-        if self.imu_used:
+        if self.config.imu_on:
             # if imu used, then all poses here are under imu frame, need to be converted back to lidar
             self.imu.velocity = self.graph_optimized.atVector(gtsam.symbol('v', self.curr_node_idx))
             self.imu.imu_bias = self.graph_optimized.atConstantBias(gtsam.symbol('b', self.curr_node_idx))
@@ -286,8 +279,12 @@ class PoseGraphManager:
             self.imu.pim.resetIntegration()
 
         self.pgo_count += 1
-        self.last_error = error_after
-            
+        # self.last_error = error_after
+
+        # reset
+        self.graph_factors = gtsam.NonlinearFactorGraph()
+        self.graph_initials.clear()
+
 
     # write the pose graph as the g2o format
     def write_g2o(self, out_file):

@@ -46,7 +46,7 @@ class SLAMDataset(Dataset):
         self.device = config.device
         self.run_path = config.run_path
 
-        self.imu = imu # the imu manager, TODO
+        self.imu = imu # the imu manager
 
         max_frame_number: int = 100000 # about 3 hours of operation
 
@@ -56,7 +56,6 @@ class SLAMDataset(Dataset):
         
         self.loader = None
         if config.use_dataloader: 
-
             self.loader = dataset_factory(
                 dataloader=config.data_loader_name, # a specific dataset or data format
                 data_dir=Path(config.pc_path),
@@ -75,6 +74,8 @@ class SLAMDataset(Dataset):
                 self.gt_pose_provided = False
             if hasattr(self.loader, 'calibration'):
                 self.calib["Tr"][:3, :4] = self.loader.calibration["Tr"].reshape(3, 4)
+            if hasattr(self.loader, 'imu_on'):
+                self.config.imu_on = True
         else: # original pin-slam generic loader
             # point cloud files
             if config.pc_path != "":
@@ -132,10 +133,12 @@ class SLAMDataset(Dataset):
         self.odom_poses = None
         if config.track_on:
             self.odom_poses = np.broadcast_to(np.eye(4), (max_frame_number, 4, 4)).copy()
+        self.odom_poses_imu = self.odom_poses
 
         self.pgo_poses = None
         if config.pgo_on:
             self.pgo_poses = np.broadcast_to(np.eye(4), (max_frame_number, 4, 4)).copy()
+        self.pgo_poses_imu = self.pgo_poses
 
         self.travel_dist = np.zeros(max_frame_number) 
         self.time_table = []
@@ -149,6 +152,7 @@ class SLAMDataset(Dataset):
         self.color_scale: float = 255.0
         self.last_pose_ref = np.eye(4)
         self.last_odom_tran = np.eye(4)
+        self.last_odom_tran_imu_frame = np.eye(4)
         self.cur_pose_ref = np.eye(4)
         # count the consecutive stop frame of the robot
         self.stop_count: int = 0
@@ -549,6 +553,9 @@ class SLAMDataset(Dataset):
 
         self.last_odom_tran = inv(self.last_pose_ref) @ self.cur_pose_ref  # T_last<-cur
 
+        if self.cur_frame_imus is not None:
+            self.last_odom_tran_imu_frame = self.T_I_L @ self.last_odom_tran @ self.T_L_I
+
         if tranmat_close_to_identity(
             self.last_odom_tran, 1e-3, self.config.voxel_size_m * 0.1
         ):
@@ -566,9 +573,16 @@ class SLAMDataset(Dataset):
         if self.config.pgo_on:  # initialize the pgo pose
             self.pgo_poses[cur_frame_id] = self.cur_pose_ref
 
+            if self.cur_frame_imus is not None:
+                self.pgo_poses_imu = self.T_Wi_Wl @ self.pgo_poses @ self.T_L_I
+
+
         if self.odom_poses is not None:
             cur_odom_pose = self.odom_poses[cur_frame_id-1] @ self.last_odom_tran  # T_world<-cur
             self.odom_poses[cur_frame_id] = cur_odom_pose
+
+            if self.cur_frame_imus is not None:
+                self.odom_poses_imu = self.T_Wi_Wl @ self.odom_poses @ self.T_L_I
 
         cur_frame_travel_dist = np.linalg.norm(self.last_odom_tran[:3, 3])
         if (
@@ -603,9 +617,15 @@ class SLAMDataset(Dataset):
             sys.exit("Lose track for a long time, system failed") 
 
     def update_poses_after_pgo(self, pgo_cur_pose, pgo_poses):
-        self.cur_pose_ref = pgo_cur_pose
-        self.last_pose_ref = pgo_cur_pose  # update for next frame
-        self.pgo_poses[:self.processed_frame+1] = pgo_poses  # update pgo pose
+        if self.config.imu_on:
+            self.pgo_poses_imu[:self.processed_frame+1] = pgo_poses  # update pgo pose
+            self.pgo_poses = self.T_Wl_Wi @ self.pgo_poses_imu @ self.T_I_L
+            self.cur_pose_ref = self.pgo_poses[self.processed_frame]
+            self.last_pose_ref = self.cur_pose_ref
+        else:
+            self.cur_pose_ref = pgo_cur_pose
+            self.last_pose_ref = pgo_cur_pose  # update for next frame
+            self.pgo_poses[:self.processed_frame+1] = pgo_poses  # update pgo pose
 
     def update_o3d_map(self):
 

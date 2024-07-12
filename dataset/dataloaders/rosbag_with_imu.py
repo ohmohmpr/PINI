@@ -69,11 +69,12 @@ class RosbagIMUDataset:
         self.bag.open()
         self.pc_topic = self.check_topic(topic)
         self.imu_topic = self.check_imu_topic(imu_topic)
-        # self.imu_topic = "/os_cloud_node/imu" # TODO: is directly given now
 
         self.n_scans = self.bag.topics[self.pc_topic].msgcount
 
         self.n_imus = self.bag.topics[self.imu_topic].msgcount
+        if self.n_imus > 0:
+            self.imu_on = True
         # print('imu count:', self.n_imus)
 
         # limit connections to selected topic
@@ -187,7 +188,7 @@ class RosbagIMUDataset:
         
             # Remove used IMU messages from the buffer
             buffer_left = 4
-            
+
             self.imu_buffer = [imu_msg for i, imu_msg in enumerate(self.imu_buffer) if i >= frame_imu_end_idx-buffer_left]
 
             self.imu_buffer_ts = [imu_ts for i, imu_ts in enumerate(self.imu_buffer_ts) if i >= frame_imu_end_idx-buffer_left]

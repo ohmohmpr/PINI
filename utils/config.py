@@ -55,6 +55,9 @@ class Config:
         self.deskew: bool = False
         self.lidar_type_guess: str = "velodyne"
 
+        # imu related 
+        self.imu_on = False
+
         # preprocess
         # distance filter
         self.min_range: float = 2.5 # filter too-close points (and 0 artifacts)

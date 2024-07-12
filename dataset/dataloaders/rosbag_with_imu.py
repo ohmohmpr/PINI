@@ -186,8 +186,11 @@ class RosbagIMUDataset:
             }
         
             # Remove used IMU messages from the buffer
-            self.imu_buffer = [imu_msg for i, imu_msg in enumerate(self.imu_buffer) if i >= frame_imu_end_idx-1]
-            self.imu_buffer_ts = [imu_ts for i, imu_ts in enumerate(self.imu_buffer_ts) if i >= frame_imu_end_idx-1]
+            buffer_left = 4
+            
+            self.imu_buffer = [imu_msg for i, imu_msg in enumerate(self.imu_buffer) if i >= frame_imu_end_idx-buffer_left]
+
+            self.imu_buffer_ts = [imu_ts for i, imu_ts in enumerate(self.imu_buffer_ts) if i >= frame_imu_end_idx-buffer_left]
 
         if point_ts is not None:
             point_ts /= 1e9 # unit: s

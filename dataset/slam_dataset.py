@@ -124,6 +124,9 @@ class SLAMDataset(Dataset):
         self.T_L_I = np.eye(4)
         self.T_I_L = np.linalg.inv(self.T_L_I)
 
+        self.T_Wl_Wi = np.eye(4)
+        self.T_Wi_Wl = np.linalg.inv(self.T_Wl_Wi)
+
         
         # use pre-allocated numpy array
         self.odom_poses = None
@@ -230,7 +233,7 @@ class SLAMDataset(Dataset):
             elif len(data) == 3:
                 points, point_ts, imus = data
                 self.cur_frame_imus = imus
-                print(imus)
+                print(imus['dt'])
             else:
                 sys.exit("Something wrong. does not support currently")
         else:
@@ -368,34 +371,43 @@ class SLAMDataset(Dataset):
             if self.config.pgo_on:
                 self.pgo_poses[frame_id] = self.cur_pose_ref
             self.travel_dist[frame_id] = 0.0
-            self.last_pose_ref = self.cur_pose_ref
+            self.last_pose_ref = self.cur_pose_ref # T_Wl_Llast
+
+            if self.cur_frame_imus is not None: # init the imu preintegration (assume static)
+                self.imu.init_preintegration(self.cur_frame_imus)
+
+                self.T_Wl_Wi = self.T_L_I @ np.linalg.inv(self.imu.T_Wi_I0)
+
         elif frame_id > 0:
-            # pose initial guess
-            # last_translation = np.linalg.norm(self.last_odom_tran[:3, 3])
-            if self.config.uniform_motion_on and not self.lose_track: 
-            # if self.config.uniform_motion_on:   
-                # apply uniform motion model here
-                cur_pose_init_guess = (
-                    self.last_pose_ref @ self.last_odom_tran
-                )  # T_world<-cur = T_world<-last @ T_last<-cur
-            else:  # static initial guess
-                cur_pose_init_guess = self.last_pose_ref
 
             if not self.config.track_on and self.gt_pose_provided:
                 cur_pose_init_guess = self.gt_poses[frame_id]
+            
+            else: # pose initial guess
 
-            # pose initial guess tensor
+                if self.cur_frame_imus is not None: # imu available
+                    T_Wi_Ilast = self.T_Wi_Wl @ self.last_pose_ref @ self.T_L_I 
+                    # preintegration
+                    T_Wi_Icur = self.imu.preintegration(acc=self.cur_frame_imus['acc'],gyro=self.cur_frame_imus['gyro'],dts=self.cur_frame_imus['dt'],last_pose=T_Wi_Ilast)
+                    # print(T_Wi_Icur)
+                    T_Wl_Lcur = self.T_Wl_Wi @ T_Wi_Icur @ self.T_I_L  # convert to lidar frame
+                    T_Wl_I = self.T_Wl_Wi @ T_Wi_Icur
+                    T_Llast_Lcur =  np.linalg.inv(self.last_pose_ref) @ T_Wl_Lcur # trans under lidar frame
+                    cur_pose_init_guess = T_Wl_Lcur
+                else:
+                    if self.config.uniform_motion_on and not self.lose_track:  
+                        # apply uniform motion model here
+                        cur_pose_init_guess = (
+                            self.last_pose_ref @ self.last_odom_tran
+                        )  # T_world<-cur = T_world<-last @ T_last<-cur
+                    else:  # static initial guess
+                        cur_pose_init_guess = self.last_pose_ref
+
+
+            # pose initial guess tensor # np to tensor
             self.cur_pose_guess_torch = torch.tensor(
                 cur_pose_init_guess, dtype=torch.float64, device=self.device
             )   
-
-            # better pose initial guess predicted by IMU
-            # T_Wi_Icur = self.imu.preintegration(acc=self.imu_curinter['acc'],gyro=self.imu_curinter['gyro'],dts=self.imu_curinter['dt'],last_pose=T_Wi_Ilast, cur_id=self.processed_frame) # this is done in imu world frame
-            # T_Wl_Lcur = self.T_Wl_Wi @ T_Wi_Icur @ self.T_I_L  # tran to lidar frame
-            # T_Wl_I = self.T_Wl_Wi @ T_Wi_Icur
-            # T_Llast_Lcur =  np.linalg.inv(self.T_Wl_Llast) @ T_Wl_Lcur # trans under lidar frame
-            
-            # cur_pose_init_guess = T_Wl_Lcur # better initial guess # this is agian back in the lidar world frame
 
         if self.config.adaptive_range_on:
             pc_max_bound, _ = torch.max(self.cur_point_cloud_torch[:, :3], dim=0)

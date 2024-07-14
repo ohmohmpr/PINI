@@ -53,7 +53,7 @@ class RosbagIMUDataset:
             self.bag = AnyReader([data_dir])
         else:
             bagfiles = [Path(path) for path in glob.glob(os.path.join(data_dir, "*.bag"))]
-            if len(bagfiles) > 0:
+            if len(bagfiles) > 0: # combine all the bags
                 self.sequence_id = os.path.basename(bagfiles[0]).split(".")[0]
                 self.bag = AnyReader(bagfiles)
             else:
@@ -93,6 +93,7 @@ class RosbagIMUDataset:
         self.imu_buffer_ts = []
         self.cur_ts_imu = -1e9 # unit: ns
         self.last_ts_imu = 0
+        self.imu_read_count = 0
 
     def __del__(self):
         if hasattr(self, "bag"):
@@ -143,13 +144,15 @@ class RosbagIMUDataset:
         imu_ts = []
         imu_dt = []
 
-        while self.cur_ts_imu < pc_max_ts: # ns
+        while self.cur_ts_imu < pc_max_ts and self.imu_read_count < self.n_imus: # ns
+            # if there's no next imu, handle it !!! # TODO
             imu_connection, cur_ts_imu, imu_data = next(self.imu_msgs) # ns
             imu_msg = self.bag.deserialize(imu_data, imu_connection.msgtype)
             cur_ts_imu -= self.first_pc_timestamp_ns  # minus the beginning reference  
             self.cur_ts_imu = cur_ts_imu
             self.imu_buffer.append(imu_msg)
             self.imu_buffer_ts.append(cur_ts_imu) # ns
+            self.imu_read_count += 1
 
         imu_buffer_ts_np = np.array(self.imu_buffer_ts) # ns
 

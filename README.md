@@ -4,7 +4,7 @@ python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu pc_ros_topic imu
 
 # Example
 # NCD
-python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /os_cloud_node/points /os_cloud_node/imu -i ./data/Newer_College_Dataset/2021-07-01-10-37-38-quad-easy.bag -dv
+python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /os_cloud_node/points /os_cloud_node/imu -i ./data/ncd_rosbag/cloister/ -dv
 
 
 # M2DGR

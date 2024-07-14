@@ -28,6 +28,7 @@ from utils.imu_lib import IMUManager
 from utils.semantic_kitti_utils import sem_kitti_color_map, sem_map_function
 from utils.tools import (
     deskewing,
+    deskewing_imu,
     get_time,
     plot_timing_detail,
     tranmat_close_to_identity,
@@ -237,7 +238,7 @@ class SLAMDataset(Dataset):
             elif len(data) == 3:
                 points, point_ts, imus = data
                 self.cur_frame_imus = imus
-                print(imus['dt'])
+                # print(imus['dt'])
             else:
                 sys.exit("Something wrong. does not support currently")
         else:
@@ -396,7 +397,8 @@ class SLAMDataset(Dataset):
                     # print(T_Wi_Icur)
                     T_Wl_Lcur = self.T_Wl_Wi @ T_Wi_Icur @ self.T_I_L  # convert to lidar frame
                     T_Wl_I = self.T_Wl_Wi @ T_Wi_Icur
-                    T_Llast_Lcur =  np.linalg.inv(self.last_pose_ref) @ T_Wl_Lcur # trans under lidar frame
+                    T_Llast_Lcur = np.linalg.inv(self.last_pose_ref) @ T_Wl_Lcur # trans under lidar frame
+                    T_Lcur_Llast = np.linalg.inv(T_Llast_Lcur)
                     cur_pose_init_guess = T_Wl_Lcur
                 else:
                     if self.config.uniform_motion_on and not self.lose_track:  
@@ -517,7 +519,13 @@ class SLAMDataset(Dataset):
                             self.last_odom_tran, device=self.device, dtype=self.dtype
                         )
                     )  # T_last<-cur
-                else: # change this later to the imu version
+                else: # change this later to the imu version # TODO
+                    imu_ts = self.cur_frame_imus["ts"]
+
+                    Ts_L_deskew = np.linalg.inv(cur_pose_init_guess) @ self.T_Wl_Wi @ self.imu.cur_frame_imu_prediction_poses @ self.T_I_L # poses at imu ts predicted by imu integration under lidar frame
+                    Ts_L_deskew_torch = torch.tensor(Ts_L_deskew, device=self.device, dtype=self.dtype)
+
+                    # self.cur_source_points = deskewing_imu(self.cur_source_points, cur_source_ts, imu_ts[1:], Ts_L_deskew_torch, T_Lcur_Llast)
                     self.cur_source_points = deskewing( # normalization is done inside
                         self.cur_source_points,
                         cur_source_ts,
@@ -525,15 +533,6 @@ class SLAMDataset(Dataset):
                             self.last_odom_tran, device=self.device, dtype=self.dtype
                         )
                     ) 
-                #     self.cur_source_points = imu_deskewing(
-                #         self.cur_source_points,
-                #         cur_source_ts,
-                #         torch.tensor(
-                #             self.last_odom_tran, device=self.device, dtype=self.dtype
-                #         )
-                #     )
-
-            # imu deskewing here
 
             # print("# Source point for registeration : ", cur_source_torch.shape[0])
 
@@ -553,7 +552,7 @@ class SLAMDataset(Dataset):
 
         self.last_odom_tran = inv(self.last_pose_ref) @ self.cur_pose_ref  # T_last<-cur
 
-        if self.cur_frame_imus is not None:
+        if self.config.imu_on:
             self.last_odom_tran_imu_frame = self.T_I_L @ self.last_odom_tran @ self.T_L_I
 
         if tranmat_close_to_identity(
@@ -571,9 +570,9 @@ class SLAMDataset(Dataset):
             self.stop_status = False
 
         if self.config.pgo_on:  # initialize the pgo pose
-            self.pgo_poses[cur_frame_id] = self.cur_pose_ref
+            self.pgo_poses[cur_frame_id] = self.cur_pose_ref # under lidar frame
 
-            if self.cur_frame_imus is not None:
+            if self.config.imu_on:
                 self.pgo_poses_imu = self.T_Wi_Wl @ self.pgo_poses @ self.T_L_I
 
 
@@ -581,7 +580,7 @@ class SLAMDataset(Dataset):
             cur_odom_pose = self.odom_poses[cur_frame_id-1] @ self.last_odom_tran  # T_world<-cur
             self.odom_poses[cur_frame_id] = cur_odom_pose
 
-            if self.cur_frame_imus is not None:
+            if self.config.imu_on:
                 self.odom_poses_imu = self.T_Wi_Wl @ self.odom_poses @ self.T_L_I
 
         cur_frame_travel_dist = np.linalg.norm(self.last_odom_tran[:3, 3])
@@ -616,16 +615,14 @@ class SLAMDataset(Dataset):
             self.write_results() # record before the failure point
             sys.exit("Lose track for a long time, system failed") 
 
-    def update_poses_after_pgo(self, pgo_cur_pose, pgo_poses):
+    def update_poses_after_pgo(self, pgo_poses):
         if self.config.imu_on:
             self.pgo_poses_imu[:self.processed_frame+1] = pgo_poses  # update pgo pose
             self.pgo_poses = self.T_Wl_Wi @ self.pgo_poses_imu @ self.T_I_L
-            self.cur_pose_ref = self.pgo_poses[self.processed_frame]
-            self.last_pose_ref = self.cur_pose_ref
         else:
-            self.cur_pose_ref = pgo_cur_pose
-            self.last_pose_ref = pgo_cur_pose  # update for next frame
             self.pgo_poses[:self.processed_frame+1] = pgo_poses  # update pgo pose
+        self.cur_pose_ref = self.pgo_poses[self.processed_frame] # should also in lidar frame
+        self.last_pose_ref = self.cur_pose_ref
 
     def update_o3d_map(self):
 

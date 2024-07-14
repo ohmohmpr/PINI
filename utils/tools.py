@@ -655,6 +655,7 @@ def split_chunks(
 def deskewing(
     points: torch.tensor, ts: torch.tensor, pose: torch.tensor, ts_mid_pose=0.5
 ):
+    # pose is the relative transformation under lidar frame
 
     if ts is None:
         return points  # no deskewing
@@ -686,15 +687,17 @@ def deskewing(
     return points_deskewd
 
 # TODO: read and refactor
-def deskewing_imu(points: torch.tensor, ts: torch.tensor, ts_raw_imu_curinterval, T_Lcur_Limu_deskewing: torch.tensor, T_Lcur_Llast, ts_lidar_start, ts_lidar_end):
-    assert len(ts_raw_imu_curinterval)==len(T_Lcur_Limu_deskewing)
+# get the relative transformation bewteen each imu timestamp @ the begining transformation at the begining imu timestamp
+# get the relative transformation at each point timestamp
+def deskewing_imu(points: torch.tensor, ts: torch.tensor, ts_imu, T_Lcur_Limu_deskewing: torch.tensor, T_Lcur_Llast, ts_lidar_start, ts_lidar_end):
+    # assert len(ts_raw_imu_curinterval)==len(T_Lcur_Limu_deskewing)
 
-    # --Convert datetime to timestamps in seconds
-    imu_timestamps = [ts_imu.timestamp() for ts_imu in ts_raw_imu_curinterval]
-    start_timestamp = ts_lidar_start.timestamp()
+    # # --Convert datetime to timestamps in seconds
+    # imu_timestamps = [ts_imu.timestamp() for ts_imu in ts_raw_imu_curinterval]
+    # start_timestamp = ts_lidar_start.timestamp()
 
     ts_interval = imu_timestamps[-1] - start_timestamp
-    test = ts_lidar_end.timestamp() - start_timestamp
+    # test = ts_lidar_end.timestamp() - start_timestamp
     # ts_mid_pose = ts_lidar_start + 1/2*(ts_interval)
     
     # -- sort imu and lidar ts/poses

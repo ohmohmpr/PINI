@@ -11,6 +11,7 @@ from rich import print
 
 from utils.config import Config
 from utils.imu_lib import IMUManager
+from utils.tools import get_time
 
 class PoseGraphManager:
     def __init__(self, config: Config, imu: IMUManager = None):
@@ -43,7 +44,7 @@ class PoseGraphManager:
         self.robust_loop_cov = gtsam.noiseModel.Robust(mEst, self.loop_cov)
         self.robust_odom_cov = gtsam.noiseModel.Robust(mEst, self.odom_cov)
 
-        self.isam = gtsam.ISAM2()
+        self.isam = gtsam.ISAM2() # isam would record the previous graph as a smoothing
 
         self.graph_factors = gtsam.NonlinearFactorGraph() # edges # with pose and pose covariance
         self.graph_initials = gtsam.Values()  # initial guess of the nodes 
@@ -63,6 +64,7 @@ class PoseGraphManager:
         self.last_loop_idx = 0
         self.drift_radius = 0.0  # m
         self.pgo_count = 0
+        self.valid_loop_count = 0
         self.last_error = 0.0
 
         self.imu = imu
@@ -219,24 +221,25 @@ class PoseGraphManager:
             )
         )  # NOTE: add robust kernel
 
-        cur_error = self.graph_factors.error(self.graph_initials)
-        valid_error_thre = (
-            self.last_error
-            + (cur_id - self.last_loop_idx) * self.config.pgo_error_thre_frame
-        )
-        if reject_outlier and cur_error > valid_error_thre:
-            if not self.silence:
-                print(
-                    "[bold yellow]A loop edge rejected due to too large error[/bold yellow]"
-                )
-            self.graph_factors.remove(self.graph_factors.size() - 1)
-            return False
+        if reject_outlier:
+            cur_error = self.graph_factors.error(self.graph_initials)
+            valid_error_thre = (
+                self.last_error
+                + (cur_id - self.last_loop_idx) * self.config.pgo_error_thre_frame
+            )
+            if cur_error > valid_error_thre:
+                if not self.silence:
+                    print(
+                        "[bold yellow]A loop edge rejected due to too large error[/bold yellow]"
+                    )
+                self.graph_factors.remove(self.graph_factors.size() - 1)
+                return False
+            
         return True
 
     def optimize_pose_graph(self):
 
         self.isam.update(self.graph_factors, self.graph_initials)
-        self.graph_optimized = self.isam.calculateEstimate()
 
         # if self.config.pgo_with_lm:
         #     opt_param = gtsam.LevenbergMarquardtParams()
@@ -251,8 +254,15 @@ class PoseGraphManager:
         #         self.graph_factors, self.graph_initials, opt_param
         #     )
 
+        T_0 = get_time()
+        self.graph_optimized = self.isam.calculateEstimate()
+
         # self.graph_optimized = opt.optimizeSafely()
 
+        T_1 = get_time()
+
+        if not self.silence:
+            print("time for factor graph optimization (ms)", (T_1-T_0)*1e3)
 
         # error_before = self.graph_factors.error(self.graph_initials)
         # error_after = self.graph_factors.error(self.graph_optimized)
@@ -267,7 +277,7 @@ class PoseGraphManager:
         for idx in range(self.curr_node_idx+1):
             self.pgo_poses[idx] = get_node_pose(self.graph_optimized, idx)
 
-        self.cur_pose = self.pgo_poses[self.curr_node_idx]
+        self.cur_pose = self.pgo_poses[self.curr_node_idx] # if imu on, then here it's in imu frame
 
         if self.config.imu_on:
             # if imu used, then all poses here are under imu frame, need to be converted back to lidar
@@ -371,6 +381,7 @@ class PoseGraphManager:
     def get_pose_diff(self):
         assert self.pgo_poses.shape[0] == self.init_poses.shape[0], "poses before and after pgo must have the same size."
         pose_diff = np.matmul(self.pgo_poses, np.linalg.inv(self.init_poses))
+
         return pose_diff
 
     def estimate_drift(

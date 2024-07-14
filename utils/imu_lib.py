@@ -61,7 +61,7 @@ class IMUManager:
         # self.imu_v_initial.append(self.velocity) # testing
 
         #
-        self.imu_prediction_poses_curinterval = torch.empty(len(dts), 4, 4) # the prediction of imu pose wrt Wi between 2 lidar frames # pose at each interval
+        self.cur_frame_imu_prediction_poses = np.empty((len(dts), 4, 4)) # the prediction of imu pose wrt Wi between 2 lidar frames # pose at each interval
         for i,dt in enumerate(dts):
             # self.pim.integrate() # https://github.com/borglab/gtsam/blob/0fee5cb76e7a04b590ff0dc1051950da5b265340/python/gtsam/examples/PreintegrationExample.py#L159C16-L159C70 
             self.pim.integrateMeasurement(acc[i], gyro[i], dt) # https://github.com/borglab/gtsam/blob/4abef9248edc4c49943d8fd8a84c028deb486f4c/python/gtsam/examples/CombinedImuFactorExample.py#L175C12-L177C74 
@@ -70,7 +70,7 @@ class IMUManager:
             pose_each_frame = self.pim.predict(initial_state, self.imu_bias).pose()
             pose_each_frame_homo[:3,:3] = pose_each_frame.rotation().matrix()
             pose_each_frame_homo[:3,3] = pose_each_frame.translation()
-            self.imu_prediction_poses_curinterval[i] = torch.tensor(pose_each_frame_homo) # pose at this imu ts
+            self.cur_frame_imu_prediction_poses[i] = pose_each_frame_homo # pose at this imu ts
 
         imu_prediction = self.pim.predict(initial_state, self.imu_bias) # final pose
         # predicted_pose = # w2imu

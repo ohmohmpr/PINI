@@ -379,7 +379,7 @@ class SLAMDataset(Dataset):
             self.last_pose_ref = self.cur_pose_ref # T_Wl_Llast
 
             if self.config.imu_on and self.cur_frame_imus is not None: # init the imu preintegration (assume static)
-                self.imu.init_preintegration(self.cur_frame_imus)
+                self.imu.init_preintegration(self.cur_frame_imus, gravity_align=True) # TODO: figure out if wee need to align the gravity
 
                 self.T_Wl_Wi = self.T_L_I @ np.linalg.inv(self.imu.T_Wi_I0)
                 self.T_Wi_Wl = np.linalg.inv(self.T_Wl_Wi)
@@ -526,6 +526,9 @@ class SLAMDataset(Dataset):
 
                     Ts_L_deskew = np.linalg.inv(cur_pose_init_guess) @ self.T_Wl_Wi @ self.imu.cur_frame_imu_prediction_poses @ self.T_I_L # poses at imu ts predicted by imu integration under lidar frame
                     Ts_L_deskew_torch = torch.tensor(Ts_L_deskew, device=self.device, dtype=self.dtype)
+
+                    # print(Ts_L_deskew_torch.shape)
+                    # print(np.shape(imu_ts))
 
                     # self.cur_source_points = deskewing_imu(self.cur_source_points, cur_source_ts, imu_ts[1:], Ts_L_deskew_torch, T_Lcur_Llast)
                     self.cur_source_points = deskewing( # normalization is done inside

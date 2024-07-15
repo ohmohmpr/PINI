@@ -16,8 +16,8 @@ class IMUManager:
 
         self.velocity = np.array([0, 0, 0])
     
-    def init_preintegration(self, init_imuinter):
-        self.T_Wi_I0, self.accBias, self.gyroBias, self.accel_sigma, self.gyro_sigma = self.imu_calibration_online(init_imuinter)
+    def init_preintegration(self, init_imuinter, gravity_align = False):
+        self.T_Wi_I0, self.accBias, self.gyroBias, self.accel_sigma, self.gyro_sigma = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
 
         self.imu_bias = gtsam.imuBias.ConstantBias(self.accBias, self.gyroBias)
 
@@ -47,19 +47,20 @@ class IMUManager:
         for cur_acc, cur_gyro, cur_dt in zip(acc, gyro, dts):
             self.pim.integrateMeasurement(cur_acc, cur_gyro, cur_dt)
 
+            cur_imu_prediction = self.pim.predict(initial_state, self.imu_bias)
+
+            cur_preintegration_pose = cur_imu_prediction.pose()
+            
             cur_tran = np.eye(4)
-            cur_preintegration_pose = self.pim.predict(initial_state, self.imu_bias).pose()
             cur_tran[:3,:3] = cur_preintegration_pose.rotation().matrix()
             cur_tran[:3,3] = cur_preintegration_pose.translation()
             self.cur_frame_imu_prediction_poses[iter_count] = cur_tran # pose at this imu ts
+            
+            cur_velocity = cur_imu_prediction.velocity()
             iter_count += 1
 
-        imu_prediction = self.pim.predict(initial_state, self.imu_bias) # final pose
-        self.velocity = imu_prediction.velocity()
-        
-        integrated_pose = np.eye(4)
-        integrated_pose[:3,:3] = imu_prediction.pose().rotation().matrix()
-        integrated_pose[:3,3] = imu_prediction.pose().translation()
+        self.velocity = cur_velocity 
+        integrated_pose = self.cur_frame_imu_prediction_poses[-1]
 
         return integrated_pose
     

@@ -6,6 +6,8 @@ python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu pc_ros_topic imu
 # NCD
 python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /os_cloud_node/points /os_cloud_node/imu -i ./data/ncd_rosbag/cloister/ -dv
 
+python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /os1_cloud_node/points /os1_cloud_node/imu -i ./data/ncd_rosbag/01_short_experiment/ -dv
+
 
 # M2DGR
 python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /velodyne_points /handsfree/imu -i ./data/m2dgr/street_03/street_03.bag -dv

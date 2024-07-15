@@ -5,10 +5,10 @@ setting:
 process:
   max_range_m: 80.0 # maximum distance filter for each frame
 sampler:
-  surface_sample_range_m: 0.25
+  surface_sample_range_m: 0.3
 neuralpoints:
   voxel_size_m: 0.4
-  search_alpha: 0.2 # increase when you want to be more robust to agressive motions
+  search_alpha: 0.5 # increase when you want to be more robust to agressive motions
 continual:
   batch_size_new_sample: 1000
   pool_capacity: 1e7
@@ -20,6 +20,7 @@ tracker:
 pgo:
   map_context: True
   context_cosdist: 0.3
+  min_loop_travel_ratio: 2.0
 optimizer: # mapper
   batch_size: 10000
   adaptive_iters: True

@@ -145,7 +145,6 @@ class RosbagIMUDataset:
         imu_dt = []
 
         while self.cur_ts_imu < pc_max_ts and self.imu_read_count < self.n_imus: # ns
-            # if there's no next imu, handle it !!! # TODO
             imu_connection, cur_ts_imu, imu_data = next(self.imu_msgs) # ns
             imu_msg = self.bag.deserialize(imu_data, imu_connection.msgtype)
             cur_ts_imu -= self.first_pc_timestamp_ns  # minus the beginning reference  
@@ -159,12 +158,13 @@ class RosbagIMUDataset:
         frame_imu_begin_idx = closest_ts_idx(pc_min_ts, imu_buffer_ts_np)
         frame_imu_end_idx = closest_ts_idx(pc_max_ts, imu_buffer_ts_np)
 
-        # print(frame_imu_begin_idx, frame_imu_end_idx)
-
         frame_imu_data = None
-        if frame_imu_end_idx - frame_imu_begin_idx > 2: # need to have enough IMU measurements in between
+        if frame_imu_end_idx - frame_imu_begin_idx > 3: # need to have enough IMU measurements in between
         
-            frame_imu_idx_range = range(frame_imu_begin_idx, frame_imu_end_idx+1)
+            # frame_imu_idx_range = range(frame_imu_begin_idx, frame_imu_end_idx+1)
+
+            # skip the first imu data in a frame
+            frame_imu_idx_range = range(frame_imu_begin_idx+1, frame_imu_end_idx+1)
 
             for idx in frame_imu_idx_range:
                 imu_msg = self.imu_buffer[idx]

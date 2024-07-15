@@ -161,10 +161,10 @@ class RosbagIMUDataset:
         frame_imu_data = None
         if frame_imu_end_idx - frame_imu_begin_idx > 3: # need to have enough IMU measurements in between
         
-            # frame_imu_idx_range = range(frame_imu_begin_idx, frame_imu_end_idx+1)
+            frame_imu_idx_range = range(frame_imu_begin_idx, frame_imu_end_idx+1)
 
             # skip the first imu data in a frame
-            frame_imu_idx_range = range(frame_imu_begin_idx+1, frame_imu_end_idx+1)
+            # frame_imu_idx_range = range(frame_imu_begin_idx+1, frame_imu_end_idx+1)
 
             for idx in frame_imu_idx_range:
                 imu_msg = self.imu_buffer[idx]

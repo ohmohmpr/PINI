@@ -392,7 +392,7 @@ class SLAMDataset(Dataset):
             
             else: # pose initial guess
 
-                if self.cur_frame_imus is not None: # imu available
+                if self.config.imu_on and self.cur_frame_imus is not None: # imu available
                     T_Wi_Ilast = self.T_Wi_Wl @ self.last_pose_ref @ self.T_L_I 
                     # preintegration
                     T_Wi_Icur = self.imu.preintegration(acc=self.cur_frame_imus['acc'],gyro=self.cur_frame_imus['gyro'],dts=self.cur_frame_imus['dt'],last_pose=T_Wi_Ilast)
@@ -509,11 +509,13 @@ class SLAMDataset(Dataset):
             else:
                 cur_source_ts = None
 
-            # print(cur_source_ts)
+            if frame_id > 20: # TODO fix me
+                self.imu.stable = True
 
             # deskewing (motion undistortion) for source point cloud
+            self.points_map_deskewed = False
             if self.config.deskew and not self.lose_track:
-                if self.cur_frame_imus is None:
+                if not self.config.imu_on or not self.imu.stable:
                     self.cur_source_points = deskewing( # normalization is done inside
                         self.cur_source_points,
                         cur_source_ts,
@@ -521,23 +523,20 @@ class SLAMDataset(Dataset):
                             self.last_odom_tran, device=self.device, dtype=self.dtype
                         )
                     )  # T_last<-cur
-                else: # change this later to the imu version # TODO
-                    imu_ts = self.cur_frame_imus["ts"]
+                else:
+                    imu_ts = torch.tensor(self.cur_frame_imus["ts"], device=self.device, dtype=self.dtype)
 
-                    Ts_L_deskew = np.linalg.inv(cur_pose_init_guess) @ self.T_Wl_Wi @ self.imu.cur_frame_imu_prediction_poses @ self.T_I_L # poses at imu ts predicted by imu integration under lidar frame
+                    # relative to the beginning pose of this frame
+                    Ts_L_deskew = np.linalg.inv(self.last_pose_ref) @ self.T_Wl_Wi @ self.imu.cur_frame_imu_prediction_poses @ self.T_I_L # poses at imu ts predicted by imu integration under lidar frame
                     Ts_L_deskew_torch = torch.tensor(Ts_L_deskew, device=self.device, dtype=self.dtype)
 
-                    # print(Ts_L_deskew_torch.shape)
-                    # print(np.shape(imu_ts))
+                    # TODO: something wrong here, figure it out
+                    # maybe disable it when the imu is not yet stable (wrong bias , etc.)
+                    self.cur_source_points = deskewing_imu(self.cur_source_points, cur_source_ts, imu_ts, Ts_L_deskew_torch)
 
-                    # self.cur_source_points = deskewing_imu(self.cur_source_points, cur_source_ts, imu_ts[1:], Ts_L_deskew_torch, T_Lcur_Llast)
-                    self.cur_source_points = deskewing( # normalization is done inside
-                        self.cur_source_points,
-                        cur_source_ts,
-                        torch.tensor(
-                            self.last_odom_tran, device=self.device, dtype=self.dtype
-                        )
-                    ) 
+                    self.cur_point_cloud_torch = deskewing_imu(self.cur_point_cloud_torch, self.cur_point_ts_torch, imu_ts, Ts_L_deskew_torch) 
+
+                    self.points_map_deskewed = True
 
             # print("# Source point for registeration : ", cur_source_torch.shape[0])
 
@@ -604,7 +603,8 @@ class SLAMDataset(Dataset):
         self.last_pose_ref = self.cur_pose_ref  # update for the next frame
 
         # deskewing (motion undistortion using the estimated transformation) for the sampled points for mapping
-        if self.config.deskew and not self.lose_track:
+        # TODO: find better way to deskew the points for mapping when IMU is available
+        if self.config.deskew and not self.lose_track and not self.points_map_deskewed:
             self.cur_point_cloud_torch = deskewing(
                 self.cur_point_cloud_torch,
                 self.cur_point_ts_torch,

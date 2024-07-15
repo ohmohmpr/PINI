@@ -686,61 +686,112 @@ def deskewing(
 
     return points_deskewd
 
-# TODO: read and refactor
-# get the relative transformation bewteen each imu timestamp @ the begining transformation at the begining imu timestamp
-# get the relative transformation at each point timestamp
-def deskewing_imu(points: torch.tensor, ts: torch.tensor, ts_imu, T_Lcur_Limu_deskewing: torch.tensor, T_Lcur_Llast, ts_lidar_start, ts_lidar_end):
-    # assert len(ts_raw_imu_curinterval)==len(T_Lcur_Limu_deskewing)
 
-    # # --Convert datetime to timestamps in seconds
-    # imu_timestamps = [ts_imu.timestamp() for ts_imu in ts_raw_imu_curinterval]
-    # start_timestamp = ts_lidar_start.timestamp()
-
-    ts_interval = imu_timestamps[-1] - start_timestamp
-    # test = ts_lidar_end.timestamp() - start_timestamp
-    # ts_mid_pose = ts_lidar_start + 1/2*(ts_interval)
+def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.tensor, L_lidar_at_imu_ts: torch.tensor):
+    """
+        Deskewing a frame of LiDAR scan with the help of IMU
     
-    # -- sort imu and lidar ts/poses
-    # Combine IMU and LiDAR data
-    combined_data = list(zip(imu_timestamps, T_Lcur_Limu_deskewing)) + [(start_timestamp, torch.tensor(T_Lcur_Llast, dtype=torch.float32))]
-    # Sort combined data by timestamps
-    combined_data.sort(key=lambda x: x[0])
-    # Unpack the sorted pairs into separate lists (if needed)
-    sorted_timestamps, sorted_poses = zip(*combined_data)
-    sorted_timestamps = torch.tensor(sorted_timestamps, dtype=torch.float64).to(ts.device)
-    sorted_timestamps -= start_timestamp
-    sorted_poses_tensor = torch.stack(sorted_poses).to(ts.device)
+    Args:
+        points (torch.Tensor): [N,3] point coordinates
+        point_ts (torch.Tensor): N point-wise timestamp
+        imu_ts (torch.Tensor): K IMU timestamps for this frame
+        L_lidar_at_imu_ts (torch.Tensor): [K,4,4] relative transformations at IMU timestamp with regards to the beginning of this frame
+    Returns:
+        points_deskewd (torch.Tensor): [N,3] point coordinates after deskewing
+    """
+    
+    K_imu = imu_ts.shape[0]
 
-    # --ts of points
-    ts = ts.squeeze(-1)
+    imu_after_ts_index = torch.searchsorted(imu_ts, point_ts)
 
-    min_ts = torch.min(ts)
-    max_ts = torch.max(ts)
-    ts_scaled = (ts - min_ts) / (max_ts - min_ts) * ts_interval
+    # print(torch.min(imu_before_ts_index))
+    # print(torch.max(imu_before_ts_index))
 
-    # ts_scaled += start_timestamp # to large
+    imu_after_ts_index = torch.clamp(imu_after_ts_index, 1, K_imu - 1)
+    imu_before_ts_index = imu_after_ts_index - 1
 
-    before_indices, after_indices = find_closest_indices(ts_scaled, sorted_timestamps)
-    # interpolate points transform within the 10 poses predicted from the imu measurements
-    points_deskewed = interpolate_poses(before_indices, after_indices, sorted_timestamps, sorted_poses_tensor, ts_scaled, points)
+    point_ts_ratio_in_imu_interval = (point_ts - imu_ts[imu_before_ts_index]) / (imu_ts[imu_after_ts_index] - imu_ts[imu_before_ts_index]) # N
 
-    return points_deskewed
+    # print(L_lidar_at_imu_ts)
 
-def find_closest_indices(ts, sorted_ts):
-    # Find indices in sorted_ts that are closest to each timestamp in ts
-    indices = torch.searchsorted(sorted_ts, ts)
-    # assert torch.all((indices - 1 >= 0) & (indices <= len(sorted_ts) - 1))
-    before_indices = torch.clamp(indices - 1, 0, len(sorted_ts) - 1)
-    after_indices = torch.clamp(indices, 0, len(sorted_ts) - 1)
-    # Ensure we do not exceed the range of sorted_ts
-    before_indices = torch.where(before_indices > after_indices, after_indices, before_indices)
-    return before_indices, after_indices
+    inv_L_lidar_at_imu_ts = torch.linalg.inv(L_lidar_at_imu_ts)
+
+    pose_in_imu_interval = torch.bmm(inv_L_lidar_at_imu_ts[:-1], L_lidar_at_imu_ts[1:]) # K-1, 4, 4
+
+    points_pose_in_imu_interval = pose_in_imu_interval[imu_before_ts_index] # N, 4, 4
+
+    # print(points_pose_in_imu_interval.shape)
+
+    batch_eye = torch.eye(3).unsqueeze(0).repeat(points.shape[0], 1, 1).to(points)
+
+    rotmat_slerp_in_imu_interval = rotmat_slerp(batch_eye, points_pose_in_imu_interval[:, :3, :3].to(points), point_ts_ratio_in_imu_interval) # R2
+
+    # print(rotmat_slerp_in_imu_interval.shape) # N, 3, 3
+
+    tran_lerp_in_imu_interval = point_ts_ratio_in_imu_interval[:, None] * points_pose_in_imu_interval[:, :3, 3] # t2
+
+    # rotmat_slerp = torch.bmm(rotmat_slerp_in_imu_interval, L_lidar_at_imu_ts[imu_before_ts_index, :3, :3])
+    # tran_lerp = tran_lerp_in_imu_interval 
+
+    rot_mat_imu_before_ts = L_lidar_at_imu_ts[imu_before_ts_index, :3, :3] # R1
+
+    # print(rot_mat_imu_before_ts.shape) # N, 3, 3
+
+    rot_mat_slerp_combined = torch.bmm(rotmat_slerp_in_imu_interval, rot_mat_imu_before_ts) # N, 3, 3
+
+    # print(rot_mat_slerp_combined.shape)
+
+    tran_imu_before_ts = L_lidar_at_imu_ts[imu_before_ts_index, :3, 3] # t1 # N, 3
+
+    points_deskewd = points
+    # p' = R2 R1 p + R2 t1 + t2
+    points_deskewd[:, :3] = (rot_mat_slerp_combined @ points[:, :3].unsqueeze(-1)).squeeze(-1) + (rotmat_slerp_in_imu_interval @ tran_imu_before_ts.unsqueeze(-1)).squeeze(-1) + tran_lerp_in_imu_interval
+
+    return points_deskewd
+
+def rotmat_slerp(R0, R1, steps):
+    """
+    Spherical linear interpolation between two rotation matrices.
+    This version is adapted from the original roma.rotmat_slerp function
+
+    Args:
+        R0, R1 (Ax3x3 tensor): batch of rotation matrices (A may contain multiple dimensions).
+        steps (tensor of shape A):  interpolation steps, 0.0 corresponding to R0 and 1.0 to R1
+    Returns: 
+        batch of interpolated rotation matrices (Ax3x3 tensor).
+    """    
+    q0 = roma.mappings.rotmat_to_unitquat(R0)
+    q1 = roma.mappings.rotmat_to_unitquat(R1)
+    interpolated_q = slerp_quat(q0, q1, steps)
+    return roma.mappings.unitquat_to_rotmat(interpolated_q)
+
+def slerp_quat(q0, q1, t):
+    """
+    Perform spherical linear interpolation (slerp) between two quaternions in batch
+    Args:
+        q0 (torch.Tensor): Initial quaternions of shape (N, 4).
+        q1 (torch.Tensor): Target quaternions of shape (N, 4).
+        t (torch.Tensor): Interpolation steps of shape (N).
+    Returns:
+        torch.Tensor: Interpolated quaternions of shape (N, 4).
+    """
+    dot = torch.sum(q0 * q1, dim=-1)
+    dot = torch.clamp(dot, -1.0, 1.0)
+
+    theta = (torch.acos(dot) * t).unsqueeze(-1)
+
+    q2 = q1 - q0 * dot.unsqueeze(-1)
+
+    q2 = torch.nn.functional.normalize(q2, dim=-1)
+
+    return q0 * torch.cos(theta) + q2 * torch.sin(theta)
+
 
 def interpolate_poses(before_indices, after_indices, sorted_ts, sorted_poses, ts, points):
     # Initialize the container for deskewed points
     points_deskewed = points.clone()
 
-    # Loop over all unique pairs of indices, directly derived from before and after indices
+    # Loop over all unique pairs of indices, directly derived from before and after indices # then this is very slow, right?
     for i in range(len(sorted_ts) - 1):  # Assuming sorted_ts is always valid for i and i+1
         mask = (before_indices == i) & (after_indices == i+1)
         if torch.any(mask):
@@ -763,6 +814,7 @@ def interpolate_poses(before_indices, after_indices, sorted_ts, sorted_poses, ts
             points_deskewed[mask, :3] = (rotmat_slerp @ points_subset[:, :3].unsqueeze(-1)).squeeze(-1) + tran_lerp
 
     return points_deskewed
+
 
 
 def tranmat_close_to_identity(mats: np.ndarray, rot_thre: float, tran_thre: float):

@@ -15,6 +15,8 @@ class IMUManager:
         self.params = gtsam.PreintegrationCombinedParams.MakeSharedU(self.gravity)
 
         self.velocity = np.array([0, 0, 0])
+
+        self.stable = False
     
     def init_preintegration(self, init_imuinter, gravity_align = False):
         self.T_Wi_I0, self.accBias, self.gyroBias, self.accel_sigma, self.gyro_sigma = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
@@ -61,6 +63,8 @@ class IMUManager:
 
         self.velocity = cur_velocity 
         integrated_pose = self.cur_frame_imu_prediction_poses[-1]
+
+        # print(self.imu_bias) # the bias is changing too fast, something must be wrong # TODO
 
         return integrated_pose
     

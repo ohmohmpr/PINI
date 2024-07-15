@@ -708,7 +708,7 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
     # print(torch.max(imu_before_ts_index))
 
     imu_after_ts_index = torch.clamp(imu_after_ts_index, 1, K_imu - 1)
-    imu_before_ts_index = imu_after_ts_index - 1
+    imu_before_ts_index = imu_after_ts_index - 1 # 0 - K-2
 
     point_ts_ratio_in_imu_interval = (point_ts - imu_ts[imu_before_ts_index]) / (imu_ts[imu_after_ts_index] - imu_ts[imu_before_ts_index]) # N
 
@@ -724,28 +724,24 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
 
     batch_eye = torch.eye(3).unsqueeze(0).repeat(points.shape[0], 1, 1).to(points)
 
-    rotmat_slerp_in_imu_interval = rotmat_slerp(batch_eye, points_pose_in_imu_interval[:, :3, :3].to(points), point_ts_ratio_in_imu_interval) # R2
-
-    # print(rotmat_slerp_in_imu_interval.shape) # N, 3, 3
+    rotmat_slerp_in_imu_interval = rotmat_slerp(batch_eye, points_pose_in_imu_interval[:, :3, :3].to(points), point_ts_ratio_in_imu_interval) # R2  # N, 3, 3
 
     tran_lerp_in_imu_interval = point_ts_ratio_in_imu_interval[:, None] * points_pose_in_imu_interval[:, :3, 3] # t2
 
     # rotmat_slerp = torch.bmm(rotmat_slerp_in_imu_interval, L_lidar_at_imu_ts[imu_before_ts_index, :3, :3])
     # tran_lerp = tran_lerp_in_imu_interval 
 
-    rot_mat_imu_before_ts = L_lidar_at_imu_ts[imu_before_ts_index, :3, :3] # R1
-
-    # print(rot_mat_imu_before_ts.shape) # N, 3, 3
-
-    rot_mat_slerp_combined = torch.bmm(rotmat_slerp_in_imu_interval, rot_mat_imu_before_ts) # N, 3, 3
+    rot_mat_imu_before_ts = L_lidar_at_imu_ts[imu_before_ts_index, :3, :3] # R1 # N, 3, 3
+ 
+    rot_mat_slerp_combined = torch.bmm(rot_mat_imu_before_ts, rotmat_slerp_in_imu_interval) # N, 3, 3 # R1 R2
 
     # print(rot_mat_slerp_combined.shape)
 
     tran_imu_before_ts = L_lidar_at_imu_ts[imu_before_ts_index, :3, 3] # t1 # N, 3
 
     points_deskewd = points
-    # p' = R2 R1 p + R2 t1 + t2
-    points_deskewd[:, :3] = (rot_mat_slerp_combined @ points[:, :3].unsqueeze(-1)).squeeze(-1) + (rotmat_slerp_in_imu_interval @ tran_imu_before_ts.unsqueeze(-1)).squeeze(-1) + tran_lerp_in_imu_interval
+    # p' = R1 R2 p + R1 t2 + t1
+    points_deskewd[:, :3] = (rot_mat_slerp_combined @ points[:, :3].unsqueeze(-1)).squeeze(-1) + (rot_mat_imu_before_ts @ tran_lerp_in_imu_interval.unsqueeze(-1)).squeeze(-1) + tran_imu_before_ts
 
     return points_deskewd
 

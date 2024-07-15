@@ -509,7 +509,7 @@ class SLAMDataset(Dataset):
             else:
                 cur_source_ts = None
 
-            if frame_id > 20: # TODO fix me
+            if frame_id > 10: # TODO fix me
                 self.imu.stable = True
 
             # deskewing (motion undistortion) for source point cloud

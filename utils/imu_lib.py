@@ -1,7 +1,5 @@
 import numpy as np
 import gtsam
-import os
-import torch
 from scipy.spatial.transform import Rotation
 
 from utils.config import Config
@@ -14,22 +12,9 @@ class IMUManager:
         self.silence = config.silence
 
         self.gravity = 9.81 # read from config
-        self.params = gtsam.PreintegrationCombinedParams.MakeSharedU(self.gravity) # Dwrong! OXTS coordinates are defined as x = forward, y = right, z = down// see imu dataformat: forward,left,top
-        
-        # self.accBias = np.array([ 0,  2.09481966e-04, -1.50556073e-05])
-        # self.gyroBias = np.array([-1.35759117e-04,  1.82918979e-06, -1.39241744e-03]) #-1.39241744e-03
-        
-        # # Some arbitrary noise sigmas
-        # self.gyro_sigma = np.ones(3)*1e-3
-        # self.accel_sigma = np.ones(3)*1e-3
+        self.params = gtsam.PreintegrationCombinedParams.MakeSharedU(self.gravity)
 
         self.velocity = np.array([0, 0, 0])
-
-        self.velocity_record = []
-        self.imu_v_initial = []
-        self.imu_v_output = []
-        self.imu_v_optimized = []
-
     
     def init_preintegration(self, init_imuinter):
         self.T_Wi_I0, self.accBias, self.gyroBias, self.accel_sigma, self.gyro_sigma = self.imu_calibration_online(init_imuinter)
@@ -54,41 +39,29 @@ class IMUManager:
         #     initial_pose = gtsam.Pose3(last_pose)
 
         initial_pose = gtsam.Pose3(last_pose)
-        initial_state = gtsam.NavState(
-            initial_pose,
-            self.velocity) # https://github.com/borglab/gtsam/blob/4abef9248edc4c49943d8fd8a84c028deb486f4c/python/gtsam/examples/CombinedImuFactorExample.py#L164C9-L168C46 
-        
-        # self.imu_v_initial.append(self.velocity) # testing
+        initial_state = gtsam.NavState(initial_pose, self.velocity)
 
-        #
         self.cur_frame_imu_prediction_poses = np.empty((len(dts), 4, 4)) # the prediction of imu pose wrt Wi between 2 lidar frames # pose at each interval
-        for i,dt in enumerate(dts):
-            # self.pim.integrate() # https://github.com/borglab/gtsam/blob/0fee5cb76e7a04b590ff0dc1051950da5b265340/python/gtsam/examples/PreintegrationExample.py#L159C16-L159C70 
-            self.pim.integrateMeasurement(acc[i], gyro[i], dt) # https://github.com/borglab/gtsam/blob/4abef9248edc4c49943d8fd8a84c028deb486f4c/python/gtsam/examples/CombinedImuFactorExample.py#L175C12-L177C74 
-            
-            pose_each_frame_homo = np.eye(4)
-            pose_each_frame = self.pim.predict(initial_state, self.imu_bias).pose()
-            pose_each_frame_homo[:3,:3] = pose_each_frame.rotation().matrix()
-            pose_each_frame_homo[:3,3] = pose_each_frame.translation()
-            self.cur_frame_imu_prediction_poses[i] = pose_each_frame_homo # pose at this imu ts
+        # for i,dt in enumerate(dts):
+        iter_count = 0 
+        for cur_acc, cur_gyro, cur_dt in zip(acc, gyro, dts):
+            self.pim.integrateMeasurement(cur_acc, cur_gyro, cur_dt)
+
+            cur_tran = np.eye(4)
+            cur_preintegration_pose = self.pim.predict(initial_state, self.imu_bias).pose()
+            cur_tran[:3,:3] = cur_preintegration_pose.rotation().matrix()
+            cur_tran[:3,3] = cur_preintegration_pose.translation()
+            self.cur_frame_imu_prediction_poses[iter_count] = cur_tran # pose at this imu ts
+            iter_count += 1
 
         imu_prediction = self.pim.predict(initial_state, self.imu_bias) # final pose
-        # predicted_pose = # w2imu
         self.velocity = imu_prediction.velocity()
-        self.imu_v_output.append(self.velocity)
-
-        # not add it now
-        # self.graph_initials.insert(gtsam.symbol('v', cur_id), self.velocity)
-        # self.graph_initials.insert(gtsam.symbol('b', cur_id), self.imu_bias) # TODO? What bias??? # https://github.com/borglab/gtsam/blob/4abef9248edc4c49943d8fd8a84c028deb486f4c/python/gtsam/examples/CombinedImuFactorExample.py#L219C17-L221C55 
         
-        predicted_pose = np.eye(4)
-        predicted_pose[:3,:3] = imu_prediction.pose().rotation().matrix()
-        predicted_pose[:3,3] = imu_prediction.pose().translation()
+        integrated_pose = np.eye(4)
+        integrated_pose[:3,:3] = imu_prediction.pose().rotation().matrix()
+        integrated_pose[:3,3] = imu_prediction.pose().translation()
 
-        # if not self.config.imu_pgo:
-        #     self.pim.resetIntegration() # -- preintegration testing --- 
-
-        return predicted_pose
+        return integrated_pose
     
     # assume the system is static in the begining
     def imu_calibration_online(self, imu_curinter, gravity_align=True):
@@ -118,7 +91,10 @@ class IMUManager:
             # Apply rotation matrix to the calibrated initial pose
             calibrated_initial_pose = np.eye(4)
             calibrated_initial_pose[:3, :3] = imu_init_rotation_matrix
-            print('-----------calibration imu initial pose ---------------', calibrated_initial_pose)
+            
+            if not self.silence:
+                print("IMU initial pose with gravity alignment")
+                print(calibrated_initial_pose)
 
             # Compute biases adjusted by initial pose
             grav_corrected = np.linalg.inv(imu_init_rotation_matrix) @ np.array([0, 0, self.gravity])

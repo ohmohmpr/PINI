@@ -54,7 +54,6 @@ class PoseGraphManager:
         self.graph_optimized = None
         self.init_poses = None # as np.array
         self.pgo_poses = None # as np.array
-        self.pgo_poses_imu = None # as np.array
 
         self.loop_edges_vis = []
         self.loop_edges = []
@@ -380,7 +379,7 @@ class PoseGraphManager:
     # get the difference of poses before and after pgo
     def get_pose_diff(self):
         assert self.pgo_poses.shape[0] == self.init_poses.shape[0], "poses before and after pgo must have the same size."
-        pose_diff = np.matmul(self.pgo_poses, np.linalg.inv(self.init_poses))
+        pose_diff = np.matmul(self.pgo_poses, np.linalg.inv(self.init_poses)) # TODO: here there's some problem?
 
         return pose_diff
 

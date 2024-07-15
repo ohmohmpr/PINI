@@ -126,9 +126,9 @@ class SLAMDataset(Dataset):
         self.T_L_I = np.eye(4)
         self.T_I_L = np.linalg.inv(self.T_L_I)
 
+        # only for initialization (also test the version with just eye) # TODO
         self.T_Wl_Wi = np.eye(4)
-        self.T_Wi_Wl = np.linalg.inv(self.T_Wl_Wi)
-
+        self.T_Wi_Wl = np.eye(4)
         
         # use pre-allocated numpy array
         self.odom_poses = None
@@ -378,10 +378,12 @@ class SLAMDataset(Dataset):
             self.travel_dist[frame_id] = 0.0
             self.last_pose_ref = self.cur_pose_ref # T_Wl_Llast
 
-            if self.cur_frame_imus is not None: # init the imu preintegration (assume static)
+            if self.config.imu_on and self.cur_frame_imus is not None: # init the imu preintegration (assume static)
                 self.imu.init_preintegration(self.cur_frame_imus)
 
                 self.T_Wl_Wi = self.T_L_I @ np.linalg.inv(self.imu.T_Wi_I0)
+                self.T_Wi_Wl = np.linalg.inv(self.T_Wl_Wi)
+
 
         elif frame_id > 0:
 
@@ -646,7 +648,7 @@ class SLAMDataset(Dataset):
                 frame_colors_np.astype(np.float64)
             )
 
-        frame_o3d = frame_o3d.transform(self.cur_pose_ref)
+        frame_o3d = frame_o3d.transform(self.cur_pose_ref) # under lidar world frame
 
         if self.config.color_channel > 0:
             frame_colors_np = (

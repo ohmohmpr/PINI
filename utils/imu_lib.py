@@ -19,26 +19,38 @@ class IMUManager:
         self.stable = False
 
         # for ouster imu
-        self.acc_cov = 0.001249
-        self.gyr_cov = 0.000208
-        self.ba_cov = 0.000106
-        self.bg_cov = 0.000004
-    
-    def init_preintegration(self, init_imuinter, gravity_align = False):
-        self.T_Wi_I0, self.accBias, self.gyroBias, self.accel_sigma, self.gyro_sigma = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
+        self.accel_sigma = 0.001249
+        self.gyro_sigma = 0.000208
+        self.bias_acc_sigma = 0.000106
+        self.bias_gyro_sigma = 0.000004
 
-        self.imu_bias = gtsam.imuBias.ConstantBias(self.accBias, self.gyroBias)
+
+    def init_preintegration(self, init_imuinter, gravity_align = False):
+        
+        # self.T_Wi_I0, self.acc_bias, self.gyro_bias, _, _ = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
+        self.T_Wi_I0, self.acc_bias, self.gyro_bias, self.accel_sigmas, self.gyro_sigmas = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
+
+        self.imu_bias = gtsam.imuBias.ConstantBias(self.acc_bias, self.gyro_bias) 
+
+        # use preset value
+        self.gyro_sigmas = np.array([self.gyro_sigma, self.gyro_sigma, self.gyro_sigma])
+        self.accel_sigmas = np.array([self.accel_sigma, self.accel_sigma, self.accel_sigma])
 
         eye3 = np.eye(3)
-        self.params.setGyroscopeCovariance(self.gyro_sigma**2 * eye3)
-        self.params.setAccelerometerCovariance(self.accel_sigma**2 * eye3)
+        self.params.setGyroscopeCovariance(self.gyro_sigmas**2 * eye3)
+        self.params.setAccelerometerCovariance(self.accel_sigmas**2 * eye3)
 
-        # self.params.setGyroscopeCovariance(self.gyr_cov * eye3)
+        # self.params.setGyroscopeCovariance(self.gyr_cov**2 * eye3)
         # self.params.setAccelerometerCovariance(self.acc_cov * eye3)
 
         self.params.setIntegrationCovariance(1e-6 * eye3)  # 1e-3**2 * eye3 # 1e-5 * eye3
-        # self.params.setBiasOmegaCovariance(self.ba_cov * eye3)
-        # self.params.setBiasAccCovariance(self.ba_cov * eye3)
+
+        # a bit too small (TODO, how to set)
+        # self.params.setBiasAccCovariance(self.bias_acc_sigma**2 * eye3)
+        # self.params.setBiasOmegaCovariance(self.bias_gyro_sigma**2 * eye3)
+
+        self.params.setBiasAccCovariance(1e-2**2 * eye3)
+        self.params.setBiasOmegaCovariance(1e-2**2 * eye3)
 
         self.params.setOmegaCoriolis(np.zeros(3, dtype=float))
 
@@ -73,7 +85,7 @@ class IMUManager:
 
         # print(self.cur_frame_imu_prediction_poses) # all imu integration results under imu world frame
 
-        # print(self.imu_bias) # the bias is changing too fast, something must be wrong # TODO
+        print(self.imu_bias) # the bias is changing too fast, something must be wrong # TODO
 
         return integrated_pose
     

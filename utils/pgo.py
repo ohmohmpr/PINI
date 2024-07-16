@@ -148,7 +148,7 @@ class PoseGraphManager:
             cov_model = gtsam.noiseModel.Diagonal.Sigmas(np.array([1e-6]*6))
         else:
             # Combine accel_sigma and gyro_sigma into a single 6-element array
-            bias_sigma = np.concatenate((self.imu.accel_sigma, self.imu.gyro_sigma))
+            bias_sigma = np.concatenate((self.imu.accel_sigmas, self.imu.gyro_sigmas))
             cov_model = gtsam.noiseModel.Diagonal.Sigmas(bias_sigma) # TODO: check
         
         self.graph_factors.add(gtsam.PriorFactorConstantBias(
@@ -267,8 +267,8 @@ class PoseGraphManager:
             # if imu used, then all poses here are under imu frame, need to be converted back to lidar
             self.imu.velocity = self.graph_optimized.atVector(gtsam.symbol('v', self.curr_node_idx))
             self.imu.imu_bias = self.graph_optimized.atConstantBias(gtsam.symbol('b', self.curr_node_idx))
-            self.imu.accBias = self.imu.imu_bias.accelerometer()
-            self.imu.gyroBias = self.imu.imu_bias.gyroscope()
+            self.imu.acc_bias = self.imu.imu_bias.accelerometer()
+            self.imu.gyro_bias = self.imu.imu_bias.gyroscope()
             # reset
             self.imu.pim.resetIntegration()
 

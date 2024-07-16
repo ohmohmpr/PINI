@@ -413,8 +413,8 @@ class SLAMDataset(Dataset):
                     T_Wl_I = self.T_Wl_Wi @ T_Wi_Icur
                     T_Llast_Lcur = np.linalg.inv(self.last_pose_ref) @ T_Wl_Lcur # relative transfrom under lidar frame
 
-                    # print("initial guess by IMU integration:") # actually not very accurate
-                    # print(T_Llast_Lcur)
+                    print("Transformation initial guess by IMU integration:") # actually not very accurate
+                    print(T_Llast_Lcur)
 
                     T_Lcur_Llast = np.linalg.inv(T_Llast_Lcur)
                     cur_pose_init_guess = T_Wl_Lcur
@@ -579,8 +579,8 @@ class SLAMDataset(Dataset):
 
         self.last_odom_tran = inv(self.last_pose_ref) @ self.cur_pose_ref  # T_last<-cur
 
-        # print("registration result:")
-        # print(self.last_odom_tran)
+        print("Transformation after registration:")
+        print(self.last_odom_tran)
 
         if self.config.imu_on:
             self.last_odom_tran_imu_frame = self.T_I_L @ self.last_odom_tran @ self.T_L_I

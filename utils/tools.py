@@ -701,6 +701,7 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
     """
 
     # TODO: still have some problem, figure it out tomorrow # This is wrong FIXME
+    # still does not work well
     
     K_imu = imu_ts.shape[0]
 
@@ -759,29 +760,39 @@ def rotmat_slerp(R0, R1, steps):
     """    
     q0 = roma.mappings.rotmat_to_unitquat(R0)
     q1 = roma.mappings.rotmat_to_unitquat(R1)
-    interpolated_q = slerp_quat(q0, q1, steps)
+    interpolated_q = unitquat_slerp(q0, q1, steps)
     return roma.mappings.unitquat_to_rotmat(interpolated_q)
 
-def slerp_quat(q0, q1, t):
+def unitquat_slerp(q0, q1, steps, shortest_arc=True):
     """
-    Perform spherical linear interpolation (slerp) between two quaternions in batch
-    Args:
-        q0 (torch.Tensor): Initial quaternions of shape (N, 4).
-        q1 (torch.Tensor): Target quaternions of shape (N, 4).
-        t (torch.Tensor): Interpolation steps of shape (N).
-    Returns:
-        torch.Tensor: Interpolated quaternions of shape (N, 4).
+    Spherical linear interpolation between two unit quaternions.
+    This version is adapted from the original roma.unitquat_slerp function
+    
+    Args: 
+        q0, q1 (Ax4 tensor): batch of unit quaternions (A may contain multiple dimensions).
+        steps (tensor of shape B): interpolation steps, 0.0 corresponding to q0 and 1.0 to q1 (B may contain multiple dimensions).
+        shortest_arc (boolean): if True, interpolation will be performed along the shortest arc on SO(3) from `q0` to `q1` or `-q1`.
+    Returns: 
+        batch of interpolated quaternions (Ax4 tensor).
+    Note:
+        When considering quaternions as rotation representations,
+        one should keep in mind that spherical interpolation is not necessarily performed along the shortest arc,
+        depending on the sign of ``torch.sum(q0*q1,dim=-1)``.
+
+        Behavior is undefined when using ``shortest_arc=False`` with antipodal quaternions.
     """
-    dot = torch.sum(q0 * q1, dim=-1)
-    dot = torch.clamp(dot, -1.0, 1.0)
+    rel_q = roma.utils.quat_product(roma.utils.quat_conjugation(q0), q1)
+    rel_rotvec = roma.mappings.unitquat_to_rotvec(rel_q, shortest_arc=shortest_arc)
 
-    theta = (torch.acos(dot) * t).unsqueeze(-1)
+    # print(rel_rotvec.shape)
+    # print(steps.shape)
 
-    q2 = q1 - q0 * dot.unsqueeze(-1)
+    # Relative rotations to apply
+    rel_rotvecs = steps.unsqueeze(-1) * rel_rotvec
+    rots = roma.mappings.rotvec_to_unitquat(rel_rotvecs)
+    interpolated_q = roma.utils.quat_product(q0, rots)
 
-    q2 = torch.nn.functional.normalize(q2, dim=-1)
-
-    return q0 * torch.cos(theta) + q2 * torch.sin(theta)
+    return interpolated_q
 
 
 def interpolate_poses(before_indices, after_indices, sorted_ts, sorted_poses, ts, points):

@@ -12,6 +12,12 @@ python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /os1_cloud_node/
 # M2DGR
 python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /velodyne_points /handsfree/imu -i ./data/m2dgr/street_03/street_03.bag -dv
 
+# NTU Viral
+python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /os1_cloud_node1/points  /os1_cloud_node1/imu -i ./data/ntu_viral/eee_03/ -dv
+
+## for this, you need to load the imu-lidar calibration because the lidar is put upside down
+
+
 ```
 
 -------------------------

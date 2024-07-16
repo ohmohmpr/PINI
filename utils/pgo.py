@@ -81,21 +81,12 @@ class PoseGraphManager:
             self.graph_initials.insert(
                 gtsam.symbol("x", frame_id), gtsam.Pose3(init_pose)
             )
-
+        # we also add the velocity and bias node
         if self.config.imu_on:
             if not self.graph_initials.exists(gtsam.symbol('v', frame_id)):
                 self.graph_initials.insert(gtsam.symbol('v', frame_id), self.imu.velocity)
             if not self.graph_initials.exists(gtsam.symbol('b', frame_id)):
                 self.graph_initials.insert(gtsam.symbol('b', frame_id), self.imu.imu_bias)
-            
-
-    def add_combined_IMU_factor(self, cur_id: int, last_id: int): 
-        # TODO
-        imu_factor = gtsam.CombinedImuFactor(gtsam.symbol('x', last_id), gtsam.symbol('v', last_id), 
-                                             gtsam.symbol('x', cur_id),  gtsam.symbol('v', cur_id), 
-                                             gtsam.symbol('b', last_id), gtsam.symbol('b', cur_id), self.imu.pim)
-
-        self.graph_factors.add(imu_factor)
 
     def add_pose_prior(
         self, frame_id: int, prior_pose: np.ndarray, fixed: bool = False
@@ -135,17 +126,20 @@ class PoseGraphManager:
     # https://github.com/borglab/gtsam/blob/264a240094d62a56c3b2d364c8c08fd158e898f7/cython/gtsam/examples/ImuFactorExample2.py#L106C5-L125C45
     def add_velocity_prior(self, frame_id: int, fixed: bool = False):
         """Add velocity prior unary factor"""
-        if fixed:
-            cov_model = gtsam.noiseModel.Diagonal.Sigmas(np.array([1e-6]*3))
-        else:
-            vel_sigma = self.drift_radius + 1e-4 #1e-4 TODO
-            cov_model = gtsam.noiseModel.Diagonal.Sigmas(np.array([vel_sigma, vel_sigma, vel_sigma])) # TODO: check
-            # cov_model = gtsam.noiseModel.Isotropic.Sigma(3, vel_sigma)
+        # if fixed:
+        #     cov_model = gtsam.noiseModel.Diagonal.Sigmas(np.array([1e-6]*3))
+        # else:
+        #     vel_sigma = self.drift_radius + 1e-4 #1e-4 TODO
+            
+        #     cov_model = gtsam.noiseModel.Diagonal.Sigmas(np.array([vel_sigma, vel_sigma, vel_sigma])) # TODO: check
+        #     # cov_model = gtsam.noiseModel.Isotropic.Sigma(3, vel_sigma)
+
+        vel_noise = gtsam.noiseModel.Isotropic.Sigma(3, 0.001)
         
         self.graph_factors.add(gtsam.PriorFactorVector(
             gtsam.symbol('v', frame_id), 
             self.imu.velocity, 
-            cov_model
+            vel_noise
         ))
 
     def add_bias_prior(self, frame_id: int, fixed: bool = False):
@@ -155,8 +149,6 @@ class PoseGraphManager:
         else:
             # Combine accel_sigma and gyro_sigma into a single 6-element array
             bias_sigma = np.concatenate((self.imu.accel_sigma, self.imu.gyro_sigma))
-            # Create a diagonal covariance model with the combined sigma
-            # bias_sigma = np.array([1e-3]*6)
             cov_model = gtsam.noiseModel.Diagonal.Sigmas(bias_sigma) # TODO: check
         
         self.graph_factors.add(gtsam.PriorFactorConstantBias(
@@ -164,6 +156,13 @@ class PoseGraphManager:
             self.imu.imu_bias, 
             cov_model
         ))
+
+    def add_combined_IMU_factor(self, cur_id: int, last_id: int): 
+        imu_factor = gtsam.CombinedImuFactor(gtsam.symbol('x', last_id), gtsam.symbol('v', last_id), 
+                                             gtsam.symbol('x', cur_id),  gtsam.symbol('v', cur_id), 
+                                             gtsam.symbol('b', last_id), gtsam.symbol('b', cur_id), self.imu.pim)
+
+        self.graph_factors.add(imu_factor)
 
     def add_odometry_factor(
         self, cur_id: int, last_id: int, odom_transform: np.ndarray, cov=None
@@ -237,26 +236,12 @@ class PoseGraphManager:
         return True
 
     def optimize_pose_graph(self):
+        # something wrong with the loop again
 
         self.isam.update(self.graph_factors, self.graph_initials)
 
-        # if self.config.pgo_with_lm:
-        #     opt_param = gtsam.LevenbergMarquardtParams()
-        #     opt_param.setMaxIterations(self.config.pgo_max_iter)
-        #     opt = gtsam.LevenbergMarquardtOptimizer(
-        #         self.graph_factors, self.graph_initials, opt_param
-        #     )
-        # else:  # pgo with dogleg
-        #     opt_param = gtsam.DoglegParams()
-        #     opt_param.setMaxIterations(self.config.pgo_max_iter)
-        #     opt = gtsam.DoglegOptimizer(
-        #         self.graph_factors, self.graph_initials, opt_param
-        #     )
-
         T_0 = get_time()
         self.graph_optimized = self.isam.calculateEstimate()
-
-        # self.graph_optimized = opt.optimizeSafely()
 
         T_1 = get_time()
 
@@ -278,7 +263,7 @@ class PoseGraphManager:
 
         self.cur_pose = self.pgo_poses[self.curr_node_idx] # if imu on, then here it's in imu frame
 
-        if self.config.imu_on:
+        if self.config.imu_on: # imu parameter update after the factor graph optimization
             # if imu used, then all poses here are under imu frame, need to be converted back to lidar
             self.imu.velocity = self.graph_optimized.atVector(gtsam.symbol('v', self.curr_node_idx))
             self.imu.imu_bias = self.graph_optimized.atConstantBias(gtsam.symbol('b', self.curr_node_idx))
@@ -379,7 +364,7 @@ class PoseGraphManager:
     # get the difference of poses before and after pgo
     def get_pose_diff(self):
         assert self.pgo_poses.shape[0] == self.init_poses.shape[0], "poses before and after pgo must have the same size."
-        pose_diff = np.matmul(self.pgo_poses, np.linalg.inv(self.init_poses)) # TODO: here there's some problem?
+        pose_diff = np.matmul(self.pgo_poses, np.linalg.inv(self.init_poses))
 
         return pose_diff
 

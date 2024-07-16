@@ -699,6 +699,8 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
     Returns:
         points_deskewd (torch.Tensor): [N,3] point coordinates after deskewing
     """
+
+    # TODO: still have some problem, figure it out tomorrow # This is wrong FIXME
     
     K_imu = imu_ts.shape[0]
 
@@ -711,6 +713,8 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
     imu_before_ts_index = imu_after_ts_index - 1 # 0 - K-2
 
     point_ts_ratio_in_imu_interval = (point_ts - imu_ts[imu_before_ts_index]) / (imu_ts[imu_after_ts_index] - imu_ts[imu_before_ts_index]) # N
+
+    # print(point_ts_ratio_in_imu_interval)
 
     # print(L_lidar_at_imu_ts)
 
@@ -727,9 +731,6 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
     rotmat_slerp_in_imu_interval = rotmat_slerp(batch_eye, points_pose_in_imu_interval[:, :3, :3].to(points), point_ts_ratio_in_imu_interval) # R2  # N, 3, 3
 
     tran_lerp_in_imu_interval = point_ts_ratio_in_imu_interval[:, None] * points_pose_in_imu_interval[:, :3, 3] # t2
-
-    # rotmat_slerp = torch.bmm(rotmat_slerp_in_imu_interval, L_lidar_at_imu_ts[imu_before_ts_index, :3, :3])
-    # tran_lerp = tran_lerp_in_imu_interval 
 
     rot_mat_imu_before_ts = L_lidar_at_imu_ts[imu_before_ts_index, :3, :3] # R1 # N, 3, 3
  

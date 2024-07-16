@@ -222,7 +222,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
         if config.imu_on: # imu version
             pgm.add_frame_node(frame_id, dataset.pgo_poses_imu[frame_id]) # add new node and pose initial guess
-            pgm.init_poses = dataset.pgo_poses_imu[:frame_id+1] # something might be wrong here? # TODO
+            pgm.init_poses = dataset.pgo_poses_imu[:frame_id+1]
 
             if frame_id > 0:
                 cur_edge_cov = cur_odom_cov if config.use_reg_cov_mat else None 
@@ -267,8 +267,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                         # update the neural points and poses
                         pose_diff_imu_frame = pgm.get_pose_diff()
                         pose_diff_lidar_frame = dataset.T_L_I @ pose_diff_imu_frame @ dataset.T_I_L # if pose is under imu frame, then convert to lidar frame
-                        # print(pose_diff_lidar_frame)
-                        pose_diff_torch = torch.tensor(pose_diff_lidar_frame, device=config.device, dtype=config.dtype) # under lidar frame # this should be wrong # TODO
+                        pose_diff_torch = torch.tensor(pose_diff_lidar_frame, device=config.device, dtype=config.dtype) # under lidar frame
                         cur_pose_lidar = dataset.T_Wl_Wi @ pgm.cur_pose @ dataset.T_I_L
                         dataset.cur_pose_torch = torch.tensor(cur_pose_lidar, device=config.device, dtype=config.dtype) # this should also under lidar frame
                         neural_points.adjust_map(pose_diff_torch) # transform neural points (position and orientation) along with associated frame poses

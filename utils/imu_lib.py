@@ -17,30 +17,37 @@ class IMUManager:
         self.velocity = np.array([0, 0, 0])
 
         self.stable = False
+
+        # for ouster imu
+        self.acc_cov = 0.001249
+        self.gyr_cov = 0.000208
+        self.ba_cov = 0.000106
+        self.bg_cov = 0.000004
     
     def init_preintegration(self, init_imuinter, gravity_align = False):
         self.T_Wi_I0, self.accBias, self.gyroBias, self.accel_sigma, self.gyro_sigma = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
 
         self.imu_bias = gtsam.imuBias.ConstantBias(self.accBias, self.gyroBias)
 
-        I_3x3 = np.eye(3)
-        self.params.setGyroscopeCovariance(self.gyro_sigma**2 * I_3x3)
-        self.params.setAccelerometerCovariance(self.accel_sigma**2 * I_3x3)
-        self.params.setIntegrationCovariance(1e-6 * I_3x3)  # 1e-3**2 * I_3x3 # 1e-5 * I_3x3
-        # params.setBiasOmegaCovariance(1e-1**2 * I_3x3)
-        # params.setBiasAccCovariance(1e-1**2 * I_3x3)
+        eye3 = np.eye(3)
+        self.params.setGyroscopeCovariance(self.gyro_sigma**2 * eye3)
+        self.params.setAccelerometerCovariance(self.accel_sigma**2 * eye3)
+
+        # self.params.setGyroscopeCovariance(self.gyr_cov * eye3)
+        # self.params.setAccelerometerCovariance(self.acc_cov * eye3)
+
+        self.params.setIntegrationCovariance(1e-6 * eye3)  # 1e-3**2 * eye3 # 1e-5 * eye3
+        # self.params.setBiasOmegaCovariance(self.ba_cov * eye3)
+        # self.params.setBiasAccCovariance(self.ba_cov * eye3)
+
+        self.params.setOmegaCoriolis(np.zeros(3, dtype=float))
 
         self.pim = gtsam.PreintegratedCombinedMeasurements(self.params, self.imu_bias)
 
     
     def preintegration(self, acc, gyro, dts, last_pose):
-        # preintegration
-        # if cur_id == 1:
-        #     initial_pose = gtsam.Pose3(self.T_Wi_I0) #self.imu_calib_initial_pose  # last_pose @ self.imu_calib_initial_pose  
-        # else:
-        #     initial_pose = gtsam.Pose3(last_pose)
 
-        initial_pose = gtsam.Pose3(last_pose)
+        initial_pose = gtsam.Pose3(last_pose) # under imu frame
         initial_state = gtsam.NavState(initial_pose, self.velocity)
 
         self.cur_frame_imu_prediction_poses = np.empty((len(dts), 4, 4)) # the prediction of imu pose wrt Wi between 2 lidar frames # pose at each interval
@@ -49,7 +56,7 @@ class IMUManager:
         for cur_acc, cur_gyro, cur_dt in zip(acc, gyro, dts):
             self.pim.integrateMeasurement(cur_acc, cur_gyro, cur_dt)
 
-            cur_imu_prediction = self.pim.predict(initial_state, self.imu_bias)
+            cur_imu_prediction = self.pim.predict(initial_state, self.imu_bias) # get current integration result
 
             cur_preintegration_pose = cur_imu_prediction.pose()
             
@@ -62,7 +69,9 @@ class IMUManager:
             iter_count += 1
 
         self.velocity = cur_velocity 
-        integrated_pose = self.cur_frame_imu_prediction_poses[-1]
+        integrated_pose = self.cur_frame_imu_prediction_poses[-1] # this is under imu frame
+
+        # print(self.cur_frame_imu_prediction_poses) # all imu integration results under imu world frame
 
         # print(self.imu_bias) # the bias is changing too fast, something must be wrong # TODO
 

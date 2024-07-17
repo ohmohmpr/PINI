@@ -406,7 +406,7 @@ class SLAMDataset(Dataset):
 
                 if self.config.imu_on and self.cur_frame_imus is not None: # imu available
                     T_Wi_Ilast = self.T_Wi_Wl @ self.last_pose_ref @ self.T_L_I # under imu frame
-                    # preintegration
+                    # use IMU integration result as the initial guess
                     T_Wi_Icur = self.imu.preintegration(acc=self.cur_frame_imus['acc'],gyro=self.cur_frame_imus['gyro'],dts=self.cur_frame_imus['dt'],last_pose=T_Wi_Ilast)
                     # print(T_Wi_Icur)
                     T_Wl_Lcur = self.T_Wl_Wi @ T_Wi_Icur @ self.T_I_L  # convert to lidar frame
@@ -415,7 +415,7 @@ class SLAMDataset(Dataset):
 
                     if not self.config.silence:
                         np.set_printoptions(precision=10, suppress=True)
-                        print("Transformation initial guess by IMU integration:") # actually not very accurate
+                        print("Transformation initial guess by IMU integration:") # actually not very accurate # TODO: try to also visualize this
                         print(T_Llast_Lcur)
 
                     T_Lcur_Llast = np.linalg.inv(T_Llast_Lcur)
@@ -535,7 +535,7 @@ class SLAMDataset(Dataset):
             else:
                 cur_source_ts = None
 
-            if frame_id > 20: # TODO fix me
+            if frame_id > 50: # TODO fix me
                 self.imu.stable = True
 
             # deskewing (motion undistortion) for source point cloud
@@ -556,13 +556,17 @@ class SLAMDataset(Dataset):
                     Ts_L_deskew = np.linalg.inv(self.last_pose_ref) @ self.T_Wl_Wi @ self.imu.cur_frame_imu_prediction_poses @ self.T_I_L # poses at imu ts predicted by imu integration under lidar frame
                     Ts_L_deskew_torch = torch.tensor(Ts_L_deskew, device=self.device, dtype=self.dtype)
 
+                    T_00 = get_time()
                     self.cur_point_cloud_torch = deskewing_imu(self.cur_point_cloud_torch, cur_ts, imu_ts, Ts_L_deskew_torch) # this seems to be the only problem, what's wrong? # NaN issue !!! (FIXME)
-
+                    T_01 = get_time()
                     # contains_nan = torch.isnan(self.cur_point_cloud_torch).any() 
 
                     self.cur_source_points = self.cur_point_cloud_torch[idx, :3]
 
                     self.points_map_deskewed = True
+
+                    if not self.silence:
+                        print("time for deskewing (ms)", (T_01-T_00)*1e3)
 
         # T4 = get_time()
         return True

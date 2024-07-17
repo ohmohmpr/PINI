@@ -53,7 +53,7 @@ class PoseGraphManager:
         self.curr_node_idx = None
         self.graph_optimized = None
         self.init_poses = None # as np.array
-        self.pgo_poses = None # as np.array
+        self.pgo_poses = None # as np.array # if IMU is on, then this would be in the imu frame
 
         self.loop_edges_vis = []
         self.loop_edges = []
@@ -148,7 +148,7 @@ class PoseGraphManager:
             cov_model = gtsam.noiseModel.Diagonal.Sigmas(np.array([1e-6]*6))
         else:
             # Combine accel_sigma and gyro_sigma into a single 6-element array
-            bias_sigma = np.concatenate((self.imu.accel_sigmas, self.imu.gyro_sigmas))
+            bias_sigma = np.concatenate((self.imu.acc_cov, self.imu.gyro_cov))
             cov_model = gtsam.noiseModel.Diagonal.Sigmas(bias_sigma) # TODO: check
         
         self.graph_factors.add(gtsam.PriorFactorConstantBias(
@@ -195,7 +195,7 @@ class PoseGraphManager:
         loop_id: int,
         loop_transform: np.ndarray,
         cov=None,
-        reject_outlier=False,
+        reject_outlier=True,
     ):
         """add a loop closure factor between two pose nodes
         Args:
@@ -264,8 +264,12 @@ class PoseGraphManager:
         # this part is very slow, how to do it in batch
         T_4 = get_time()
 
-        # self.cur_pose = self.pgo_poses[self.curr_node_idx] # if imu on, then here it's in imu frame
-        self.cur_pose = get_node_pose(self.graph_optimized, self.curr_node_idx) # if imu on, then here it's in imu frame
+        # do this anyway
+        get_begin_idx = max(0, self.curr_node_idx-10) # for the smoothness of poses
+        for idx in range(get_begin_idx, self.curr_node_idx+1):
+            self.pgo_poses[idx] = get_node_pose(self.graph_optimized, idx)
+
+        self.cur_pose = self.pgo_poses[self.curr_node_idx]
 
         if self.config.imu_on: # imu parameter update after the factor graph optimization
             # if imu used, then all poses here are under imu frame, need to be converted back to lidar
@@ -369,7 +373,7 @@ class PoseGraphManager:
             )
 
         # optimize
-        self.optimize_factor_graph()
+        self.optimize_pose_graph()
         # poses after optimization: pgo_poses
 
     # get the difference of poses before and after pgo

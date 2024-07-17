@@ -303,10 +303,9 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     # neural_points.recreate_hash(dataset.cur_pose_torch[:3,3], None, True, True, frame_id) # if failed, you need to reset the local map back to current frame
             
             if frame_id > 0 and not pgo_done:
-                pgm.optimize_factor_graph(update_all_poses=False)
+                pgm.optimize_factor_graph(update_all_poses=False) # TODO # with false there's something wrong
                 dataset.update_poses_after_pgo(pgm.pgo_poses) # constant time
-                
-                if config.o3d_vis_on: # odom pose are different # TODO
+                if config.o3d_vis_on:
                     o3d_vis.before_pgo = False
 
         elif config.pgo_on: # without IMU

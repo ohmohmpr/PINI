@@ -699,46 +699,48 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
     Returns:
         points_deskewd (torch.Tensor): [N,3] point coordinates after deskewing
     """
-
-    # TODO: still have some problem, figure it out tomorrow # This is wrong FIXME
-    # still does not work well
     
+    T0 = get_time()
+
     imu_count = imu_ts.shape[0]
     point_count = points.shape[0]
 
     imu_after_ts_index = torch.searchsorted(imu_ts, point_ts)
 
-    # print(torch.min(imu_before_ts_index))
-    # print(torch.max(imu_before_ts_index))
+    T1 = get_time()
 
-    imu_after_ts_index = torch.clamp(imu_after_ts_index, 1, imu_count - 1)
+    imu_after_ts_index = torch.clamp(imu_after_ts_index, 1, imu_count - 1) # 1 - K-1
     imu_before_ts_index = imu_after_ts_index - 1 # 0 - K-2
 
     point_ts_ratio_in_imu_interval = (point_ts - imu_ts[imu_before_ts_index]) / (imu_ts[imu_after_ts_index] - imu_ts[imu_before_ts_index]) # N
 
     # print(point_ts_ratio_in_imu_interval)
 
-    # print(L_lidar_at_imu_ts)
-
     inv_L_lidar_at_imu_ts = torch.linalg.inv(L_lidar_at_imu_ts)
 
     pose_in_imu_interval = torch.bmm(inv_L_lidar_at_imu_ts[:-1], L_lidar_at_imu_ts[1:]) # K-1, 4, 4
 
-    points_pose_in_imu_interval = pose_in_imu_interval[imu_before_ts_index] # N, 4, 4
+    points_relative_tran_in_imu_interval = pose_in_imu_interval[imu_before_ts_index].to(points) # N, 4, 4
 
-    # print(points_pose_in_imu_interval.shape)
+    points_relative_rot_in_imu_interval = points_relative_tran_in_imu_interval[:, :3, :3] # N, 3, 3
+
+    points_relative_t_in_imu_interval = points_relative_tran_in_imu_interval[:, :3, 3] # N, 3
 
     batch_eye = torch.eye(3).unsqueeze(0).repeat(point_count, 1, 1).to(points)
 
-    rotmat_slerp_in_imu_interval = rotmat_slerp(batch_eye, points_pose_in_imu_interval[:, :3, :3].to(points), point_ts_ratio_in_imu_interval) # R2  # N, 3, 3
+    # this part is slow, about 3ms, but is hard to speed it up
+    # interpolate the rot in the imu interval
+    rotmat_slerp_in_imu_interval = rotmat_slerp(batch_eye, points_relative_rot_in_imu_interval, point_ts_ratio_in_imu_interval) # R2  # N, 3, 3
 
-    # TODO: could has NaN number here
+    T2 = get_time()
+
+    # TODO: could has NaN number here, fix it
 
     # contains_nan = torch.isnan(rotmat_slerp_in_imu_interval).any()
 
     # assert not contains_nan, "NaN value found in rotmat_slerp_in_imu_interval" 
 
-    tran_lerp_in_imu_interval = point_ts_ratio_in_imu_interval[:, None] * points_pose_in_imu_interval[:, :3, 3] # t2
+    tran_lerp_in_imu_interval = point_ts_ratio_in_imu_interval[:, None] * points_relative_t_in_imu_interval # t2 # N, 3
 
     rot_mat_imu_before_ts = L_lidar_at_imu_ts[imu_before_ts_index, :3, :3] # R1 # N, 3, 3
  
@@ -748,13 +750,23 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
 
     tran_imu_before_ts = L_lidar_at_imu_ts[imu_before_ts_index, :3, 3] # t1 # N, 3
 
+    T3 = get_time()
+
     points_deskewd = points.clone()
+    
     # p' = R1 R2 p + R1 t2 + t1
     points_deskewd[:, :3] = (rot_mat_slerp_combined @ points[:, :3].unsqueeze(-1)).squeeze(-1) + (rot_mat_imu_before_ts @ tran_lerp_in_imu_interval.unsqueeze(-1)).squeeze(-1) + tran_imu_before_ts
     
     nan_mask = torch.isnan(points_deskewd).any(dim=1)
 
-    points_deskewd[nan_mask] = points[nan_mask] # deal with the stupid NaN issue 
+    points_deskewd[nan_mask] = points[nan_mask] # deal with the stupid NaN issue, set with the points before deskew
+
+    T4 = get_time()
+
+    # print("time for deskewing - part 1 (ms)", (T1-T0)*1e3) # |
+    # print("time for deskewing - part 2 (ms)", (T2-T1)*1e3) # ||||
+    # print("time for deskewing - part 3 (ms)", (T3-T2)*1e3) # |
+    # print("time for deskewing - part 4 (ms)", (T4-T3)*1e3) # |
     
     # contains_nan = torch.isnan(points_deskewd).any()
     # assert not contains_nan, "NaN value found in points_deskewd" 
@@ -804,36 +816,6 @@ def unitquat_slerp(q0, q1, steps, shortest_arc=True):
     interpolated_q = roma.utils.quat_product(q0, rots)
 
     return interpolated_q
-
-
-# def interpolate_poses(before_indices, after_indices, sorted_ts, sorted_poses, ts, points):
-#     # Initialize the container for deskewed points
-#     points_deskewed = points.clone()
-
-#     # Loop over all unique pairs of indices, directly derived from before and after indices # then this is very slow, right?
-#     for i in range(len(sorted_ts) - 1):  # Assuming sorted_ts is always valid for i and i+1
-#         mask = (before_indices == i) & (after_indices == i+1)
-#         if torch.any(mask):
-#             points_subset = points[mask]
-#             ts_subset = ts[mask]
-
-#             ts_before = sorted_ts[i]
-#             ts_after = sorted_ts[i+1]
-
-#             t = (ts_subset - ts_before) / (ts_after - ts_before)
-
-#             rot_before = sorted_poses[i, :3, :3]
-#             rot_after = sorted_poses[i+1, :3, :3]
-#             trans_before = sorted_poses[i, :3, 3]
-#             trans_after = sorted_poses[i+1, :3, 3]
-
-#             rotmat_slerp = roma.rotmat_slerp(rot_before, rot_after, t[:, None]).squeeze(1) # [n,1,3,3]
-#             tran_lerp = (1 - t[:, None]) * trans_before + t[:, None] * trans_after # [n,3]
-
-#             points_deskewed[mask, :3] = (rotmat_slerp @ points_subset[:, :3].unsqueeze(-1)).squeeze(-1) + tran_lerp
-
-#     return points_deskewed
-
 
 
 def tranmat_close_to_identity(mats: np.ndarray, rot_thre: float, tran_thre: float):

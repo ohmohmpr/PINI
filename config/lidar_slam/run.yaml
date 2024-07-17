@@ -4,19 +4,24 @@ setting:
   deskew: True
 process:
   max_range_m: 80.0 # maximum distance filter for each frame
+  vox_down_m: 0.1
 sampler:
+  surface_sample_n: 2
   surface_sample_range_m: 0.3
+  free_front_sample_n: 1
+decoder:
+  mlp_hidden_dim: 32 # 32
 neuralpoints:
   voxel_size_m: 0.4
-  search_alpha: 0.5 # increase when you want to be more robust to agressive motions
+  search_alpha: 0.2 # increase when you want to be more robust to agressive motions
 continual:
   batch_size_new_sample: 1000
   pool_capacity: 1e7
   pool_filter_freq: 10
 tracker:
-  source_vox_down_m: 0.6
+  source_vox_down_m: 1.0
   iter_n: 30 # 50
-  valid_nn_k: 5
+  # reg_term_thre_deg: 0.1
 pgo:
   map_context: True
   context_cosdist: 0.3

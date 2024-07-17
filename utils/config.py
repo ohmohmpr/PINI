@@ -248,8 +248,10 @@ class Config:
         self.pgo_with_lm: bool = True # use lm or dogleg optimizer
         self.pgo_max_iter: int = 50 # maximum number of iterations
         self.pgo_with_pose_prior: bool = False # use the pose prior or not during the pgo
-        self.pgo_tran_std: float = 0.04 # m 
-        self.pgo_rot_std: float = 0.01 # deg
+        # self.pgo_tran_std: float = 0.04 # m 
+        # self.pgo_rot_std: float = 0.01 # deg
+        self.pgo_tran_std: float = 0.05 # m 
+        self.pgo_rot_std: float = 0.1 # deg
         self.use_reg_cov_mat: bool = False # use the covariance matrix directly calculated by the registration for pgo edges or not
         self.pgo_error_thre_frame: float = 500.0 # the maximum error for rejecting a wrong edge (per frame)
         self.pgo_merge_map: bool = False # merge the map (neural points) or not after the pgo (or we keep all the history neural points) 

@@ -18,17 +18,32 @@ class IMUManager:
 
         self.stable = False
 
+        D2R = np.pi/180.0 # deg to rad
+
         # for ouster imu
-        self.accel_sigma = 0.001249
-        self.gyro_sigma = 0.000208
-        self.bias_acc_sigma = 0.000106
-        self.bias_gyro_sigma = 0.000004
+        self.acc_std = 0.001249 # maybe use Allan STD
+        self.gyro_std = 0.000208
+        # self.bias_acc_sigma = 0.000106
+        # self.bias_gyro_sigma = 0.000004
+
+        # NCD
+        self.gyro_bias_std = 20.0 # deg/hr
+        self.acc_bias_std = 500.0 # mGal
+
+        # M2DGR
+        # self.gyro_bias_std = 200.0 # deg/hr
+        # self.acc_bias_std = 500.0 # mGal
+
+        self.gyro_bias_std *= (D2R / 3600.0) # ~ 1e-4 
+        self.acc_bias_std *= (1e-5) # 5e-3
+
+        # print("Acc Bias STD, Gyro Bias STD:")
+        # print(self.acc_bias_std, self.gyro_bias_std)
 
 
     def init_preintegration(self, init_imuinter, gravity_align = False):
         
-        # self.T_Wi_I0, self.acc_bias, self.gyro_bias, _, _ = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
-        self.T_Wi_I0, self.acc_bias, self.gyro_bias, self.accel_sigmas, self.gyro_sigmas = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
+        self.T_Wi_I0, self.acc_bias, self.gyro_bias, self.acc_cov, self.gyro_cov = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
 
         # self.acc_bias = np.zeros(3)
         # self.gyro_bias = np.zeros(3) # initialize as 0
@@ -36,12 +51,12 @@ class IMUManager:
         self.imu_bias = gtsam.imuBias.ConstantBias(self.acc_bias, self.gyro_bias) 
 
         # use preset value
-        # self.gyro_sigmas = np.array([self.gyro_sigma, self.gyro_sigma, self.gyro_sigma])
-        # self.accel_sigmas = np.array([self.accel_sigma, self.accel_sigma, self.accel_sigma])
+        # self.gyro_cov = np.array([self.gyro_std, self.gyro_std, self.gyro_std])
+        # self.acc_cov = np.array([self.acc_std, self.acc_std, self.acc_std])
 
         eye3 = np.eye(3)
-        self.params.setGyroscopeCovariance(self.gyro_sigmas**2 * eye3)
-        self.params.setAccelerometerCovariance(self.accel_sigmas**2 * eye3)
+        self.params.setGyroscopeCovariance(self.gyro_cov**2 * eye3)
+        self.params.setAccelerometerCovariance(self.acc_cov**2 * eye3)
 
         # self.params.setGyroscopeCovariance(self.gyr_cov**2 * eye3)
         # self.params.setAccelerometerCovariance(self.acc_cov * eye3)
@@ -53,8 +68,12 @@ class IMUManager:
         # self.params.setBiasOmegaCovariance(self.bias_gyro_sigma**2 * eye3)
 
         # check LIO-EKF for the suggested value # TODO. check
-        self.params.setBiasAccCovariance(1e-1**2 * eye3)
-        self.params.setBiasOmegaCovariance(1e-1**2 * eye3)
+
+        # too large do have a problem
+        # self.params.setBiasAccCovariance(1e-1**2 * eye3)
+        # self.params.setBiasOmegaCovariance(1e-1**2 * eye3)
+        self.params.setBiasAccCovariance(self.acc_bias_std**2 * eye3)
+        self.params.setBiasOmegaCovariance(self.gyro_bias_std**2 * eye3)
 
         # self.params.setOmegaCoriolis(np.zeros(3, dtype=float))
 

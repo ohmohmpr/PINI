@@ -413,8 +413,10 @@ class SLAMDataset(Dataset):
                     T_Wl_I = self.T_Wl_Wi @ T_Wi_Icur
                     T_Llast_Lcur = np.linalg.inv(self.last_pose_ref) @ T_Wl_Lcur # relative transfrom under lidar frame
 
-                    print("Transformation initial guess by IMU integration:") # actually not very accurate
-                    print(T_Llast_Lcur)
+                    if not self.config.silence:
+                        np.set_printoptions(precision=10, suppress=True)
+                        print("Transformation initial guess by IMU integration:") # actually not very accurate
+                        print(T_Llast_Lcur)
 
                     T_Lcur_Llast = np.linalg.inv(T_Llast_Lcur)
                     cur_pose_init_guess = T_Wl_Lcur
@@ -520,8 +522,9 @@ class SLAMDataset(Dataset):
             idx = voxel_down_sample_torch(cur_source_torch[:, :3], source_voxel_m)
             cur_source_torch = cur_source_torch[idx]
 
-            if not deskew_with_imu:
-                self.cur_source_points = cur_source_torch[:, :3]
+            self.cur_source_points = cur_source_torch[:, :3]
+            # if not deskew_with_imu:
+            #     self.cur_source_points = cur_source_torch[:, :3]
             
             if self.config.color_on:
                 self.cur_source_colors = cur_source_torch[:, 3:]
@@ -532,8 +535,8 @@ class SLAMDataset(Dataset):
             else:
                 cur_source_ts = None
 
-            # if frame_id > 10: # TODO fix me
-            #     self.imu.stable = True
+            if frame_id > 20: # TODO fix me
+                self.imu.stable = True
 
             # deskewing (motion undistortion) for source point cloud
             self.points_map_deskewed = False
@@ -553,15 +556,13 @@ class SLAMDataset(Dataset):
                     Ts_L_deskew = np.linalg.inv(self.last_pose_ref) @ self.T_Wl_Wi @ self.imu.cur_frame_imu_prediction_poses @ self.T_I_L # poses at imu ts predicted by imu integration under lidar frame
                     Ts_L_deskew_torch = torch.tensor(Ts_L_deskew, device=self.device, dtype=self.dtype)
 
-                    # TODO: something wrong here, figure it out # Still does not work properly
-                    # maybe disable it when the imu is not yet stable (wrong bias , etc.)
-                    self.cur_point_cloud_torch = deskewing_imu(self.cur_point_cloud_torch, self.cur_point_ts_torch, imu_ts, Ts_L_deskew_torch) 
+                    self.cur_point_cloud_torch = deskewing_imu(self.cur_point_cloud_torch, cur_ts, imu_ts, Ts_L_deskew_torch) # this seems to be the only problem, what's wrong? # NaN issue !!! (FIXME)
 
-                    self.cur_source_points = self.cur_point_cloud_torch[idx]
+                    # contains_nan = torch.isnan(self.cur_point_cloud_torch).any() 
+
+                    self.cur_source_points = self.cur_point_cloud_torch[idx, :3]
 
                     self.points_map_deskewed = True
-
-            # print("# Source point for registeration : ", cur_source_torch.shape[0])
 
         # T4 = get_time()
         return True
@@ -579,8 +580,10 @@ class SLAMDataset(Dataset):
 
         self.last_odom_tran = inv(self.last_pose_ref) @ self.cur_pose_ref  # T_last<-cur
 
-        print("Transformation after registration:")
-        print(self.last_odom_tran)
+        if not self.config.silence:
+            np.set_printoptions(precision=10, suppress=True)
+            print("Transformation after registration:")
+            print(self.last_odom_tran)
 
         if self.config.imu_on:
             self.last_odom_tran_imu_frame = self.T_I_L @ self.last_odom_tran @ self.T_L_I

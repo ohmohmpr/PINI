@@ -400,6 +400,8 @@ class Tracker:
         max_sdf = self.config.surface_sample_range_m * self.config.max_sdf_ratio
         max_sdf_std = self.config.surface_sample_range_m * self.config.max_sdf_std_ratio
 
+        # print(sdf_pred)
+
         valid_idx = (
             mask
             & (grad_norm < max_grad_norm)

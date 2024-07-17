@@ -169,6 +169,11 @@ class Mapper:
         # points_torch contains both the coordinate and the color (intensity)
         # frame_id is the actually used frame id starting from 0 with no skip, 0, 1, 2, ......
 
+        # make sure there's no NaN in the input 
+
+        contains_nan = torch.isnan(point_cloud_torch).any()
+        assert not contains_nan, "NaN number found in the input for mapping"
+
         T0 = get_time()
 
         frame_origin_torch = cur_pose_torch[:3, 3]

@@ -30,11 +30,14 @@ class IMUManager:
         # self.T_Wi_I0, self.acc_bias, self.gyro_bias, _, _ = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
         self.T_Wi_I0, self.acc_bias, self.gyro_bias, self.accel_sigmas, self.gyro_sigmas = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
 
+        # self.acc_bias = np.zeros(3)
+        # self.gyro_bias = np.zeros(3) # initialize as 0
+
         self.imu_bias = gtsam.imuBias.ConstantBias(self.acc_bias, self.gyro_bias) 
 
         # use preset value
-        self.gyro_sigmas = np.array([self.gyro_sigma, self.gyro_sigma, self.gyro_sigma])
-        self.accel_sigmas = np.array([self.accel_sigma, self.accel_sigma, self.accel_sigma])
+        # self.gyro_sigmas = np.array([self.gyro_sigma, self.gyro_sigma, self.gyro_sigma])
+        # self.accel_sigmas = np.array([self.accel_sigma, self.accel_sigma, self.accel_sigma])
 
         eye3 = np.eye(3)
         self.params.setGyroscopeCovariance(self.gyro_sigmas**2 * eye3)
@@ -43,16 +46,17 @@ class IMUManager:
         # self.params.setGyroscopeCovariance(self.gyr_cov**2 * eye3)
         # self.params.setAccelerometerCovariance(self.acc_cov * eye3)
 
-        self.params.setIntegrationCovariance(1e-6 * eye3)  # 1e-3**2 * eye3 # 1e-5 * eye3
+        self.params.setIntegrationCovariance(1e-8 * eye3)  # 1e-6, 1e-3**2 * eye3 # 1e-5 * eye3
 
-        # a bit too small (TODO, how to set)
+        # a bit too small
         # self.params.setBiasAccCovariance(self.bias_acc_sigma**2 * eye3)
         # self.params.setBiasOmegaCovariance(self.bias_gyro_sigma**2 * eye3)
 
-        self.params.setBiasAccCovariance(1e-2**2 * eye3)
-        self.params.setBiasOmegaCovariance(1e-2**2 * eye3)
+        # check LIO-EKF for the suggested value # TODO. check
+        self.params.setBiasAccCovariance(1e-1**2 * eye3)
+        self.params.setBiasOmegaCovariance(1e-1**2 * eye3)
 
-        self.params.setOmegaCoriolis(np.zeros(3, dtype=float))
+        # self.params.setOmegaCoriolis(np.zeros(3, dtype=float))
 
         self.pim = gtsam.PreintegratedCombinedMeasurements(self.params, self.imu_bias)
 
@@ -84,8 +88,9 @@ class IMUManager:
         integrated_pose = self.cur_frame_imu_prediction_poses[-1] # this is under imu frame
 
         # print(self.cur_frame_imu_prediction_poses) # all imu integration results under imu world frame
-
-        print(self.imu_bias) # the bias is changing too fast, something must be wrong # TODO
+        if not self.config.silence:
+            np.set_printoptions(precision=10, suppress=True)
+            print(self.imu_bias)
 
         return integrated_pose
     

@@ -703,14 +703,15 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
     # TODO: still have some problem, figure it out tomorrow # This is wrong FIXME
     # still does not work well
     
-    K_imu = imu_ts.shape[0]
+    imu_count = imu_ts.shape[0]
+    point_count = points.shape[0]
 
     imu_after_ts_index = torch.searchsorted(imu_ts, point_ts)
 
     # print(torch.min(imu_before_ts_index))
     # print(torch.max(imu_before_ts_index))
 
-    imu_after_ts_index = torch.clamp(imu_after_ts_index, 1, K_imu - 1)
+    imu_after_ts_index = torch.clamp(imu_after_ts_index, 1, imu_count - 1)
     imu_before_ts_index = imu_after_ts_index - 1 # 0 - K-2
 
     point_ts_ratio_in_imu_interval = (point_ts - imu_ts[imu_before_ts_index]) / (imu_ts[imu_after_ts_index] - imu_ts[imu_before_ts_index]) # N
@@ -727,9 +728,15 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
 
     # print(points_pose_in_imu_interval.shape)
 
-    batch_eye = torch.eye(3).unsqueeze(0).repeat(points.shape[0], 1, 1).to(points)
+    batch_eye = torch.eye(3).unsqueeze(0).repeat(point_count, 1, 1).to(points)
 
     rotmat_slerp_in_imu_interval = rotmat_slerp(batch_eye, points_pose_in_imu_interval[:, :3, :3].to(points), point_ts_ratio_in_imu_interval) # R2  # N, 3, 3
+
+    # TODO: could has NaN number here
+
+    # contains_nan = torch.isnan(rotmat_slerp_in_imu_interval).any()
+
+    # assert not contains_nan, "NaN value found in rotmat_slerp_in_imu_interval" 
 
     tran_lerp_in_imu_interval = point_ts_ratio_in_imu_interval[:, None] * points_pose_in_imu_interval[:, :3, 3] # t2
 
@@ -741,9 +748,16 @@ def deskewing_imu(points: torch.tensor, point_ts: torch.tensor, imu_ts: torch.te
 
     tran_imu_before_ts = L_lidar_at_imu_ts[imu_before_ts_index, :3, 3] # t1 # N, 3
 
-    points_deskewd = points
+    points_deskewd = points.clone()
     # p' = R1 R2 p + R1 t2 + t1
     points_deskewd[:, :3] = (rot_mat_slerp_combined @ points[:, :3].unsqueeze(-1)).squeeze(-1) + (rot_mat_imu_before_ts @ tran_lerp_in_imu_interval.unsqueeze(-1)).squeeze(-1) + tran_imu_before_ts
+    
+    nan_mask = torch.isnan(points_deskewd).any(dim=1)
+
+    points_deskewd[nan_mask] = points[nan_mask] # deal with the stupid NaN issue 
+    
+    # contains_nan = torch.isnan(points_deskewd).any()
+    # assert not contains_nan, "NaN value found in points_deskewd" 
 
     return points_deskewd
 
@@ -784,9 +798,6 @@ def unitquat_slerp(q0, q1, steps, shortest_arc=True):
     rel_q = roma.utils.quat_product(roma.utils.quat_conjugation(q0), q1)
     rel_rotvec = roma.mappings.unitquat_to_rotvec(rel_q, shortest_arc=shortest_arc)
 
-    # print(rel_rotvec.shape)
-    # print(steps.shape)
-
     # Relative rotations to apply
     rel_rotvecs = steps.unsqueeze(-1) * rel_rotvec
     rots = roma.mappings.rotvec_to_unitquat(rel_rotvecs)
@@ -795,33 +806,33 @@ def unitquat_slerp(q0, q1, steps, shortest_arc=True):
     return interpolated_q
 
 
-def interpolate_poses(before_indices, after_indices, sorted_ts, sorted_poses, ts, points):
-    # Initialize the container for deskewed points
-    points_deskewed = points.clone()
+# def interpolate_poses(before_indices, after_indices, sorted_ts, sorted_poses, ts, points):
+#     # Initialize the container for deskewed points
+#     points_deskewed = points.clone()
 
-    # Loop over all unique pairs of indices, directly derived from before and after indices # then this is very slow, right?
-    for i in range(len(sorted_ts) - 1):  # Assuming sorted_ts is always valid for i and i+1
-        mask = (before_indices == i) & (after_indices == i+1)
-        if torch.any(mask):
-            points_subset = points[mask]
-            ts_subset = ts[mask]
+#     # Loop over all unique pairs of indices, directly derived from before and after indices # then this is very slow, right?
+#     for i in range(len(sorted_ts) - 1):  # Assuming sorted_ts is always valid for i and i+1
+#         mask = (before_indices == i) & (after_indices == i+1)
+#         if torch.any(mask):
+#             points_subset = points[mask]
+#             ts_subset = ts[mask]
 
-            ts_before = sorted_ts[i]
-            ts_after = sorted_ts[i+1]
+#             ts_before = sorted_ts[i]
+#             ts_after = sorted_ts[i+1]
 
-            t = (ts_subset - ts_before) / (ts_after - ts_before)
+#             t = (ts_subset - ts_before) / (ts_after - ts_before)
 
-            rot_before = sorted_poses[i, :3, :3]
-            rot_after = sorted_poses[i+1, :3, :3]
-            trans_before = sorted_poses[i, :3, 3]
-            trans_after = sorted_poses[i+1, :3, 3]
+#             rot_before = sorted_poses[i, :3, :3]
+#             rot_after = sorted_poses[i+1, :3, :3]
+#             trans_before = sorted_poses[i, :3, 3]
+#             trans_after = sorted_poses[i+1, :3, 3]
 
-            rotmat_slerp = roma.rotmat_slerp(rot_before, rot_after, t[:, None]).squeeze(1) # [n,1,3,3]
-            tran_lerp = (1 - t[:, None]) * trans_before + t[:, None] * trans_after # [n,3]
+#             rotmat_slerp = roma.rotmat_slerp(rot_before, rot_after, t[:, None]).squeeze(1) # [n,1,3,3]
+#             tran_lerp = (1 - t[:, None]) * trans_before + t[:, None] * trans_after # [n,3]
 
-            points_deskewed[mask, :3] = (rotmat_slerp @ points_subset[:, :3].unsqueeze(-1)).squeeze(-1) + tran_lerp
+#             points_deskewed[mask, :3] = (rotmat_slerp @ points_subset[:, :3].unsqueeze(-1)).squeeze(-1) + tran_lerp
 
-    return points_deskewed
+#     return points_deskewed
 
 
 

@@ -147,9 +147,9 @@ class NeuralPoints(nn.Module):
         return self.local_neural_points.shape[0]
 
     def print_memory(self):
-        if not self.silence:
-            print("# Global neural point: %d" % (self.count()))
-            print("# Local  neural point: %d" % (self.local_count()))
+        # if not self.silence:
+        #     print("# Global neural point: %d" % (self.count()))
+        #     print("# Local  neural point: %d" % (self.local_count()))
         neural_point_count = self.count()
         point_dim = (
             self.config.feature_dim + 3 + 4

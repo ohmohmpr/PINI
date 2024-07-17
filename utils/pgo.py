@@ -195,7 +195,7 @@ class PoseGraphManager:
         loop_id: int,
         loop_transform: np.ndarray,
         cov=None,
-        reject_outlier=True,
+        reject_outlier=False,
     ):
         """add a loop closure factor between two pose nodes
         Args:
@@ -235,7 +235,7 @@ class PoseGraphManager:
             
         return True
 
-    def optimize_pose_graph(self):
+    def optimize_factor_graph(self, update_all_poses = True):
         # something wrong with the loop again
 
         self.isam.update(self.graph_factors, self.graph_initials)
@@ -244,9 +244,6 @@ class PoseGraphManager:
         self.graph_optimized = self.isam.calculateEstimate()
 
         T_1 = get_time()
-
-        if not self.silence:
-            print("time for factor graph optimization (ms)", (T_1-T_0)*1e3)
 
         # error_before = self.graph_factors.error(self.graph_initials)
         # error_after = self.graph_factors.error(self.graph_optimized)
@@ -258,19 +255,26 @@ class PoseGraphManager:
 
         # update the pose of each frame after pgo
         self.pgo_poses = self.init_poses.copy()
-        for idx in range(self.curr_node_idx+1):
-            self.pgo_poses[idx] = get_node_pose(self.graph_optimized, idx)
+        
+        T_3 = get_time()
+        # only conduct when there's a loop 
+        if update_all_poses:
+            for idx in range(self.curr_node_idx+1):
+                self.pgo_poses[idx] = get_node_pose(self.graph_optimized, idx)
+        # this part is very slow, how to do it in batch
+        T_4 = get_time()
 
-        self.cur_pose = self.pgo_poses[self.curr_node_idx] # if imu on, then here it's in imu frame
+        # self.cur_pose = self.pgo_poses[self.curr_node_idx] # if imu on, then here it's in imu frame
+        self.cur_pose = get_node_pose(self.graph_optimized, self.curr_node_idx) # if imu on, then here it's in imu frame
 
         if self.config.imu_on: # imu parameter update after the factor graph optimization
             # if imu used, then all poses here are under imu frame, need to be converted back to lidar
+            # only need the current one
             self.imu.velocity = self.graph_optimized.atVector(gtsam.symbol('v', self.curr_node_idx))
             self.imu.imu_bias = self.graph_optimized.atConstantBias(gtsam.symbol('b', self.curr_node_idx))
             self.imu.acc_bias = self.imu.imu_bias.accelerometer()
             self.imu.gyro_bias = self.imu.imu_bias.gyroscope()
-            # reset
-            self.imu.pim.resetIntegration()
+            self.imu.pim.resetIntegration() # reset
 
         self.pgo_count += 1
         # self.last_error = error_after
@@ -278,6 +282,13 @@ class PoseGraphManager:
         # reset
         self.graph_factors = gtsam.NonlinearFactorGraph()
         self.graph_initials.clear()
+
+        T_2 = get_time()
+
+        if not self.silence:
+            print("time for factor graph optimization (ms)", (T_1-T_0)*1e3)
+            # print("time for reading factor graph nodes (ms)", (T_2-T_1)*1e3) # this part is slow
+            # print("time for reading factor graph pose nodes (ms)", (T_4-T_3)*1e3) # this part is slow
 
 
     # write the pose graph as the g2o format
@@ -358,7 +369,7 @@ class PoseGraphManager:
             )
 
         # optimize
-        self.optimize_pose_graph()
+        self.optimize_factor_graph()
         # poses after optimization: pgo_poses
 
     # get the difference of poses before and after pgo

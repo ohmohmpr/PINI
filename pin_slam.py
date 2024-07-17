@@ -166,7 +166,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
         T1 = get_time()
         
-        valid_frame = dataset.preprocess_frame()
+        valid_frame = dataset.preprocess_frame() # imu init is also done here for the first frame
         if not valid_frame:
             dataset.processed_frame += 1
             continue 
@@ -219,6 +219,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                 lcd_npmc.add_node(local_map_frame_id, context_pc_local, neural_points_feature)
             else: # first frame not yet have local map, use scan context
                 lcd_npmc.add_node(frame_id, dataset.cur_point_cloud_torch)
+        
+        T31 = get_time()
 
         if config.imu_on: # imu version
             pgm.add_frame_node(frame_id, dataset.pgo_poses_imu[frame_id]) # add new node and pose initial guess
@@ -230,6 +232,10 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                 pgm.estimate_drift(travel_dist, frame_id) # estimate the current drift
                 pgm.add_combined_IMU_factor(frame_id, frame_id-1)
             pgo_done = False
+
+            T32 = get_time()
+
+            # print(dataset.cur_source_points) no problem here
 
             local_map_context_loop = False
             if frame_id - pgm.last_loop_idx > config.pgo_freq and not dataset.stop_status:
@@ -249,16 +255,25 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     neural_points.recreate_hash(pose_init_torch[:3,3], None, True, True, loop_id) # recreate hash and local map at the loop candidate frame for registration, this is the reason why we'd better to keep the duplicated neural points until the end
                     loop_reg_source_point = dataset.cur_source_points.clone()
                     pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True, vis_result=config.o3d_vis_on)
+                    # visualize the loop closure and loop registration
+                    if config.o3d_vis_on and o3d_vis.debug_mode > 1:
+                        points_torch_init = transform_torch(dataset.cur_source_points, pose_init_torch) # apply transformation
+                        points_o3d_init = o3d.geometry.PointCloud()
+                        points_o3d_init.points = o3d.utility.Vector3dVector(points_torch_init.detach().cpu().numpy().astype(np.float64))
+                        loop_neural_pcd = neural_points.get_neural_points_o3d(query_global=False, color_mode=o3d_vis.neural_points_vis_mode, random_down_ratio=10)
+                        o3d_vis.update(points_o3d_init, neural_points=loop_neural_pcd, pause_now=True)
+                        o3d_vis.update(weight_pcd, neural_points=loop_neural_pcd, pause_now=True)
+                    
                     if reg_valid_flag: # refine succeed
                         pose_refine_np = pose_refine_torch.detach().cpu().numpy()
                         loop_transform = np.linalg.inv(dataset.pgo_poses[loop_id]) @ pose_refine_np # T_l<-c = T_l<-w @ T_w<-c # after refinement, under LiDAR frame
                         cur_edge_cov = loop_cov_mat if config.use_reg_cov_mat else None
                         loop_transform_imu_frame = dataset.T_I_L @ loop_transform @ dataset.T_L_I
-                        reg_valid_flag = pgm.add_loop_factor(frame_id, loop_id, loop_transform_imu_frame, cov = cur_edge_cov, reject_outlier=False)
+                        reg_valid_flag = pgm.add_loop_factor(frame_id, loop_id, loop_transform_imu_frame, cov = cur_edge_cov)
                     if reg_valid_flag:
                         if not config.silence:
                             print("[bold green]Refine loop transformation succeed [/bold green]")
-                        pgm.optimize_pose_graph() # conduct pgo
+                        pgm.optimize_factor_graph() # conduct pgo
                         pgm.valid_loop_count += 1
                         cur_loop_vis_id = frame_id-config.local_map_context_latency if local_map_context_loop else frame_id
                         pgm.loop_edges_vis.append(np.array([loop_id, cur_loop_vis_id],dtype=np.uint32)) # only for vis
@@ -285,25 +300,16 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                         loop_reg_failed_count += 1
                         if config.o3d_vis_on and o3d_vis.debug_mode > 1:
                             o3d_vis.stop()
+                    # neural_points.recreate_hash(dataset.cur_pose_torch[:3,3], None, True, True, frame_id) # if failed, you need to reset the local map back to current frame
             
             if frame_id > 0 and not pgo_done:
-                pgm.optimize_pose_graph()
-                dataset.update_poses_after_pgo(pgm.pgo_poses)
+                pgm.optimize_factor_graph(update_all_poses=False)
+                dataset.update_poses_after_pgo(pgm.pgo_poses) # constant time
+                
                 if config.o3d_vis_on: # odom pose are different # TODO
                     o3d_vis.before_pgo = False
 
-        elif config.pgo_on: 
-            if config.global_loop_on:
-                if config.local_map_context and frame_id >= config.local_map_context_latency: # local map context
-                    local_map_frame_id = frame_id-config.local_map_context_latency
-                    local_map_pose = torch.tensor(dataset.pgo_poses[local_map_frame_id], device=config.device, dtype=torch.float64)
-                    if config.local_map_context_latency > 0:
-                        neural_points.reset_local_map(local_map_pose[:3,3], None, local_map_frame_id, False, config.loop_local_map_time_window)
-                    context_pc_local = transform_torch(neural_points.local_neural_points.detach(), torch.linalg.inv(local_map_pose)) # transformed back into the local frame
-                    neural_points_feature = neural_points.local_geo_features[:-1].detach() if config.loop_with_feature else None
-                    lcd_npmc.add_node(local_map_frame_id, context_pc_local, neural_points_feature)
-                else: # first frame not yet have local map, use scan context
-                    lcd_npmc.add_node(frame_id, dataset.cur_point_cloud_torch)
+        elif config.pgo_on: # without IMU
             pgm.add_frame_node(frame_id, dataset.pgo_poses[frame_id]) # add new node and pose initial guess
             pgm.init_poses = dataset.pgo_poses[:frame_id+1]
             if frame_id > 0:
@@ -339,7 +345,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     if reg_valid_flag:
                         if not config.silence:
                             print("[bold green]Refine loop transformation succeed [/bold green]")
-                        pgm.optimize_pose_graph() # conduct pgo
+                        pgm.optimize_factor_graph() # conduct pgo
                         pgm.valid_loop_count += 1
                         cur_loop_vis_id = frame_id-config.local_map_context_latency if local_map_context_loop else frame_id
                         pgm.loop_edges_vis.append(np.array([loop_id, cur_loop_vis_id],dtype=np.uint32)) # only for vis

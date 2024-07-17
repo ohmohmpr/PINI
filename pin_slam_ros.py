@@ -453,7 +453,7 @@ class PINSLAMer:
                     if reg_valid_flag: # refine succeed
                         reg_valid_flag = self.pgm.add_loop_factor(cur_frame_id, loop_id, loop_transform)
                     if reg_valid_flag:   
-                        self.pgm.optimize_pose_graph() # conduct pgo
+                        self.pgm.optimize_factor_graph() # conduct pgo
                         cur_loop_vis_id = cur_frame_id-self.config.local_map_context_latency if local_map_context_loop else cur_frame_id
                         self.pgm.loop_edges.append(np.array([loop_id, cur_loop_vis_id],dtype=np.uint32)) # only for vis
                         # update the neural points and poses

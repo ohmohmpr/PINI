@@ -404,13 +404,15 @@ class SLAMDataset(Dataset):
             
             else: # pose initial guess
 
-                if self.config.imu_on and self.cur_frame_imus is not None: # imu available
+                if self.config.imu_on and self.cur_frame_imus is not None: # imu available and stable
                     T_Wi_Ilast = self.T_Wi_Wl @ self.last_pose_ref @ self.T_L_I # under imu frame
                     # use IMU integration result as the initial guess
                     T_Wi_Icur = self.imu.preintegration(acc=self.cur_frame_imus['acc'],gyro=self.cur_frame_imus['gyro'],dts=self.cur_frame_imus['dt'],last_pose=T_Wi_Ilast)
+
+                if self.imu.stable:
                     # print(T_Wi_Icur)
                     T_Wl_Lcur = self.T_Wl_Wi @ T_Wi_Icur @ self.T_I_L  # convert to lidar frame
-                    T_Wl_I = self.T_Wl_Wi @ T_Wi_Icur
+                    # T_Wl_I = self.T_Wl_Wi @ T_Wi_Icur
                     T_Llast_Lcur = np.linalg.inv(self.last_pose_ref) @ T_Wl_Lcur # relative transfrom under lidar frame
 
                     if not self.config.silence:
@@ -418,9 +420,9 @@ class SLAMDataset(Dataset):
                         print("Transformation initial guess by IMU integration:") # actually not very accurate # TODO: try to also visualize this
                         print(T_Llast_Lcur)
 
-                    T_Lcur_Llast = np.linalg.inv(T_Llast_Lcur)
-                    cur_pose_init_guess = T_Wl_Lcur
-                else:
+                        # T_Lcur_Llast = np.linalg.inv(T_Llast_Lcur)
+                        cur_pose_init_guess = T_Wl_Lcur
+                else: # if imu not stable, try to still use the uniform motion initial guess
                     if self.config.uniform_motion_on and not self.lose_track:  
                         # apply uniform motion model here
                         cur_pose_init_guess = (
@@ -535,7 +537,7 @@ class SLAMDataset(Dataset):
             else:
                 cur_source_ts = None
 
-            if frame_id > 50: # TODO fix me
+            if self.config.imu_on and frame_id > 50: # TODO fix me
                 self.imu.stable = True
 
             # deskewing (motion undistortion) for source point cloud

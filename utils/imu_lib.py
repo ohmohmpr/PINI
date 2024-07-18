@@ -61,7 +61,7 @@ class IMUManager:
         # self.params.setGyroscopeCovariance(self.gyr_cov**2 * eye3)
         # self.params.setAccelerometerCovariance(self.acc_cov * eye3)
 
-        self.params.setIntegrationCovariance(1e-8 * eye3)  # 1e-6, 1e-3**2 * eye3 # 1e-5 * eye3
+        self.params.setIntegrationCovariance(1e-8 * eye3)  # 1e-6, 1e-3**2 * eye3 # 1e-5 * eye3 # TODO: figure out what does this cov mean, how is it used and how to set it properly
 
         # a bit too small
         # self.params.setBiasAccCovariance(self.bias_acc_sigma**2 * eye3)

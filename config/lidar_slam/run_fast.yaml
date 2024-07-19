@@ -1,0 +1,34 @@
+setting:
+  name: "test_pin"
+  output_root: "./experiments"
+  deskew: True
+process:
+  max_range_m: 80.0 # maximum distance filter for each frame
+  vox_down_m: 0.1
+  # adaptive_range_on: True
+sampler:
+  surface_sample_range_m: 0.3
+decoder:
+  mlp_hidden_dim: 32 # 32
+neuralpoints:
+  voxel_size_m: 0.5
+  search_alpha: 0.2 # increase when you want to be more robust to agressive motions
+continual:
+  batch_size_new_sample: 1000
+  pool_capacity: 1e7
+  pool_filter_freq: 10
+tracker:
+  source_vox_down_m: 1.6
+  iter_n: 15 # 50 
+  term_deg: 0.1
+  lm_lambda: 0.0
+  GM_grad: 0.0
+  GM_dist: 0.0
+pgo:
+  map_context: True
+  context_cosdist: 0.3
+  min_loop_travel_ratio: 2.0
+optimizer: # mapper # mapping need to be done better to have a reliable and fast tracking
+  iters: 10
+  batch_size: 10000
+  adaptive_iters: True

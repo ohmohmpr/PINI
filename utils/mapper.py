@@ -575,6 +575,8 @@ class Mapper:
             (pool_label_np - min_sdf) / (max_sdf - min_sdf), 0.0, 1.0
         )
 
+        pool_label_np = 1.0 - pool_label_np # show positive as blue and negative as red
+
         color_map = cm.get_cmap("seismic")
         colors = color_map(pool_label_np)[:, :3].astype(np.float64)
 

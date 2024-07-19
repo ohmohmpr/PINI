@@ -303,7 +303,7 @@ class Mesher:
         return sdf_map_pc
 
     def generate_sdf_map_for_vis(
-        self, coord, sdf_pred, mc_mask, min_sdf=-1.0, max_sdf=1.0, cmap="bwr"
+        self, coord, sdf_pred, mc_mask, min_sdf=-1.0, max_sdf=1.0, cmap="bwr" # bwr
     ):  # 'jet','bwr','viridis'
 
         # do the masking or not
@@ -313,7 +313,9 @@ class Mesher:
 
         coord_np = coord.detach().cpu().numpy().astype(np.float64)
 
-        sdf_pred_show = np.clip((sdf_pred - min_sdf) / (max_sdf - min_sdf), 0.0, 1.0)
+        sdf_pred_show = np.clip((sdf_pred - min_sdf) / (max_sdf - min_sdf), 0.0, 1.0) 
+
+        sdf_pred_show = 1.0 - sdf_pred_show # from bwr to rwb, we'd like to show freespace as blue
 
         color_map = cm.get_cmap(cmap)  # or 'jet'
         colors = color_map(sdf_pred_show)[:, :3].astype(np.float64)

@@ -18,6 +18,8 @@ class IMUManager:
 
         self.stable = False
 
+        self.T_Wi_I0 = np.eye(4)
+
         D2R = np.pi/180.0 # deg to rad
 
         # for ouster imu
@@ -26,13 +28,22 @@ class IMUManager:
         # self.bias_acc_sigma = 0.000106
         # self.bias_gyro_sigma = 0.000004
 
-        # NCD
+        # this is set according to Lio-SAM
+        self.acc_std = 4e-3 # maybe use Allan STD
+        self.gyro_std = 2e-3
+
+
+        # NCD # maybe set larger
         self.gyro_bias_std = 20.0 # deg/hr
         self.acc_bias_std = 500.0 # mGal
 
+        # should not be too small
+        # self.gyro_bias_std = 2000.0 # deg/hr
+        # self.acc_bias_std = 500.0 # mGal # but this is a bit too large (5000), or?
+
         # M2DGR
-        # self.gyro_bias_std = 200.0 # deg/hr
-        # self.acc_bias_std = 500.0 # mGal
+        self.gyro_bias_std = 200.0 # deg/hr
+        self.acc_bias_std = 500.0 # mGal
 
         self.gyro_bias_std *= (D2R / 3600.0) # ~ 1e-4 
         self.acc_bias_std *= (1e-5) # 5e-3
@@ -40,19 +51,27 @@ class IMUManager:
         # print("Acc Bias STD, Gyro Bias STD:")
         # print(self.acc_bias_std, self.gyro_bias_std)
 
+        # TODO: better to plot the bias along the time
+
 
     def init_preintegration(self, init_imuinter, gravity_align = False):
         
-        self.T_Wi_I0, self.acc_bias, self.gyro_bias, self.acc_cov, self.gyro_cov = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
+        results = self.imu_calibration_online(init_imuinter, gravity_align=gravity_align)
+
+        if results is not None:
+            self.T_Wi_I0, self.acc_bias, self.gyro_bias, self.acc_cov, self.gyro_cov = results
+
+        # print(self.acc_cov)
+        # print(self.gyro_cov)
 
         # self.acc_bias = np.zeros(3)
-        # self.gyro_bias = np.zeros(3) # initialize as 0
+        # self.gyro_bias = np.zeros(3) # better to initialize as 0 # no actually would have big issue
 
         self.imu_bias = gtsam.imuBias.ConstantBias(self.acc_bias, self.gyro_bias) 
 
         # use preset value
-        # self.gyro_cov = np.array([self.gyro_std, self.gyro_std, self.gyro_std])
-        # self.acc_cov = np.array([self.acc_std, self.acc_std, self.acc_std])
+        self.gyro_cov = np.array([self.gyro_std, self.gyro_std, self.gyro_std])
+        self.acc_cov = np.array([self.acc_std, self.acc_std, self.acc_std])
 
         eye3 = np.eye(3)
         self.params.setGyroscopeCovariance(self.gyro_cov**2 * eye3)
@@ -61,7 +80,9 @@ class IMUManager:
         # self.params.setGyroscopeCovariance(self.gyr_cov**2 * eye3)
         # self.params.setAccelerometerCovariance(self.acc_cov * eye3)
 
-        self.params.setIntegrationCovariance(1e-8 * eye3)  # 1e-6, 1e-3**2 * eye3 # 1e-5 * eye3 # TODO: figure out what does this cov mean, how is it used and how to set it properly
+        self.params.setIntegrationCovariance(1e-6 * eye3)  # 1e-6, 1e-3**2 * eye3 # 1e-5 * eye3 # TODO: figure out what does this cov mean, how is it used and how to set it properly
+        # related to this issue: https://github.com/borglab/gtsam/issues/1114 
+        # is just set as 1e-8 in lio-sam
 
         # a bit too small
         # self.params.setBiasAccCovariance(self.bias_acc_sigma**2 * eye3)
@@ -119,10 +140,13 @@ class IMUManager:
         num_samples = len(imu_curinter['acc'])
 
         # Calculate averages
-        if num_samples > 0:
+        if num_samples > 5:
             accel_avg = np.mean(imu_curinter['acc'], axis=0)
             gyro_avg = np.mean(imu_curinter['gyro'], axis=0)
-
+        else:
+            print("Not enough number of imu data for calibration")
+            return False
+        
         grav_vec = np.array([0, 0, self.gravity])
 
         if gravity_align:

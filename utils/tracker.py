@@ -42,7 +42,7 @@ class Tracker:
     # already under the scaled coordinate system
     def tracking(
         self,
-        source_points,
+        source_points, # you may added more off-the-surface points to enhance the performance in the scenes of some thin structures (like indoor cases), not very curcial though # TODO
         init_pose=None,
         source_colors=None,
         source_normals=None,
@@ -678,7 +678,9 @@ def implicit_reg(
     cov_mat = None
     if require_cov:
         # Compute the covariance matrix (using a scaling factor)
-        mse = torch.mean(weight.squeeze(1) * sdf_residual**2)
+        if isinstance(weight, torch.Tensor):
+            weight = weight.squeeze(-1)
+        mse = torch.mean(weight * sdf_residual**2)
         cov_mat = torch.linalg.inv(N_mat_raw) * mse  # rotation , translation
 
     return T_mat, cov_mat, eigenvalues

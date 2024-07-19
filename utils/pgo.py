@@ -195,7 +195,7 @@ class PoseGraphManager:
         loop_id: int,
         loop_transform: np.ndarray,
         cov=None,
-        reject_outlier=True,
+        reject_outlier=False
     ):
         """add a loop closure factor between two pose nodes
         Args:

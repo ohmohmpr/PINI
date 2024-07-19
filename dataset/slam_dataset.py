@@ -250,7 +250,11 @@ class SLAMDataset(Dataset):
             elif len(data) == 3:
                 points, point_ts, imus = data
                 self.cur_frame_imus = imus
-                # print(imus['dt'])
+
+                # if self.cur_frame_imus is not None:
+                #     np.set_printoptions(precision=10, suppress=True)
+                #     print(imus['dt'])
+                #     print(imus['ts'])
             else:
                 sys.exit("Something wrong. does not support currently")
         else:
@@ -391,7 +395,7 @@ class SLAMDataset(Dataset):
             self.last_pose_ref = self.cur_pose_ref # T_Wl_Llast
 
             if self.config.imu_on and self.cur_frame_imus is not None: # init the imu preintegration (assume static)
-                self.imu.init_preintegration(self.cur_frame_imus, gravity_align=True) # TODO: figure out if wee need to align the gravity
+                self.imu.init_preintegration(self.cur_frame_imus, gravity_align=True) # TODO: figure out if wee need to align the gravity # weird behaviors
 
                 self.T_Wl_Wi = self.T_L_I @ np.linalg.inv(self.imu.T_Wi_I0)
                 self.T_Wi_Wl = np.linalg.inv(self.T_Wl_Wi)
@@ -408,20 +412,20 @@ class SLAMDataset(Dataset):
                     T_Wi_Ilast = self.T_Wi_Wl @ self.last_pose_ref @ self.T_L_I # under imu frame
                     # use IMU integration result as the initial guess
                     T_Wi_Icur = self.imu.preintegration(acc=self.cur_frame_imus['acc'],gyro=self.cur_frame_imus['gyro'],dts=self.cur_frame_imus['dt'],last_pose=T_Wi_Ilast)
-
-                if self.imu.stable:
                     # print(T_Wi_Icur)
                     T_Wl_Lcur = self.T_Wl_Wi @ T_Wi_Icur @ self.T_I_L  # convert to lidar frame
                     # T_Wl_I = self.T_Wl_Wi @ T_Wi_Icur
                     T_Llast_Lcur = np.linalg.inv(self.last_pose_ref) @ T_Wl_Lcur # relative transfrom under lidar frame
-
                     if not self.config.silence:
                         np.set_printoptions(precision=10, suppress=True)
                         print("Transformation initial guess by IMU integration:") # actually not very accurate # TODO: try to also visualize this
                         print(T_Llast_Lcur)
+                else:
+                    self.imu.stable = False
 
-                        # T_Lcur_Llast = np.linalg.inv(T_Llast_Lcur)
-                        cur_pose_init_guess = T_Wl_Lcur
+                if self.imu.stable:
+                    cur_pose_init_guess = T_Wl_Lcur
+                        
                 else: # if imu not stable, try to still use the uniform motion initial guess
                     if self.config.uniform_motion_on and not self.lose_track:  
                         # apply uniform motion model here
@@ -431,6 +435,11 @@ class SLAMDataset(Dataset):
                     else:  # static initial guess
                         cur_pose_init_guess = self.last_pose_ref
 
+                    last_odom_tran_guess = inv(self.last_pose_ref) @ cur_pose_init_guess
+                    if not self.config.silence:
+                        np.set_printoptions(precision=10, suppress=True)
+                        print("Transformation initial guess by uniform motion:") # actually not very accurate # TODO: try to also visualize this
+                        print(last_odom_tran_guess)
 
             # pose initial guess tensor # np to tensor
             self.cur_pose_guess_torch = torch.tensor(
@@ -513,7 +522,7 @@ class SLAMDataset(Dataset):
         if frame_id > 0:
             
             deskew_with_imu = False
-            if self.config.imu_on and self.imu.stable:
+            if self.config.imu_on and self.imu.stable and self.config.deskew_with_imu:
                 deskew_with_imu = True
 
             cur_source_torch = (
@@ -537,20 +546,21 @@ class SLAMDataset(Dataset):
             else:
                 cur_source_ts = None
 
-            if self.config.imu_on and frame_id > 50: # TODO fix me
+            if self.config.imu_on and frame_id > 50: # TODO fix me, add to config
                 self.imu.stable = True
 
             # deskewing (motion undistortion) for source point cloud
             self.points_map_deskewed = False
             if self.config.deskew and not self.lose_track:
                 if not deskew_with_imu:
-                    self.cur_source_points = deskewing( # normalization is done inside
+                    self.cur_source_points = deskewing( # normalization is done inside 
                         self.cur_source_points,
                         cur_source_ts,
                         torch.tensor(
-                            self.last_odom_tran, device=self.device, dtype=self.dtype
+                            self.last_odom_tran, device=self.device, dtype=self.dtype 
                         )
                     )  # T_last<-cur
+                    # reg and map deskew should be same
                 else:
                     imu_ts = torch.tensor(self.cur_frame_imus["ts"], device=self.device, dtype=self.dtype)
 
@@ -559,6 +569,9 @@ class SLAMDataset(Dataset):
                     Ts_L_deskew_torch = torch.tensor(Ts_L_deskew, device=self.device, dtype=self.dtype)
 
                     T_00 = get_time()
+
+                    # try to also avoid converting to 0.0 (beginning) # FIXME
+
                     self.cur_point_cloud_torch = deskewing_imu(self.cur_point_cloud_torch, cur_ts, imu_ts, Ts_L_deskew_torch) # this seems to be the only problem, what's wrong? # NaN issue !!! (FIXME)
                     T_01 = get_time()
                     # contains_nan = torch.isnan(self.cur_point_cloud_torch).any() 
@@ -614,8 +627,8 @@ class SLAMDataset(Dataset):
             if self.config.imu_on:
                 self.pgo_poses_imu = self.T_Wi_Wl @ self.pgo_poses @ self.T_L_I
 
-
-        if self.odom_poses is not None:
+        # this is not the real odometry result when using IMU preintergration optimization
+        if self.odom_poses is not None: 
             cur_odom_pose = self.odom_poses[cur_frame_id-1] @ self.last_odom_tran  # T_world<-cur
             self.odom_poses[cur_frame_id] = cur_odom_pose
 
@@ -795,6 +808,12 @@ class SLAMDataset(Dataset):
             os.path.join(self.run_path, "time_table.npy"), time_table
         )  # save detailed time table
 
+        plot_timing_detail(
+            time_table,
+            os.path.join(self.run_path, "time_details.png"),
+            self.config.pgo_on,
+        )
+
         pose_eval = None
 
         # pose estimation evaluation report
@@ -893,12 +912,6 @@ class SLAMDataset(Dataset):
                         writer.writerow(data)
             except IOError:
                 print("I/O error")
-
-            plot_timing_detail(
-                time_table,
-                os.path.join(self.run_path, "time_details.png"),
-                self.config.pgo_on,
-            )
 
             # if self.config.o3d_vis_on:  # x service issue for remote server
             output_traj_plot_path_2d = os.path.join(self.run_path, "traj_plot_2d.png")

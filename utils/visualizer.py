@@ -86,9 +86,8 @@ class MapVisualizer:
         self.render_frame_axis: bool = True
         self.render_trajectory: bool = True
         self.render_gt_trajectory: bool = False
-        self.render_odom_trajectory: bool = (
-            True  # when pgo is on, visualize the odom or not
-        )
+        self.render_odom_trajectory: bool = False # when pgo is on, visualize the odom or not
+
         self.render_neural_points: bool = False
         self.render_data_pool: bool = False
         self.render_sdf: bool = False

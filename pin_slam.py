@@ -177,8 +177,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         if frame_id > 0: 
             if config.track_on:
                 tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
-                                                   dataset.cur_source_colors, dataset.cur_source_normals,
-                                                   vis_result=config.o3d_vis_on and not config.o3d_vis_raw)
+                                                   dataset.cur_source_colors)
                 cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag = tracking_result
                 dataset.lose_track = not valid_flag
                 dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
@@ -230,7 +229,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                 cur_edge_cov = cur_odom_cov if config.use_reg_cov_mat else None 
                 pgm.add_odometry_factor(frame_id, frame_id-1, dataset.last_odom_tran_imu_frame, cov = cur_edge_cov) # T_p<-c     
                 pgm.estimate_drift(travel_dist, frame_id) # estimate the current drift
-                pgm.add_combined_IMU_factor(frame_id, frame_id-1)
+                if dataset.cur_frame_imus is not None: # if None, skip this imu preintegration
+                    pgm.add_combined_IMU_factor(frame_id, frame_id-1)
             pgo_done = False
 
             T32 = get_time()
@@ -254,15 +254,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     pose_init_torch = torch.tensor((dataset.pgo_poses[loop_id] @ loop_transform), device=config.device, dtype=torch.float64) # T_w<-c = T_w<-l @ T_l<-c 
                     neural_points.recreate_hash(pose_init_torch[:3,3], None, True, True, loop_id) # recreate hash and local map at the loop candidate frame for registration, this is the reason why we'd better to keep the duplicated neural points until the end
                     loop_reg_source_point = dataset.cur_source_points.clone()
-                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True, vis_result=config.o3d_vis_on)
-                    # visualize the loop closure and loop registration
-                    if config.o3d_vis_on and o3d_vis.debug_mode > 1:
-                        points_torch_init = transform_torch(dataset.cur_source_points, pose_init_torch) # apply transformation
-                        points_o3d_init = o3d.geometry.PointCloud()
-                        points_o3d_init.points = o3d.utility.Vector3dVector(points_torch_init.detach().cpu().numpy().astype(np.float64))
-                        loop_neural_pcd = neural_points.get_neural_points_o3d(query_global=False, color_mode=o3d_vis.neural_points_vis_mode, random_down_ratio=10)
-                        o3d_vis.update(points_o3d_init, neural_points=loop_neural_pcd, pause_now=True)
-                        o3d_vis.update(weight_pcd, neural_points=loop_neural_pcd, pause_now=True)
+                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)
                     
                     if reg_valid_flag: # refine succeed
                         pose_refine_np = pose_refine_torch.detach().cpu().numpy()
@@ -334,7 +326,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     pose_init_torch = torch.tensor((dataset.pgo_poses[loop_id] @ loop_transform), device=config.device, dtype=torch.float64) # T_w<-c = T_w<-l @ T_l<-c 
                     neural_points.recreate_hash(pose_init_torch[:3,3], None, True, True, loop_id) # recreate hash and local map at the loop candidate frame for registration, this is the reason why we'd better to keep the duplicated neural points until the end
                     loop_reg_source_point = dataset.cur_source_points.clone()
-                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True, vis_result=config.o3d_vis_on)    
+                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)    
                     # only conduct pgo when the loop and loop constraint is correct
                     if reg_valid_flag: # refine succeed
                         pose_refine_np = pose_refine_torch.detach().cpu().numpy()

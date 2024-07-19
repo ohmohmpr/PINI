@@ -27,8 +27,7 @@ tracker:
 pgo:
   map_context: True
   context_cosdist: 0.3
-  min_loop_travel_ratio: 2.0
 optimizer: # mapper # mapping need to be done better to have a reliable and fast tracking
   iters: 10
-  batch_size: 10000
+  batch_size: 5000
   adaptive_iters: True

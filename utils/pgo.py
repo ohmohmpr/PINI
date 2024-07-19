@@ -238,12 +238,17 @@ class PoseGraphManager:
     def optimize_factor_graph(self, update_all_poses = True):
         # something wrong with the loop again
 
-        self.isam.update(self.graph_factors, self.graph_initials)
-
         T_0 = get_time()
-        self.graph_optimized = self.isam.calculateEstimate()
+        
+        self.isam.update(self.graph_factors, self.graph_initials) # speed here is actually not very stable (TODO), sometimes extremely slow
+
+        # or maybe try to use the cuda (gpu) version of the isam written by Koide Kenji in GLIM 
 
         T_1 = get_time()
+        
+        self.graph_optimized = self.isam.calculateEstimate()
+
+        T_2 = get_time()
 
         # error_before = self.graph_factors.error(self.graph_initials)
         # error_after = self.graph_factors.error(self.graph_optimized)
@@ -256,13 +261,12 @@ class PoseGraphManager:
         # update the pose of each frame after pgo
         self.pgo_poses = self.init_poses.copy()
         
-        T_3 = get_time()
         # only conduct when there's a loop 
         if update_all_poses:
             for idx in range(self.curr_node_idx+1):
                 self.pgo_poses[idx] = get_node_pose(self.graph_optimized, idx)
         # this part is very slow, how to do it in batch
-        T_4 = get_time()
+       
 
         # do this anyway
         get_begin_idx = max(0, self.curr_node_idx-10) # for the smoothness of poses
@@ -270,6 +274,8 @@ class PoseGraphManager:
             self.pgo_poses[idx] = get_node_pose(self.graph_optimized, idx)
 
         self.cur_pose = self.pgo_poses[self.curr_node_idx]
+
+        T_3 = get_time()
 
         if self.config.imu_on: # imu parameter update after the factor graph optimization
             # if imu used, then all poses here are under imu frame, need to be converted back to lidar
@@ -287,12 +293,11 @@ class PoseGraphManager:
         self.graph_factors = gtsam.NonlinearFactorGraph()
         self.graph_initials.clear()
 
-        T_2 = get_time()
+        T_4 = get_time()
 
         if not self.silence:
-            print("time for factor graph optimization (ms)", (T_1-T_0)*1e3)
-            # print("time for reading factor graph nodes (ms)", (T_2-T_1)*1e3) # this part is slow
-            # print("time for reading factor graph pose nodes (ms)", (T_4-T_3)*1e3) # this part is slow
+            print("time for factor graph update (ms)", (T_1-T_0)*1e3)
+            print("time for factor graph optimization (ms)", (T_2-T_1)*1e3)
 
 
     # write the pose graph as the g2o format

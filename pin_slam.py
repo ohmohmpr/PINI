@@ -218,8 +218,6 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                 lcd_npmc.add_node(local_map_frame_id, context_pc_local, neural_points_feature)
             else: # first frame not yet have local map, use scan context
                 lcd_npmc.add_node(frame_id, dataset.cur_point_cloud_torch)
-        
-        T31 = get_time()
 
         if config.imu_on: # imu version
             pgm.add_frame_node(frame_id, dataset.pgo_poses_imu[frame_id]) # add new node and pose initial guess
@@ -232,11 +230,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                 if dataset.cur_frame_imus is not None: # if None, skip this imu preintegration
                     pgm.add_combined_IMU_factor(frame_id, frame_id-1)
             pgo_done = False
-
-            T32 = get_time()
-
-            # print(dataset.cur_source_points) no problem here
-
+            
             local_map_context_loop = False
             if frame_id - pgm.last_loop_idx > config.pgo_freq and not dataset.stop_status:
                 # detect candidate local loop, find the nearest history pose and activate certain local map

@@ -272,7 +272,7 @@ class Config:
         self.eval_traj_align: bool = True # do the SE3 alignment of the trajectory when evaluating the absolute error
         
         # mesh reconstruction, marching cubes related
-        self.mc_res_m: float = 0.3 # resolution for marching cubes
+        self.mc_res_m: float = 0.4 # resolution for marching cubes
         self.pad_voxel: int = 2 # pad x voxels on each side
         self.skip_top_voxel: int = 2 # slip the top x voxels (mainly for visualization indoor, remove the roof)
         self.mc_mask_on: bool = True # use mask for marching cubes to avoid the artifacts

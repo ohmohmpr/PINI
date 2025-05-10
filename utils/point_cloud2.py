@@ -39,6 +39,7 @@ import numpy as np
 try:
     from rosbags.typesys.types import sensor_msgs__msg__PointCloud2 as PointCloud2
     from rosbags.typesys.types import sensor_msgs__msg__PointField as PointField
+    from rosbags.typesys.types import sensor_msgs__msg__Imu as Imu
 except ImportError as e:
     raise ImportError('rosbags library not installed, run "pip install -U rosbags"') from e
 
@@ -185,3 +186,31 @@ def dtype_from_fields(fields: Iterable[PointField], point_step: Optional[int] = 
     if point_step is not None:
         dtype_dict["itemsize"] = point_step
     return np.dtype(dtype_dict)
+
+
+def read_imu(msg: Imu) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    header: std_msgs__msg__Header
+    orientation: geometry_msgs__msg__Quaternion
+    orientation_covariance: np.ndarray[None, np.dtype[np.float64]]
+    angular_velocity: geometry_msgs__msg__Vector3
+    angular_velocity_covariance: np.ndarray[None, np.dtype[np.float64]]
+    linear_acceleration: geometry_msgs__msg__Vector3
+    linear_acceleration_covariance: np.ndarray[None, np.dtype[np.float64]]
+    """
+    x = msg.orientation.x
+    y = msg.orientation.y
+    z = msg.orientation.z
+    w = msg.orientation.w
+
+    angular_velocity_x = msg.angular_velocity.x
+    angular_velocity_y = msg.angular_velocity.y
+    angular_velocity_z = msg.angular_velocity.z
+    av = np.array([angular_velocity_x, angular_velocity_y, angular_velocity_z])
+
+    linear_acceleration_x = msg.linear_acceleration.x
+    linear_acceleration_y = msg.linear_acceleration.y
+    linear_acceleration_z = msg.linear_acceleration.z
+    la = np.array([linear_acceleration_x, linear_acceleration_y, linear_acceleration_z])
+
+    return [av, la]

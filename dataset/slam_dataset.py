@@ -244,21 +244,39 @@ class SLAMDataset(Dataset):
         data = self.loader[frame_id_in_folder]
     
         point_ts = None
-        if isinstance(data, tuple):
-            if len(data) == 2:
-                points, point_ts = data
-            elif len(data) == 3:
-                points, point_ts, imus = data
-                self.cur_frame_imus = imus
+        # if isinstance(data, tuple):
+        #     if len(data) == 2:
+        #         points, point_ts = data
+        #     elif len(data) == 3:
+        #         points, point_ts, imus = data
+        #         self.cur_frame_imus = imus
 
-                # if self.cur_frame_imus is not None:
-                #     np.set_printoptions(precision=10, suppress=True)
-                #     print(imus['dt'])
-                #     print(imus['ts'])
-            else:
-                sys.exit("Something wrong. does not support currently")
-        else:
-            points = data
+        #         # if self.cur_frame_imus is not None:
+        #         #     np.set_printoptions(precision=10, suppress=True)
+        #         #     print(imus['dt'])
+        #         #     print(imus['ts'])
+        #     else:
+        #         sys.exit("Something wrong. does not support currently")
+        # else:
+        #     points = data
+
+        # taken from PIN-SLAM repo, will CHANGE/DELETE to above.
+        if isinstance(data, dict):
+            dict_keys = list(data.keys())
+            if not self.silence:
+                print("Available data source:", dict_keys)
+            if "points" in dict_keys: # TODO: support multiple LiDAR
+                points = data["points"] # may also contain intensity or color
+            if "point_ts" in dict_keys:
+                point_ts = data["point_ts"]
+            if "img" in dict_keys: # support multiple cameras
+                img_dict: dict = data["img"]
+                cam_list = list(img_dict.keys())
+                self.cur_cam_img = {}
+                # TO ADD
+            if "imus" in dict_keys:
+                self.cur_frame_imus = data["imus"]
+                # TO ADD
         
         self.cur_point_cloud_torch = torch.tensor(points, device=self.device, dtype=self.dtype)
 

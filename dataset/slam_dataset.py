@@ -25,6 +25,7 @@ from dataset.dataloaders import dataset_factory
 from eval.eval_traj_utils import absolute_error, plot_trajectories, relative_error
 from utils.config import Config
 from utils.imu_lib import IMUManager
+from utils.sensor_fusion_manager import SensorFusionManager
 from utils.semantic_kitti_utils import sem_kitti_color_map, sem_map_function
 from utils.tools import (
     deskewing,
@@ -77,6 +78,8 @@ class SLAMDataset(Dataset):
                 self.calib["Tr"][:3, :4] = self.loader.calibration["Tr"].reshape(3, 4)
             if hasattr(self.loader, 'imu_on'):
                 self.config.imu_on = True
+            if hasattr(self.config, 'sensor_fusion'):
+                self.sensor_fusion_manager = SensorFusionManager(self.config, self.loader.imus)
         else: # original pin-slam generic loader
             # point cloud files
             if config.pc_path != "":
@@ -198,6 +201,7 @@ class SLAMDataset(Dataset):
         self.cur_source_points = None
         self.cur_source_normals = None
         self.cur_source_colors = None
+        self.timestamp = None
 
         # imu data
         self.cur_frame_imus = None
@@ -269,6 +273,8 @@ class SLAMDataset(Dataset):
                 points = data["points"] # may also contain intensity or color
             if "point_ts" in dict_keys:
                 point_ts = data["point_ts"]
+            if "timestamp" in dict_keys:
+                self.timestamp = data["timestamp"]
             if "img" in dict_keys: # support multiple cameras
                 img_dict: dict = data["img"]
                 cam_list = list(img_dict.keys())

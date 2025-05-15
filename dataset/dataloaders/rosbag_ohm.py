@@ -27,11 +27,13 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
+from tqdm import tqdm
+
 import natsort
 
 
 class RosbagDataset:
-    def __init__(self, data_dir: Path, topic: str, *_, **__):
+    def __init__(self, data_dir: Path, topic: str, imu_topic: list, *_, **__):
         """ROS1 / ROS2 bagfile dataloader.
 
         It can take either one ROS2 bag file or one or more ROS1 bag files belonging to a split bag.
@@ -68,13 +70,24 @@ class RosbagDataset:
         self.topic = self.check_topic(topic)
         self.n_scans = self.bag.topics[self.topic].msgcount
 
+        # 
+        connections = [x for x in self.bag.connections if x.topic == self.topic]
+        self.msgs = self.bag.messages(connections=connections)
+        connection, _, rawdata = next(self.msgs)
+        msg = self.bag.deserialize(rawdata, connection.msgtype)
+        _, _, point_cloud_timestamp = self.read_point_cloud(msg)
+        self.timestamp_head = point_cloud_timestamp
+
         # limit connections to selected topic
         connections = [x for x in self.bag.connections if x.topic == self.topic]
         self.msgs = self.bag.messages(connections=connections)
         self.timestamps = []
 
-        # limit connections to imu topic
-        self.hands_free_imu = self.HandsfreeIMU(self.bag)
+        # create imus
+        self.imus = {}
+        for _, topic in enumerate(imu_topic):
+            self.imus[topic] = self.ROSIMU(self.bag, topic)
+
 
     def __del__(self):
         if hasattr(self, "bag"):
@@ -84,18 +97,29 @@ class RosbagDataset:
         return self.n_scans
 
     def __getitem__(self, idx):
-        connection, timestamp, rawdata = next(self.msgs)
-        # print("timestamp lidar", timestamp, idx)
-        self.timestamps.append(self.to_sec(timestamp))
-        msg = self.bag.deserialize(rawdata, connection.msgtype)
+        try:
+            connection, timestamp, rawdata = next(self.msgs)
+            # print("timestamp lidar", timestamp, idx)
+            self.timestamps.append(self.to_sec(timestamp))
+            msg = self.bag.deserialize(rawdata, connection.msgtype)
 
-        points, point_ts = self.read_point_cloud(msg)
-        imus = self.hands_free_imu.get_imus_before(timestamp)
-        # frame_data = {"points": points, "point_ts": point_ts, "timestamp": timestamp}
-        # print("len(imus)", len(imus))
-        frame_data = {"points": points, "point_ts": point_ts, "timestamp": timestamp, "imus": imus}
+            points, point_ts, point_cloud_timestamp = self.read_point_cloud(msg)
+            self.timestamp_head = point_cloud_timestamp
+            # imus = self.hands_free_imu.get_imus_before(point_cloud_timestamp)
+            frame_data = {"points": points, "point_ts": point_ts, "timestamp": point_cloud_timestamp}
+        except StopIteration:
+            return {"points": None, "point_ts": None, "timestamp": None}
+
 
         return frame_data
+
+    def load_data_to_txt(self, txtfile):
+        file = open(txtfile, "w+")
+        for frame_id in tqdm(range(self.n_scans)):
+            file.write(str(round(self[frame_id]["timestamp"], 10)))
+            file.write("\n")
+
+        file.close()
 
     @staticmethod
     def to_sec(nsec: int):
@@ -141,62 +165,54 @@ class RosbagDataset:
         if len(point_cloud_topics) == 1:
             return point_cloud_topics[0]
 
-    class HandsfreeIMU:
-        def __init__(self, bag):
-            self.bag = bag
-            self.n_scans_imu = self.bag.topics["/handsfree/imu"].msgcount
+    class ROSIMU:
+        idx_ros_imu = 0
+        def __init__(self, bag, topic):
 
-            # limit connections to selected topic
-            connections = [x for x in self.bag.connections if x.topic == "/handsfree/imu"]
-            self.msgs = self.bag.messages(connections=connections)
-            # self.timestamps = []
-            self.previous_imu_timestamp = 0
+            self.bag = bag
+            self.topic = topic
+            self.n_scans = self.bag.topics[topic].msgcount
 
             from utils.point_cloud2 import read_imu
             self.read_imu = read_imu
-            self.buffer_ = []
+
+            self.timestamp_head = self._get_first_timestamp_head()
+
+            # limit connections to selected topic
+            connections = [x for x in self.bag.connections if x.topic == self.topic]
+            self.msgs = self.bag.messages(connections=connections)
+            self.previous_imu_timestamp = 0
 
         def __len__(self):
-            return self.n_scans_imu
+            return self.n_scans
 
-        # def __getitem__(self, idx):
-        #     connection, timestamp, rawdata = next(self.msgs)
-            # self.timestamps.append(self.to_sec(timestamp))
-            # msg = self.bag.deserialize(rawdata, connection.msgtype)
+        def __getitem__(self, idx):
+            """
+            DON'T call it directly. It is for iteration.
+            """
+            connection, _, rawdata = next(self.msgs)
+            msg = self.bag.deserialize(rawdata, connection.msgtype)
 
-            # imu, imu_ts = self.read_imu(msg)
-            # frame_data = {"imu": imu, "imu_ts": imu_ts}
+            imu, imu_timestamp = self.read_imu(msg)
+            self.prev_timestamp_head = self.timestamp_head
+            self.timestamp_head = imu_timestamp
+            frame_data = {"imu": imu, "timestamp": imu_timestamp}
 
-            # return frame_data
+            self.idx_ros_imu = self.idx_ros_imu + 1
+            return frame_data
 
-        def get_imus_before(self, LiDAR_timestamp):
-            l = []
-            if (len(self.buffer_) > 0):
-                for frame_data in self.buffer_:
-                    l.append(frame_data)
-                    self.buffer_.pop(0)
-            while (self.previous_imu_timestamp < LiDAR_timestamp):
-                connection, imu_timestamp, rawdata = next(self.msgs)
-                # print("imu_timestamp, LiDAR_timestamp", imu_timestamp, LiDAR_timestamp)
-                msg = self.bag.deserialize(rawdata, connection.msgtype)
-                imu = self.read_imu(msg)
-                if (self.previous_imu_timestamp == 0):
-                    frame_data = {"imu": imu,
-                                  "imu_ts": self.to_sec(imu_timestamp),
-                                  "dt": 0.1}
-                else:
-                    frame_data = {"imu": imu,
-                                  "imu_ts": self.to_sec(imu_timestamp),
-                                  "dt": self.to_sec(imu_timestamp - self.previous_imu_timestamp)}
-                # print("self.to_sec(imu_timestamp)", self.to_sec(imu_timestamp))
-                # print("frame_data['dt']", frame_data["dt"])
-                if (imu_timestamp < LiDAR_timestamp):
-                    l.append(frame_data)
-                else:
-                    self.buffer_.append(frame_data)
-                self.previous_imu_timestamp = imu_timestamp
-            
-            return l
-        @staticmethod
-        def to_sec(nsec: int):
-            return float(nsec) / 1e9
+        def _get_first_timestamp_head(self):
+            connections = [x for x in self.bag.connections if x.topic == self.topic]
+            self.msgs = self.bag.messages(connections=connections)
+            connection, _, rawdata = next(self.msgs)
+            msg = self.bag.deserialize(rawdata, connection.msgtype)
+            _, imu_timestamp = self.read_imu(msg)
+            return imu_timestamp
+
+        def load_data_to_txt(self, txtfile):
+            file = open(txtfile, "w+")
+            for frame_id in tqdm(range(self.n_scans)):
+                file.write(str(round(self[frame_id]["timestamp"], 10)))
+                file.write("\n")
+
+            file.close()

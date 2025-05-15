@@ -16,6 +16,8 @@ python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag_ohm /velodyne_points -i 
 # python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -vsmd
 # python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_01/ -vsmd
 # python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag /velodyne_points -i ~/data/m2dgr/street_03/ -vsmd
+# python3 pin_slam.py ./config/lidar_slam/run_m2dgr.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -d
+# python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_02/ -d
 ```
 
 ## Cloning LIO_EKF, HOW TO DO

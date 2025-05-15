@@ -38,8 +38,8 @@ eval:
 sensor_fusion:
   sensor_types:
     imu:
-      - /handsfree/imu
-    #   - /camera/imu
-    #   - /dvs/imu
-    # lidar:
-    #   - /another_stupid_lider
+      - /os1_cloud_node1/imu
+      - /imu/imu
+      - /os1_cloud_node2/imu
+    lidar:
+      - /os1_cloud_node2/points

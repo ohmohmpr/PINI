@@ -92,7 +92,12 @@ def read_point_cloud(msg: PointCloud2) -> Tuple[np.ndarray, np.ndarray]:
         # #     timestamps = (timestamps - min_timestamp) / (max_timestamp - min_timestamp) # normalized to 0-1
     else:
         timestamps = None
-    return points.astype(np.float64), timestamps
+
+    ts_sec = msg.header.stamp.sec
+    ts_nanosec = msg.header.stamp.nanosec
+    point_cloud_timestamp = ts_sec + ts_nanosec/1e9
+
+    return points.astype(np.float64), timestamps, point_cloud_timestamp
 
 
 def read_points(
@@ -198,6 +203,11 @@ def read_imu(msg: Imu) -> Tuple[np.ndarray, np.ndarray]:
     linear_acceleration: geometry_msgs__msg__Vector3
     linear_acceleration_covariance: np.ndarray[None, np.dtype[np.float64]]
     """
+
+    ts_sec = msg.header.stamp.sec
+    ts_nanosec = msg.header.stamp.nanosec
+    timestamp = ts_sec + ts_nanosec/1e9
+
     x = msg.orientation.x
     y = msg.orientation.y
     z = msg.orientation.z
@@ -213,4 +223,4 @@ def read_imu(msg: Imu) -> Tuple[np.ndarray, np.ndarray]:
     linear_acceleration_z = msg.linear_acceleration.z
     la = np.array([linear_acceleration_x, linear_acceleration_y, linear_acceleration_z])
 
-    return [av, la]
+    return [av, la], timestamp

@@ -32,3 +32,11 @@ optimizer: # mapper
 eval:
   wandb_vis_on: False # log to wandb or not
   silence_log: True
+sensor_fusion:
+  sensor_types:
+    imu:
+      - /handsfree/imu
+    #   - /camera/imu
+    #   - /dvs/imu
+    # lidar:
+    #   - /another_stupid_lider

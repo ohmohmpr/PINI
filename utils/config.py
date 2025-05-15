@@ -28,7 +28,7 @@ class Config:
         self.use_dataloader: bool = False # use the dataloader providied by kiss-icp or not
         self.data_loader_name: str = "generic"
         self.data_loader_seq: str = ""
-        self.imu_topic: str = ""
+        # self.imu_topic: str = ""
 
         self.load_model: bool = False  # load the pre-trained model or not
         self.model_path: str = "/"  # pre-trained model path
@@ -531,6 +531,13 @@ class Config:
             self.save_map = config_args["eval"].get('save_map', self.save_map)
             self.save_merged_pc = config_args["eval"].get('save_merged_pc', self.save_merged_pc)
             self.save_mesh = config_args["eval"].get('save_mesh', self.save_mesh)
+
+        if "sensor_fusion" in config_args:
+            self.imu_topic: dict = config_args["sensor_fusion"]["sensor_types"]["imu"]
+            if "lidar" in config_args["sensor_fusion"]["sensor_types"]:
+                self.lidar_topic: dict = config_args["sensor_fusion"]["sensor_types"]["lidar"]
+            self.sensor_fusion = config_args["sensor_fusion"]
+
 
         # associated parameters
         self.infer_bs = self.bs * 64

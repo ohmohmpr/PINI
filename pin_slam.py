@@ -223,15 +223,19 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
         T2 = get_time()
         
-        ################################# I.I/2 ohm - imu #################################
-        for imu in dataset.cur_frame_imus:
-            IMU = LIOEKF_pybind._IMU(imu['imu_ts'], imu['dt'], imu['imu'][0], imu['imu'][1])
+        if (dataset.sensor_fusion_manager.get_latest_data(dataset.loader.timestamp_head, frame_id) == None):
+            pass
+        # print("\n", len(dataset.sensor_fusion_manager.buffer))
 
-            LIOEKF._addImuData([IMU], False)
-        LIOEKF._newImuProcess()
-        LIOEKF._writeResults()
         ################################# I.I/2 ohm - imu #################################
+        # for imu in dataset.cur_frame_imus:
+        #     IMU = LIOEKF_pybind._IMU(imu['timestamp'], imu['dt'], imu['imu'][0], imu['imu'][1])
 
+        #     LIOEKF._addImuData([IMU], False)
+        # LIOEKF._newImuProcess()
+        # LIOEKF._writeResults()
+        ################################# I.I/2 ohm - imu #################################
+    
     #     # II. Odometry
     #     if frame_id > 0: 
     #         if config.track_on:

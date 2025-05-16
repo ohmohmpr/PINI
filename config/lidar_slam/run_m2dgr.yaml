@@ -36,10 +36,27 @@ eval:
   mesh_freq_frame: 50 # reconstruct the mesh every x frames
   mesh_min_nn: 15
 sensor_fusion:
-  sensor_types:
+  main_sensor: # from calibration_results.txt
+    lidar:
+      topic: /velodyne_points
+      extrinsic_main_main: [1., 0., 0., 0.0,
+                              0., 1., 0., 0.0,
+                              0., 0., 1., 0.0]
+  sensor_types: 
     imu:
-      - /handsfree/imu
-    #   - /camera/imu
-    #   - /dvs/imu
+      - topic: /handsfree/imu
+        extrinsic_main_imu: [1., 0., 0., -0.29,
+                              0.,  1, 0.,   0.0, 
+                              0., 0., 1., -0.15] # LIO-EKF
+      - topic: /camera/imu
+        extrinsic_main_imu: [0., 0., 1., 0.30456,
+                            -1,  0., 0., 0.00065,
+                              0.,  -1, 0., 0.65376,
+                              0.,  0., 0., 1.]
+      - topic: /dvs/imu
+        extrinsic_main_imu: [0., 0., 1,   0.30474,
+                              -1, 0., 0., -0.17065,
+                              0., -1, 0.,  0.65376,
+                              0., 0., 0.,  1. ]
     # lidar:
     #   - /another_stupid_lider

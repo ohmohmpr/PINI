@@ -8,16 +8,20 @@ class SensorFusionManager:
     in case unsynchronize data sets.
     next of class generator can not go back, therefore load them independenly is a good idea.
     but come with a trade-off of function np.argmin.
+    working like a queue that generate a stream of data.
     """
-    def __init__(self, config: Config, imus: dict):
+    def __init__(self, config: Config, loader):
         self.config = config
-        self.imus = imus
+        self.loader = loader
+        self.imus = loader.imus
         self.imu_ROSIMU_list = [self.imus[imu_topic_k] for _, imu_topic_k in enumerate(self.imus)]
 
         self.tqdm_bars = {}
-        self.file = open("test.txt", "w+")
+        self.imu_manager_dict = {}
+        self.file = open("SensorFusionManager.txt", "w+")
 
         self._start_tqdm()
+        self._start_imu_manager_dict()
         self.buffer = []
 
     def __len__(self):
@@ -35,6 +39,12 @@ class SensorFusionManager:
         for i, imu_topic in enumerate(self.imus):
             self.tqdm_bars[imu_topic] = tqdm(total=len(self.imus[imu_topic]), position=position+i)
 
+    def _start_imu_manager_dict(self):
+        # config should transfer into object here
+        for i, imu_topic in enumerate(self.imus):
+            self.imu_manager_dict[imu_topic] = self.IMUManager(self.config,
+                                                          self.loader,
+                                                          self.imus[imu_topic])
     
     def get_min(self, timestamp_head_main_sensor):
         self.imus_list_timestamp_head = [self.imus[imu_topic].timestamp_head for _, imu_topic in enumerate(self.imus)]
@@ -44,8 +54,11 @@ class SensorFusionManager:
     def _next(self, min_x):
         sensor_idx = min_x-1
         rosimu = self.imu_ROSIMU_list[sensor_idx]
+
+        topic = rosimu.topic
+        self.imu_manager_dict[topic].add(rosimu[rosimu.idx_ros_imu])
         # important
-        self.buffer.append(rosimu[rosimu.idx_ros_imu])
+        # self.buffer.append(rosimu[rosimu.idx_ros_imu])
 
     def _write_ts(self, min_x):
         sensor_idx = min_x-1
@@ -77,6 +90,66 @@ class SensorFusionManager:
         self._write_main_sensor(timestamp_head_main_sensor, frame_id)
         return None
     
-    def init_imu_manager():
-        return 
-    
+    class IMUManager:
+        def __init__(self, config: Config, loader, topic):
+            self.config = config
+            self.loader = loader
+            self.topic = topic.topic
+
+            self.start_ts = 0
+            self.time_for_initStaticAlignment = 45 # sec
+            self.is_initStaticAlignment = False # sec
+            self.init_roll = 0 # rad
+            self.init_pitch = 0 # rad
+            self.init_gyro_mean = np.array([0, 0, 0], dtype='float64')
+            self.init_acc_mean = np.array([0, 0, 0], dtype='float64')
+            self.idx = 0
+            for i in range(len(self.config.imu_topic)):
+                if self.topic == self.config.imu_topic[i]["topic"]:
+                    arr = np.array(self.config.imu_topic[i]["extrinsic_main_imu"])
+                    if arr.size == 12:
+                        extrinsic_main_self = arr.reshape(3, 4)
+                        np.vstack((extrinsic_main_self, np.array([0, 0, 0, 1])))
+                    elif arr.size == 16:
+                        extrinsic_main_self = arr.reshape(4, 4)
+                    else:
+                        print("ERROR, calibration matrix is wrong.")
+                        break
+                    self.extrinsic_main_imu = extrinsic_main_self
+
+            # print("self.extrinsic_main_imu", self.extrinsic_main_imu)
+            # print("self.loader", self.loader)
+            # print("self.topic", self.topic)
+
+        def add(self, frame_data):
+            # print(frame_data)
+            if self.start_ts == 0:
+                self.start_ts = frame_data["timestamp"]
+
+            self.init_gyro_mean += frame_data["imu"][0]
+            self.init_acc_mean += frame_data["imu"][1]
+            self.idx = self.idx + 1
+
+            if ((frame_data["timestamp"] - self.start_ts) > self.time_for_initStaticAlignment
+                and self.is_initStaticAlignment == False):
+                self.init_gyro_mean = self.init_gyro_mean / self.idx
+                self.init_acc_mean = self.init_acc_mean / self.idx
+                self.initStaticAlignment()
+                print("self.topic", self.topic)
+                print("self.idx", self.idx)
+                print("self.init_roll_degree", self.init_roll_degree)
+                print("self.init_pitch_degree", self.init_pitch_degree)
+                self.is_initStaticAlignment = True
+
+        def initStaticAlignment(self):
+
+            init_acc_mean_homo = np.hstack((self.init_acc_mean, np.array([1])))
+            init_acc_mean = self.extrinsic_main_imu @ init_acc_mean_homo
+
+            self.init_roll = np.arctan2(-init_acc_mean[1], -init_acc_mean[2])
+            self.init_pitch = np.arctan2(init_acc_mean[0], 
+                                    np.sqrt(init_acc_mean[1] * init_acc_mean[1] +
+                                            init_acc_mean[2] * init_acc_mean[2]))
+            self.init_roll_degree = np.degrees(self.init_roll)
+            self.init_pitch_degree = np.degrees(self.init_pitch)
+

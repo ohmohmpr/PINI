@@ -36,10 +36,43 @@ eval:
   mesh_freq_frame: 50 # reconstruct the mesh every x frames
   mesh_min_nn: 15
 sensor_fusion:
-  sensor_types:
+  main_sensor: # from *.txt
     imu:
-      - /os1_cloud_node1/imu
-      - /imu/imu
-      - /os1_cloud_node2/imu
+      topic: /imu/imu
+      extrinsic_main_main: [1., 0., 0., 0.0,
+                              0., 1., 0., 0.0,
+                              0., 0., 1., 0.0]
+  sensor_types: 
+    imu:
+      - topic: /imu/imu
+        extrinsic_main_imu: [ 1.0,  0.0,  0.0,  0.0,
+                              0.0,  1.0,  0.0,  0.0,
+                              0.0,  0.0,  1.0,  0.0,
+                              0.0,  0.0,  0.0,  1.0 ]
+      - topic: /os1_cloud_node1/imu
+        extrinsic_main_imu: [ 1.0,  0.0,  0.0, -0.050,
+                              0.0,  1.0,  0.0,  0.000,
+                              0.0,  0.0,  1.0,  0.055,
+                              0.0,  0.0,  0.0,  1.000 ]
+      - topic: /os1_cloud_node2/imu
+        extrinsic_main_imu: [-1.0,  0.0,  0.0, -0.550,
+                              0.0,  0.0,  1.0,  0.030,
+                              0.0,  1.0,  0.0,  0.050,
+                              0.0,  0.0,  0.0,  1.000 ]
     lidar:
-      - /os1_cloud_node2/points
+      - topic: /os1_cloud_node1/points
+        extrinsic_main_lidar: [ 1.0,  0.0,  0.0, -0.050,
+                                0.0,  1.0,  0.0,  0.000,
+                                0.0,  0.0,  1.0,  0.055,
+                                0.0,  0.0,  0.0,  1.000 ]
+      - topic: /os1_cloud_node2/points
+        extrinsic_main_lidar: [-1.0,  0.0,  0.0, -0.550,
+                                0.0,  0.0,  1.0,  0.030,
+                                0.0,  1.0,  0.0,  0.050,
+                                0.0,  0.0,  0.0,  1.000 ]
+                              
+
+
+
+
+                              

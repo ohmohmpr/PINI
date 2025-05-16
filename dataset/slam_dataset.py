@@ -79,7 +79,7 @@ class SLAMDataset(Dataset):
             if hasattr(self.loader, 'imu_on'):
                 self.config.imu_on = True
             if hasattr(self.config, 'sensor_fusion'):
-                self.sensor_fusion_manager = SensorFusionManager(self.config, self.loader.imus)
+                self.sensor_fusion_manager = SensorFusionManager(self.config, self.loader)
         else: # original pin-slam generic loader
             # point cloud files
             if config.pc_path != "":

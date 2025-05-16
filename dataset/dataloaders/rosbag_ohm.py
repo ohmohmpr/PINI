@@ -26,7 +26,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Sequence
-
+import numpy as np
 from tqdm import tqdm
 
 import natsort
@@ -85,9 +85,19 @@ class RosbagDataset:
 
         # create imus
         self.imus = {}
-        for _, topic in enumerate(imu_topic):
-            self.imus[topic] = self.ROSIMU(self.bag, topic)
-
+        self.imus_list = imu_topic
+        for idx in range(len(self.imus_list)):
+            topic = self.imus_list[idx]["topic"]
+            arr = np.array(self.imus_list[idx]["extrinsic_main_imu"])
+            if arr.size == 12:
+                extrinsic_main_self = arr.reshape(3, 4)
+                np.vstack((extrinsic_main_self, np.array([0, 0, 0, 1])))
+            elif arr.size == 16:
+                extrinsic_main_self = arr.reshape(4, 4)
+            else:
+                print("ERROR, calibration matrix is wrong.")
+                break
+            self.imus[topic] = self.ROSIMU(self.bag, topic, extrinsic_main_self)
 
     def __del__(self):
         if hasattr(self, "bag"):
@@ -167,10 +177,11 @@ class RosbagDataset:
 
     class ROSIMU:
         idx_ros_imu = 0
-        def __init__(self, bag, topic):
+        def __init__(self, bag, topic, extrinsic_main_imu):
 
             self.bag = bag
             self.topic = topic
+            self.extrinsic_main_imu = extrinsic_main_imu
             self.n_scans = self.bag.topics[topic].msgcount
 
             from utils.point_cloud2 import read_imu
@@ -210,9 +221,39 @@ class RosbagDataset:
             return imu_timestamp
 
         def load_data_to_txt(self, txtfile):
+            # in their onw coordinate system.
             file = open(txtfile, "w+")
+
             for frame_id in tqdm(range(self.n_scans)):
-                file.write(str(round(self[frame_id]["timestamp"], 10)))
+                frame_data = self[frame_id]
+                ts = frame_data["timestamp"]
+                av = np.array(frame_data["imu"][0])
+                la = np.array(frame_data["imu"][1])
+
+                av_homo = np.hstack((av, np.array([1])))
+                la_homo = np.hstack((la, np.array([1])))
+                av = self.extrinsic_main_imu @ av_homo
+                la = self.extrinsic_main_imu @ la_homo
+
+                av_x = av[0]
+                av_y = av[1]
+                av_z = av[2]
+                la_x = la[0]
+                la_y = la[1]
+                la_z = la[2]
+                file.write(str(round(ts, 10)))
+                file.write(" ")
+                file.write(str(round(av_x, 10)))
+                file.write(" ")
+                file.write(str(round(av_y, 10)))
+                file.write(" ")
+                file.write(str(round(av_z, 10)))
+                file.write(" ")
+                file.write(str(round(la_x, 10)))
+                file.write(" ")
+                file.write(str(round(la_y, 10)))
+                file.write(" ")
+                file.write(str(round(la_z, 10)))
                 file.write("\n")
 
             file.close()

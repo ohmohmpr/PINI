@@ -47,7 +47,8 @@ sensor_fusion:
       - topic: /handsfree/imu
         extrinsic_main_imu: [1., 0., 0., -0.29,
                               0.,  1, 0.,   0.0, 
-                              0., 0., 1., -0.15] # LIO-EKF
+                              0., 0., 1., -0.15,
+                              0.,  0., 0., 1.] # LIO-EKF
       - topic: /camera/imu
         extrinsic_main_imu: [0., 0., 1., 0.30456,
                             -1,  0., 0., 0.00065,

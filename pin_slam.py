@@ -27,6 +27,8 @@ from utils.loop_detector import (
 )
 from utils.mapper import Mapper
 from utils.mesher import Mesher
+from utils.ekf import EKF 
+
 from utils.pgo import PoseGraphManager
 from utils.tools import (
     freeze_decoders,
@@ -161,8 +163,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     R2D = (180.0 / np.pi)
     NormG = 9.782940329221166
 
-    # extrinsic_T = np.array([0.29, 0.0, 0.15]) 
-    extrinsic_T = np.array([-0.27255, 0.00053, -0.17954]) 
+    extrinsic_T = np.array([0.29, 0.0, 0.15]) 
+    # extrinsic_T = np.array([-0.27255, 0.00053, -0.17954]) 
     extrinsic_R = np.array([[ 1, 0, 0], 
                             [0, 1, 0], 
                             [0, 0, 1]])
@@ -199,9 +201,20 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
     LIOPara.initstate_std.imuerror.gyrbias = LIOPara.imunoise.gyrbias_std
     LIOPara.initstate_std.imuerror.accbias = LIOPara.imunoise.accbias_std
+
+
+    LIOPara.deskew = True
+    LIOPara.preprocess = True
+    LIOPara.max_range = 100.000
+    LIOPara.min_range = 5.000
+    LIOPara.max_points_per_voxel = 20
+    LIOPara.voxel_size = 1.000
+    LIOPara.max_iteration = 1
+
     ####################################################################################################
     LIOEKF = LIOEKF_pybind._LIOEKF(LIOPara)
     LIOEKF._openResults()
+    LIOEKF._init()
 
     # dataset.loader.imus['/handsfree/imu'].load_data_to_txt("handsfree_imu_data.txt")
     # dataset.loader.imus['/camera/imu'].load_data_to_txt("camera_imu_data.txt")
@@ -210,6 +223,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # dataset.loader.imus['/imu/imu'].load_data_to_txt("imu_imu_data.txt")
     # dataset.loader.imus['/os1_cloud_node1/imu'].load_data_to_txt("os1_cloud_node1_imu_data.txt")
     # dataset.loader.imus['/os1_cloud_node2/imu'].load_data_to_txt("os1_cloud_node2_imu_data.txt")
+    # EKF = EKF()
 
     # for each frame
     for frame_id in tqdm(range(dataset.total_pc_count)): # frame id as the processed frame, possible skipping done in data loader
@@ -233,17 +247,37 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         
         if (dataset.sensor_fusion_manager.get_latest_data(dataset.loader.timestamp_head, frame_id) == None):
             pass
-        # print("\n", len(dataset.sensor_fusion_manager.buffer))
+        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/handsfree/imu"].buffer))
+        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/camera/imu"].buffer))
+        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/handsfree/imu"].buffer))
+        # if frame_id <= 1:
+        LIOEKF._addLidarData([LIOEKF_pybind._Vector3dVector(dataset.points)], [dataset.timestamp], [dataset.point_ts])
 
         ################################ I.I/2 ohm - imu #################################
-        # for imu in dataset.cur_frame_imus:
-        #     IMU = LIOEKF_pybind._IMU(imu['timestamp'], imu['dt'], imu['imu'][0], imu['imu'][1])
+        for imu in dataset.sensor_fusion_manager.imu_manager_dict["/handsfree/imu"].buffer:
+            IMU = LIOEKF_pybind._IMU(imu['timestamp'], imu['dt'], imu_tran_R @ imu['imu'][0], imu_tran_R @ imu['imu'][1])
 
-        #     LIOEKF._addImuData([IMU], False)
-        # LIOEKF._newImuProcess()
-        # LIOEKF._writeResults()
+            LIOEKF._addImuData([IMU], False)
+            LIOEKF._newImuProcess()
+        # if frame_id > 1:
+        #     LIOEKF._addLidarData([LIOEKF_pybind._Vector3dVector(dataset.points)], [dataset.timestamp], [dataset.point_ts])
+        # mtx = dataset.sensor_fusion_manager.imu_manager_dict["/handsfree/imu"].extrinsic_main_imu
+        # zereo = np.zeros((dataset.points.shape[0], 1))
+        # pts = np.hstack((dataset.points, zereo))
+        # new_pts = pts @ mtx
+        # new = new_pts[:, :3]
+
+        # print(LIOEKF._getCovariance())
+        #  (std::deque<std::vector<Eigen::Vector3d>> &lidar_buffer_,
+        #   std::deque<double> &lidar_time_buffer_,
+        #   std::deque<std::vector<double>> &points_per_scan_time_buffer_)
+        
+        LIOEKF._writeResults()
         ################################ I.I/2 ohm - imu #################################
-
+        # if frame_id == 0:
+        #     print("frame_id", frame_id)
+        #     return
+        # EKF.processIMU(frame_imu_data)
     #     # II. Odometry
     #     if frame_id > 0: 
     #         if config.track_on:

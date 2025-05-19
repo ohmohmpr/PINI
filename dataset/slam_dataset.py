@@ -270,9 +270,9 @@ class SLAMDataset(Dataset):
             if not self.silence:
                 print("Available data source:", dict_keys)
             if "points" in dict_keys: # TODO: support multiple LiDAR
-                points = data["points"] # may also contain intensity or color
+                self.points = data["points"] # may also contain intensity or color
             if "point_ts" in dict_keys:
-                point_ts = data["point_ts"]
+                self.point_ts = data["point_ts"]
             if "timestamp" in dict_keys:
                 self.timestamp = data["timestamp"]
             if "img" in dict_keys: # support multiple cameras
@@ -284,7 +284,7 @@ class SLAMDataset(Dataset):
                 self.cur_frame_imus = data["imus"]
                 # TO ADD
         
-        self.cur_point_cloud_torch = torch.tensor(points, device=self.device, dtype=self.dtype)
+        self.cur_point_cloud_torch = torch.tensor(self.points, device=self.device, dtype=self.dtype)
 
         if point_ts is not None:
             min_timestamp = np.min(point_ts)

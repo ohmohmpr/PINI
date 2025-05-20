@@ -42,6 +42,13 @@ sensor_fusion:
       extrinsic_main_main: [1., 0., 0., 0.0,
                               0., 1., 0., 0.0,
                               0., 0., 1., 0.0]
+      deskew: true
+      preprocess: true
+      max_range: 100.0 
+      min_range: 5.0
+      max_points_per_voxel: 20
+      voxel_size: 1
+      max_iteration: 1
   sensor_types: 
     imu:
       - topic: /handsfree/imu
@@ -49,6 +56,15 @@ sensor_fusion:
                               0.,  1, 0.,   0.0, 
                               0., 0., 1., -0.15,
                               0.,  0., 0., 1.] # LIO-EKF
+        # IMU noise parameters
+        arw: [2, 2, 2]          # [deg/sqrt(hr)]
+        vrw: [40, 40, 40]          # [m/s/sqrt(hr)]
+        gbstd: [200.0, 200.0, 200.0]        # [deg/hr]
+        abstd: [500.0, 500.0, 500.0]     # [mGal]
+        corrtime: 1.0                    # [hr]
+        init_pos_std: [ 0.01, 0.01, 0.01 ]
+        init_vel_std: [ 0.05, 0.05, 0.05 ]
+        init_att_std: [ 0.1, 0.1, 0.1 ]
       - topic: /camera/imu
         extrinsic_main_imu: [0., 0., 1., 0.30456,
                             -1,  0., 0., 0.00065,

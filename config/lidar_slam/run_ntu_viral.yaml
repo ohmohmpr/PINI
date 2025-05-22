@@ -37,11 +37,24 @@ eval:
   mesh_min_nn: 15
 sensor_fusion:
   main_sensor: # from *.txt
-    imu:
-      topic: /imu/imu
-      extrinsic_main_main: [1., 0., 0., 0.0,
-                              0., 1., 0., 0.0,
-                              0., 0., 1., 0.0]
+    # imu:
+    #   topic: /imu/imu
+    #   extrinsic_main_main: [1., 0., 0., 0.0,
+    #                           0., 1., 0., 0.0,
+    #                           0., 0., 1., 0.0]
+    lidar:
+      topic: /velodyne_points
+      extrinsic_main_main: [ 1.0,  0.0,  0.0, -0.050,
+                              0.0,  1.0,  0.0,  0.000,
+                              0.0,  0.0,  1.0,  0.055,
+                              0.0,  0.0,  0.0,  1.000 ]
+      deskew: true
+      preprocess: true
+      max_range: 100.0 
+      min_range: 5.0
+      max_points_per_voxel: 20
+      voxel_size: 1
+      max_iteration: 1
   sensor_types: 
     imu:
       - topic: /imu/imu
@@ -49,11 +62,35 @@ sensor_fusion:
                               0.0,  1.0,  0.0,  0.0,
                               0.0,  0.0,  1.0,  0.0,
                               0.0,  0.0,  0.0,  1.0 ]
+        # IMU noise parameters
+        arw: [ 0.000433, 0.000433, 0.000433 ]          # [deg/sqrt(hr)]
+        vrw: [ 2.66e-05, 2.66e-05, 2.66e-05 ]          # [m/s/sqrt(hr)]
+        gbstd: [0.0365432018302, 0.0365432018302, 0.0365432018302]        # [deg/hr]
+        abstd: [0.00367396706572, 0.00367396706572, 0.00367396706572]     # [mGal]
+        corrtime: 1.0                    # [hr]
+        init_pos_std: [ 0.01, 0.01, 0.01 ]
+        init_vel_std: [ 0.05, 0.05, 0.05 ]
+        init_att_std: [ 0.1, 0.1, 0.1 ]
+        imu_tran_R: [ [ 1, 0, 0],
+                      [ 0, 1, 0],
+                      [ 0, 0, 1]]
       - topic: /os1_cloud_node1/imu
         extrinsic_main_imu: [ 1.0,  0.0,  0.0, -0.050,
                               0.0,  1.0,  0.0,  0.000,
                               0.0,  0.0,  1.0,  0.055,
                               0.0,  0.0,  0.0,  1.000 ]
+        # IMU noise parameters
+        arw: [2, 2, 2]          # [deg/sqrt(hr)]
+        vrw: [40, 40, 40]          # [m/s/sqrt(hr)]
+        gbstd: [200.0, 200.0, 200.0]        # [deg/hr]
+        abstd: [500.0, 500.0, 500.0]     # [mGal]
+        corrtime: 1.0                    # [hr]
+        init_pos_std: [ 0.01, 0.01, 0.01 ]
+        init_vel_std: [ 0.05, 0.05, 0.05 ]
+        init_att_std: [ 0.1, 0.1, 0.1 ]
+        imu_tran_R: [ [ 1, 0, 0],
+                      [ 0,-1, 0],
+                      [ 0, 0,-1]]
       - topic: /os1_cloud_node2/imu
         extrinsic_main_imu: [-1.0,  0.0,  0.0, -0.550,
                               0.0,  0.0,  1.0,  0.030,

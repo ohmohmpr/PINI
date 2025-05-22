@@ -18,7 +18,7 @@ class SensorFusionManager:
 
         self.tqdm_bars = {}
         self.imu_manager_dict = {}
-        # self.file = open("SensorFusionManager.txt", "w+")
+        self.file = open("SensorFusionManager.txt", "w+")
 
         # self._start_tqdm()
         self._start_imu_manager_dict()
@@ -62,9 +62,9 @@ class SensorFusionManager:
     def _write_ts(self, min_x):
         sensor_idx = min_x-1
         rosimu = self.imu_ROSIMU_list[sensor_idx]
-        # self.file.write(str(rosimu.idx_ros_imu) + f" {rosimu.topic} " 
-        #                 + str(round(rosimu.timestamp_head, 10)))
-        # self.file.write("\n")
+        self.file.write(str(rosimu.idx_ros_imu) + f" {rosimu.topic} " 
+                        + str(round(rosimu.timestamp_head, 10)))
+        self.file.write("\n")
 
     def _update_bars(self, min_x):
         sensor_idx = min_x-1
@@ -73,9 +73,9 @@ class SensorFusionManager:
         self.tqdm_bars[topic].update()
         self.tqdm_bars[topic].refresh()
 
-    # def _write_main_sensor(self, timestamp_head_main_sensor, frame_id):
-    #     self.file.write(str(frame_id) + " lidar " + str(round(timestamp_head_main_sensor, 10)))
-    #     self.file.write("\n")
+    def _write_main_sensor(self, timestamp_head_main_sensor, frame_id):
+        self.file.write(str(frame_id) + " lidar " + str(round(timestamp_head_main_sensor, 10)))
+        self.file.write("\n")
 
     def get_latest_data(self, timestamp_head_main_sensor, frame_id):
 
@@ -91,7 +91,7 @@ class SensorFusionManager:
             # data to the self
             self._next(min_x)
             # self._update_bars(min_x)
-        # self._write_main_sensor(timestamp_head_main_sensor, frame_id)
+        self._write_main_sensor(timestamp_head_main_sensor, frame_id)
         return None
     
     class IMUManager:
@@ -141,9 +141,13 @@ class SensorFusionManager:
             dt = self.curr_timestamp_head - self.prev_timestamp
             # print("self.prev_timestamp < 1e-5", self.prev_timestamp < 1e-5)
             if dt < 1e-5 or self.prev_timestamp < 1e-5:
+                print("hz")
+                print("dt {0:.8f}".format(dt))
+                print("self.prev_timestamp", self.prev_timestamp)
+                print("self.curr_timestamp_head", self.curr_timestamp_head)
                 dt = self.hz
             if dt > 1:
-                print("error",)
+                print("error dt")
                 return
             # print("dt", dt)
             self.prev_timestamp = self.curr_timestamp_head

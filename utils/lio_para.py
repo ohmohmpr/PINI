@@ -2,8 +2,9 @@ import numpy as np
 import LIOEKF_pybind
 
 class LIO_Parameters:
-    def __init__(self, config):
+    def __init__(self, config, topic):
         self.config = config.sensor_fusion
+        self.topic = topic
 
     def init(self):
         D2R = (np.pi / 180.0)
@@ -36,15 +37,38 @@ class LIO_Parameters:
         self.LIOPara.initstate_std.imuerror.accbias = self.LIOPara.imunoise.accbias_std
 
 
-        extrinsic_T = np.array([0.29, 0.0, 0.15]) 
-        # extrinsic_T = np.array([-0.27255, 0.00053, -0.17954]) 
-        extrinsic_R = np.array([[ 1, 0, 0], 
-                                [0, 1, 0], 
-                                [0, 0, 1]])
+        # depends on the topic
+        for i in range(len(self.config['sensor_types']['imu'])):
+            if self.topic == self.config['sensor_types']['imu'][i]["topic"]:
+                self.imu_tran_R = np.reshape(self.config['sensor_types']['imu'][i]['imu_tran_R'], (3, 3))
+
+                extrinsic_main_imu = np.reshape(
+                    self.config['sensor_types']['imu'][i]['extrinsic_main_imu'], (4, 4))
+                ext = np.linalg.inv(extrinsic_main_imu)
+    
+                print("self.topic",  self.topic)
+                print("self.config['sensor_types']['imu'][i]['topic']", self.config['sensor_types']['imu'][i]["topic"])
+        # extrinsic_main_cameraimu = np.reshape(
+        #     self.config['sensor_types']['imu'][1]['extrinsic_main_imu'], (4, 4))
+        # extrinsic_cameraimu_main = np.linalg.inv(extrinsic_main_cameraimu)
+    
+        # extrinsic_main_dvsimu = np.reshape(
+        #     self.config['sensor_types']['imu'][2]['extrinsic_main_imu'], (4, 4))
+        # extrinsic_dvsimu_main = np.linalg.inv(extrinsic_main_dvsimu)
+        
+        # extrinsic_main_imu = np.reshape(
+        #     self.config['sensor_types']['imu'][0]['extrinsic_main_imu'], (4, 4))
+        # extrinsic_handfreeimu_main = np.linalg.inv(extrinsic_main_imu)
+
+        # ext = extrinsic_handfreeimu_main
+        # ext = extrinsic_cameraimu_main
+        # ext = extrinsic_dvsimu_main
+
+        extrinsic_R = ext[:3, :3]
+        extrinsic_T = ext[:3, 3]
         #transform the imu frame to front-right-down (which is used in the code)
-        imu_tran_R = np.array([[1,0,0],
-                                [0,-1,0],
-                                [0,0,-1]])
+
+        imu_tran_R = self.imu_tran_R
 
         Trans_lidar_imu_origin = np.identity(4)
         Trans_lidar_imu_origin[:3, :3] = extrinsic_R
@@ -58,8 +82,9 @@ class LIO_Parameters:
         Trans_lidar_imu = np.identity(4)
         Trans_lidar_imu[:3, :3] = extrinsic_R
         Trans_lidar_imu[:3, 3] = extrinsic_T
+        # Body frame?
         self.LIOPara.Trans_lidar_imu = Trans_lidar_imu
-        
+
         return self.LIOPara
 
 

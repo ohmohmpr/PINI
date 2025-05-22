@@ -81,7 +81,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         if seed is not None:
             config.seed = seed
         argv = ['pin_slam.py', config_path, dataset_name, sequence_name, str(seed)]
-        run_path = setup_experiment(config, argv)
+        run_path = setup_experiment(config, argv, True)
     else: # from args
         argv = sys.argv
         config.load(args.config_path)
@@ -106,7 +106,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
             set_dataset_path(config, args.dataset_name, args.sequence_name)
         if args.imu_topic is not None:
             config.imu_topic = args.imu_topic
-        run_path = setup_experiment(config, argv)
+        run_path = setup_experiment(config, argv, True)
         print("[bold green]PIN-SLAM starts[/bold green]","📍" )
 
     # non-blocking visualizer
@@ -158,7 +158,22 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         dataset.write_merged_point_cloud(use_gt_pose=True, out_file_name='merged_gt_pc', 
         frame_step=5, merged_downsample=True)
 
-    LIOPara = LIO_Parameters(config).init()
+    ### m2dgr
+    # topic = "/handsfree/imu"
+    # topic = "/camera/imu" # 200 hz
+    # topic = "/dvs/imu"
+
+    ### newer college
+    # topic = "/os1_cloud_node/imu" ## wrong
+
+    ### urban NAV
+    # topic = "/imu/data"
+
+    ### NTU VIRAL
+    # topic = "/imu/imu" ### dt
+    topic = "/os1_cloud_node1/imu" ### dt
+
+    LIOPara = LIO_Parameters(config, topic).init()
     LIOEKF = LIOEKF_pybind._LIOEKF(LIOPara)
     LIOEKF._openResults()
     LIOEKF._init()
@@ -195,19 +210,24 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
             pass
         # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/handsfree/imu"].buffer))
         # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/camera/imu"].buffer))
-        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/handsfree/imu"].buffer))
+        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/dvs/imu"].buffer))
+
+        # newer college 2020 64 beams
+        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/os1_cloud_node/imu"].buffer))
 
         LIOEKF._addLidarData([LIOEKF_pybind._Vector3dVector(dataset.points)], [dataset.timestamp], [dataset.point_ts])
-
-        ################################ I.I/2 ohm - imu #################################
-        for imu in dataset.sensor_fusion_manager.imu_manager_dict["/handsfree/imu"].buffer:
-            IMU = LIOEKF_pybind._IMU(imu['timestamp'], imu['dt'], LIOPara.imu_tran_R @ imu['imu'][0], LIOPara.imu_tran_R @ imu['imu'][1])
+        ############################### I.I/2 ohm - imu #################################
+        for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
+            IMU = LIOEKF_pybind._IMU(imu['timestamp'], 
+                                     imu['dt'], 
+                                     LIOPara.imu_tran_R @ imu['imu'][0], 
+                                     LIOPara.imu_tran_R @ imu['imu'][1])
 
             LIOEKF._addImuData([IMU], False)
             LIOEKF._newImuProcess()
 
         LIOEKF._writeResults()
-        ################################ I.I/2 ohm - imu #################################
+        ############################### I.I/2 ohm - imu #################################
 
         # II. Odometry
         if frame_id > 0: 

@@ -16,13 +16,13 @@ pip3 uninstall LIOEKF_pybind -y && CMAKE_POLICY_VERSION_MINIMUM=3.15 pip3 instal
 # python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -vsmd
 # python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_01/ -vsmd
 # python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag /velodyne_points -i ~/data/m2dgr/street_03/ -vsmd
-python3 pin_slam.py ./config/lidar_slam/run_m2dgr.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -dv
+python3 pin_slam.py ./config/lidar_slam/run_m2dgr.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -d
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_01/ -d 
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_02/ -d
 
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_01/ -d /
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_02/ -d /
-# python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/nya_03/ -d /
+python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/nya_03/ -d
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/rtp_01/ -d /
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/rtp_02/ -d /
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/rtp_03/ -d /
@@ -35,6 +35,9 @@ python3 pin_slam.py ./config/lidar_slam/run_m2dgr.yaml rosbag_ohm /velodyne_poin
 ### newer_college_dataset
 
 ```bash
+
+# 
+python3 pin_slam.py ./config/lidar_slam/run_newer_college64.yaml rosbag_ohm /os1_cloud_node/points -i ~/data/newer_college_dataset/2020-ouster-os1-64-realsense/01_short_experiment/rosbag/rooster_2020-03-10-11-36-51_0.bag -d
 
 # # collection 1
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_1_newer_college/2021-07-01-10-37-38-quad-easy-002.bag -dv \
@@ -57,6 +60,9 @@ python3 pin_slam.py ./config/lidar_slam/run_m2dgr.yaml rosbag_ohm /velodyne_poin
 # # collection 4
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_4_underground_mine/2021-04-12-11-06-47-easy.bag -dv \
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_4_underground_mine/2021-04-12-11-24-30-hard.bag -dv
+
+# urbanNav
+python3 pin_slam.py ./config/lidar_slam/run_urbanNav.yaml rosbag_ohm /velodyne_points -i ~/data/urbanNav/ -d
 ```
 
 ## Cloning LIO_EKF, HOW TO DO

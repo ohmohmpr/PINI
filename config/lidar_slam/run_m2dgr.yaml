@@ -41,7 +41,8 @@ sensor_fusion:
       topic: /velodyne_points
       extrinsic_main_main: [1., 0., 0., 0.0,
                               0., 1., 0., 0.0,
-                              0., 0., 1., 0.0]
+                              0., 0., 1., 0.0, 
+                              0., 0., 0., 1.]
       deskew: true
       preprocess: true
       max_range: 100.0 
@@ -65,15 +66,24 @@ sensor_fusion:
         init_pos_std: [ 0.01, 0.01, 0.01 ]
         init_vel_std: [ 0.05, 0.05, 0.05 ]
         init_att_std: [ 0.1, 0.1, 0.1 ]
+        imu_tran_R: [ [ 1, 0, 0],
+                      [ 0,-1, 0],
+                      [ 0, 0,-1]]
       - topic: /camera/imu
-        extrinsic_main_imu: [0., 0., 1., 0.30456,
-                            -1,  0., 0., 0.00065,
-                              0.,  -1, 0., 0.65376,
-                              0.,  0., 0., 1.]
+        extrinsic_main_imu: [0.,  0., 1., 0.30456,
+                             -1,  0., 0., 0.00065,
+                             0.,  -1, 0., 0.65376,
+                             0.,  0., 0., 1.]
+        imu_tran_R: [ [ 0, 0, 1],
+                      [ 1, 0, 0],
+                      [ 0, 1, 0]]
       - topic: /dvs/imu
         extrinsic_main_imu: [0., 0., 1,   0.30474,
-                              -1, 0., 0., -0.17065,
-                              0., -1, 0.,  0.65376,
-                              0., 0., 0.,  1. ]
-    # lidar:
+                             -1, 0., 0., -0.17065,
+                             0., -1, 0.,  0.65376,
+                             0., 0., 0.,  1. ]
+        imu_tran_R: [ [ 0, 0, 1],
+                      [ 1, 0, 0],
+                      [ 0, 1, 0]]
+          # lidar:
     #   - /another_stupid_lider

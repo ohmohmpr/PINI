@@ -1307,7 +1307,7 @@ def write_kitti_format_poses(filename: str, poses_np: np.ndarray, direct_use_fil
     else:
         fname = f"{filename}_kitti.txt"
     
-    np.savetxt(fname=fname, X=poses_out_kitti)
+    np.savetxt(fname=fname, X=poses_out_kitti, fmt='%1.10f')
 
 def write_tum_format_poses(filename: str, poses_np: np.ndarray, timestamps=None, frame_s = 0.1, 
                            with_header = False, direct_use_filename = False):

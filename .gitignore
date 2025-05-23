@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+ohm/dataset/rosbag/urbanNav/gitignore
 # C extensions
 *.so
 

@@ -1,5 +1,5 @@
 setting:
-  name: "test_m2dgr"
+  name: "test_urbanNav"
   output_root: "./experiments"
   deskew: True
 process:

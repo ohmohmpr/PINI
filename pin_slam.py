@@ -50,6 +50,15 @@ import LIOEKF_pybind
      Y. Pan et al. from IPB
 '''
 
+YELLOW = np.array([1, 0.706, 0])
+RED = np.array([255, 0, 0]) / 255.0
+PURPLE = np.array([238, 130, 238]) / 255.0
+BLACK = np.array([0, 0, 0]) / 255.0
+GOLDEN = np.array([1.0, 0.843, 0.0])
+GREEN = np.array([0, 128, 0]) / 255.0
+BLUE = np.array([0, 0, 128]) / 255.0
+LIGHTBLUE = np.array([0.00, 0.65, 0.93])
+
 parser = argparse.ArgumentParser()
 parser.add_argument('config_path', type=str, nargs='?', default='config/lidar_slam/run.yaml', help='[Optional] Path to *.yaml config file, if not set, default config would be used')
 parser.add_argument('dataset_name', type=str, nargs='?', help='[Optional] Name of a specific dataset, example: kitti, mulran, or rosbag (when -d is set)')
@@ -81,7 +90,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         if seed is not None:
             config.seed = seed
         argv = ['pin_slam.py', config_path, dataset_name, sequence_name, str(seed)]
-        run_path = setup_experiment(config, argv, False)
+        run_path = setup_experiment(config, argv, True)
     else: # from args
         argv = sys.argv
         config.load(args.config_path)
@@ -106,7 +115,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
             set_dataset_path(config, args.dataset_name, args.sequence_name)
         if args.imu_topic is not None:
             config.imu_topic = args.imu_topic
-        run_path = setup_experiment(config, argv, False)
+        run_path = setup_experiment(config, argv, True)
         print("[bold green]PIN-SLAM starts[/bold green]","📍" )
 
     # non-blocking visualizer
@@ -167,11 +176,12 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/os1_cloud_node/imu" ## wrong
 
     ### urban NAV
-    topic = "/imu/data"
+    # topic = "/imu/data"
 
     ### NTU VIRAL
     # topic = "/imu/imu" ### dt
     # topic = "/os1_cloud_node1/imu" ### dt
+    topic = "/os1_cloud_node2/imu" ### dt
 
     LIOPara = LIO_Parameters(config, topic).init()
     LIOEKF = LIOEKF_pybind._LIOEKF(LIOPara)
@@ -214,7 +224,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
         # newer college 2020 64 beams
         # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/os1_cloud_node/imu"].buffer))
-
+        # print("dataset.point_ts", dataset.point_ts)
         LIOEKF._addLidarData([LIOEKF_pybind._Vector3dVector(dataset.points)], [dataset.timestamp], [dataset.point_ts])
         ############################### I.I/2 ohm - imu #################################
         for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
@@ -225,8 +235,62 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
             LIOEKF._addImuData([IMU], False)
             LIOEKF._newImuProcess()
-
         LIOEKF._writeResults()
+        if LIOEKF.lidar_updated_:
+            LIOEKF._publishMsgs()
+            LIOEKF.lidar_updated_ = False
+
+        local_map = LIOEKF._LocalMap()
+        kw = LIOEKF._getKetPoints_w()
+        cur_point = LIOEKF._getFrame_w()
+        point_w = LIOEKF._getPoint_w()
+
+        Local_map = np.asarray(local_map)
+        KeyPoints_w = np.asarray(kw)
+        cur_point_w = np.asarray(cur_point)
+        Point_w = np.asarray(point_w)
+        if (KeyPoints_w.shape[0] == 0):
+            pass
+        else:
+            res = LIOEKF._getNavState()
+            pos = res.pos
+            vel = res.vel
+            euler = res.euler
+            # print("pos\n", pos)
+            # print("vel\n", vel)
+            # print("euler\n", euler)
+            newpose = LIOEKF.newpose
+            # print("newpose\n", newpose)
+
+            # o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(KeyPoints_w)
+            # o3d_vis.keypoint_lio_ekf.rotate(np.linalg.inv(LIOPara.Trans_lidar_imu_origin[:3, :3]))
+            # o3d_vis.keypoint_lio_ekf.transform(newpose)
+            # o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
+        if (Local_map.shape[0] == 0):
+            pass
+        else:
+            res = LIOEKF._getNavState()
+            pos = res.pos
+            vel = res.vel
+            euler = res.euler
+            newpose = LIOEKF.newpose
+
+            o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(Local_map)
+            o3d_vis.keypoint_lio_ekf.paint_uniform_color(RED)
+            o3d_vis.keypoint_lio_ekf.transform(newpose)
+            o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
+
+            o3d_vis.cur_point_w_lio_ekf.points = o3d.utility.Vector3dVector(cur_point_w)
+            o3d_vis.cur_point_w_lio_ekf.paint_uniform_color(PURPLE)
+            o3d_vis.cur_point_w_lio_ekf.transform(newpose)
+            o3d_vis.vis.update_geometry(o3d_vis.cur_point_w_lio_ekf)
+
+            o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(Point_w)
+            o3d_vis.point_w_lio_ekf.paint_uniform_color(BLUE)
+            o3d_vis.point_w_lio_ekf.transform(newpose)
+            o3d_vis.vis.update_geometry(o3d_vis.point_w_lio_ekf)
+
+
         ############################### I.I/2 ohm - imu #################################
 
         # II. Odometry

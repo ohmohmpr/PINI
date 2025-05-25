@@ -54,6 +54,10 @@ class MapVisualizer:
         self.gt_traj = o3d.geometry.LineSet()
 
         self.pgo_edges = o3d.geometry.LineSet()
+        # LIO-EKF
+        self.keypoint_lio_ekf = o3d.geometry.PointCloud()
+        self.cur_point_w_lio_ekf = o3d.geometry.PointCloud()
+        self.point_w_lio_ekf = o3d.geometry.PointCloud()
 
         self.log_path = "./"
         self.sdf_slice_height = 0.0
@@ -189,6 +193,9 @@ class MapVisualizer:
         self.vis.add_geometry(self.gt_traj_pcd)
         self.vis.add_geometry(self.pgo_traj_pcd)
         self.vis.add_geometry(self.pgo_edges)
+        self.vis.add_geometry(self.keypoint_lio_ekf)
+        self.vis.add_geometry(self.cur_point_w_lio_ekf)
+        self.vis.add_geometry(self.point_w_lio_ekf)
 
         self.vis.get_render_option().line_width = 500
         self.vis.get_render_option().light_on = True

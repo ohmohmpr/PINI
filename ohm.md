@@ -11,12 +11,15 @@ pip3 uninstall LIOEKF_pybind -y && CMAKE_POLICY_VERSION_MINIMUM=3.15 pip3 instal
 
 ## How run
 
+### 1. M2DGR
+
 ```bash
-# python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -d
-# python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -vsmd
-# python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_01/ -vsmd
-# python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag /velodyne_points -i ~/data/m2dgr/street_03/ -vsmd
 python3 pin_slam.py ./config/lidar_slam/run_m2dgr.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -d
+```
+
+### 2. NTU_VIRAL
+
+```bash
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_01/ -d 
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_02/ -d
 
@@ -32,7 +35,7 @@ python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/tnp_03/ -d 
 ```
 
-### newer_college_dataset
+### 3. newer_college_dataset
 
 ```bash
 
@@ -60,8 +63,11 @@ python3 pin_slam.py ./config/lidar_slam/run_newer_college64.yaml rosbag_ohm /os1
 # # collection 4
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_4_underground_mine/2021-04-12-11-06-47-easy.bag -dv \
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_4_underground_mine/2021-04-12-11-24-30-hard.bag -dv
+```
 
-# urbanNav
+### 4. urbanNav
+
+```bash
 python3 pin_slam.py ./config/lidar_slam/run_urbanNav.yaml rosbag_ohm /velodyne_points -i ~/data/urbanNav/ -d
 ```
 

@@ -141,10 +141,10 @@ class SensorFusionManager:
             dt = self.curr_timestamp_head - self.prev_timestamp
             # print("self.prev_timestamp < 1e-5", self.prev_timestamp < 1e-5)
             if dt < 1e-5 or self.prev_timestamp < 1e-5:
-                print("hz")
-                print("dt {0:.8f}".format(dt))
-                print("self.prev_timestamp", self.prev_timestamp)
-                print("self.curr_timestamp_head", self.curr_timestamp_head)
+                # print("hz")
+                # print("dt {0:.8f}".format(dt))
+                # print("self.prev_timestamp", self.prev_timestamp)
+                # print("self.curr_timestamp_head", self.curr_timestamp_head)
                 dt = self.hz
             if dt > 1:
                 print("error dt")

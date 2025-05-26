@@ -179,9 +179,9 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/imu/data"
 
     ### NTU VIRAL
-    # topic = "/imu/imu" ### dt
-    # topic = "/os1_cloud_node1/imu" ### dt
-    topic = "/os1_cloud_node2/imu" ### dt
+    topic = "/imu/imu" ### dt
+    # topic = "/os1_cloud_node1/imu" ### dont use this, it not clear
+    # topic = "/os1_cloud_node2/imu" ### dont use this, it not clear
 
     LIOPara = LIO_Parameters(config, topic).init()
     LIOEKF = LIOEKF_pybind._LIOEKF(LIOPara)

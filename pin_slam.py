@@ -172,14 +172,17 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/camera/imu" # 200 hz
     # topic = "/dvs/imu"
 
-    ### newer college
-    # topic = "/os1_cloud_node/imu" ## wrong
+    ### newer college 64
+    topic = "/os1_cloud_node/imu"
+
+    ### newer college 128
+    # topic = "/os_cloud_node/imu"
 
     ### urban NAV
     # topic = "/imu/data"
 
     ### NTU VIRAL
-    topic = "/imu/imu" ### dt
+    # topic = "/imu/imu" ### dt
     # topic = "/os1_cloud_node1/imu" ### dont use this, it not clear
     # topic = "/os1_cloud_node2/imu" ### dont use this, it not clear
 

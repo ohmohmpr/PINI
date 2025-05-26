@@ -5,6 +5,8 @@ __pycache__/
 
 
 ohm/dataset/rosbag/urbanNav/gitignore
+ohm/dataset/rosbag/newer_college/128beams
+ohm/dataset/rosbag/newer_college/64beam
 # C extensions
 *.so
 

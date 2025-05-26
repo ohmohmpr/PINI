@@ -1,5 +1,5 @@
 setting:
-  name: "test_m2dgr"
+  name: "test_newer_college_128"
   output_root: "./experiments"
   deskew: True
 process:
@@ -37,12 +37,25 @@ eval:
   mesh_min_nn: 15
 sensor_fusion:
   main_sensor: # from *.yaml
-    imu:
-      topic: /alphasense_driver_ros/imu
-      extrinsic_main_imu: [ 1.0,  0.0,  0.0,  0.0,
-                            0.0,  1.0,  0.0,  0.0,
-                            0.0,  0.0,  1.0,  0.0,
-                            0.0,  0.0,  0.0,  1.0]
+    # imu:
+    #   topic: /alphasense_driver_ros/imu
+    #   extrinsic_main_imu: [ 1.0,  0.0,  0.0,  0.0,
+    #                         0.0,  1.0,  0.0,  0.0,
+    #                         0.0,  0.0,  1.0,  0.0,
+    #                         0.0,  0.0,  0.0,  1.0]
+    lidar:
+        topic: /os_cloud_node/points
+        extrinsic_main_imu: [ 1.0,  0.0,  0.0, -0.037,
+                                0.0, -1.0,  0.0, -0.008,
+                                0.0,  0.0, -1.0, -0.026,
+                                0.0,  0.0,  0.0,  1.0]
+        deskew: true
+        preprocess: true
+        max_range: 100.0 
+        min_range: 5.0
+        max_points_per_voxel: 20
+        voxel_size: 1
+        max_iteration: 1
   sensor_types: 
     imu:
       - topic: /os_cloud_node/imu
@@ -50,6 +63,18 @@ sensor_fusion:
                               0.0, -1.0,  0.0, -0.021,
                               0.0,  0.0, -1.0, -0.041,
                               0.0,  0.0,  0.0,  1.0 ]
+        # IMU noise parameters #check this
+        arw: [2, 2, 2]          # [deg/sqrt(hr)]
+        vrw: [4, 4, 4]          # [m/s/sqrt(hr)]
+        gbstd: [20.0, 20.0, 20.0]        # [deg/hr]
+        abstd: [500.0, 500.0, 500.0]     # [mGal]
+        corrtime: 1.0                    # [hr]
+        init_pos_std: [ 0.05, 0.05, 0.05 ]
+        init_vel_std: [ 0.05, 0.05, 0.05 ]
+        init_att_std: [ 0.1, 0.1, 0.1 ]
+        imu_tran_R: [[ 1,  0,   0],
+                     [ 0, -1,   0],
+                     [ 0,  0,  -1]]
       - topic: /alphasense_driver_ros/imu
         extrinsic_main_imu: [ 1.0,  0.0,  0.0,  0.0,
                               0.0,  1.0,  0.0,  0.0,

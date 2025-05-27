@@ -173,7 +173,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/dvs/imu"
 
     ### newer college 64
-    topic = "/os1_cloud_node/imu"
+    # topic = "/os1_cloud_node/imu" 
 
     ### newer college 128
     # topic = "/os_cloud_node/imu"
@@ -183,7 +183,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
     ### NTU VIRAL
     # topic = "/imu/imu" ### dt
-    # topic = "/os1_cloud_node1/imu" ### dont use this, it not clear
+    topic = "/os1_cloud_node1/imu" ### dont use this, it not clear
     # topic = "/os1_cloud_node2/imu" ### dont use this, it not clear
 
     LIOPara = LIO_Parameters(config, topic).init()

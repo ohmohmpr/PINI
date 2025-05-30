@@ -14,7 +14,7 @@ pip3 uninstall LIOEKF_pybind -y && CMAKE_POLICY_VERSION_MINIMUM=3.15 pip3 instal
 ### 1. M2DGR
 
 ```bash
-python3 pin_slam.py ./config/lidar_slam/run_m2dgr.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -d
+python3 pin_slam.py ./config/lidar_slam/run_m2dgr.yaml rosbag_ohm /velodyne_points -i ~/data/m2dgr/street_03/ -dv
 ```
 
 ### 2. NTU_VIRAL
@@ -82,7 +82,7 @@ python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cl
 ### 4. urbanNav
 
 ```bash
-python3 pin_slam.py ./config/lidar_slam/run_urbanNav.yaml rosbag_ohm /velodyne_points -i ~/data/urbanNav/ -d
+python3 pin_slam.py ./config/lidar_slam/run_urbanNav.yaml rosbag_ohm /velodyne_points -i ~/data/urbanNav/ -dv
 ```
 
 ## Cloning LIO_EKF, HOW TO DO

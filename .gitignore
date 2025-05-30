@@ -4,9 +4,7 @@ __pycache__/
 *$py.class
 
 
-ohm/dataset/rosbag/urbanNav/gitignore
-ohm/dataset/rosbag/newer_college/128beams
-ohm/dataset/rosbag/newer_college/64beam
+ohm/dataset/rosbag
 # C extensions
 *.so
 

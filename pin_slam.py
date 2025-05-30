@@ -167,23 +167,25 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         dataset.write_merged_point_cloud(use_gt_pose=True, out_file_name='merged_gt_pc', 
         frame_step=5, merged_downsample=True)
 
-    ### m2dgr
+    # m2dgr
     # topic = "/handsfree/imu"
-    # topic = "/camera/imu" # 200 hz
+    topic = "/camera/imu" # 200 hz
     # topic = "/dvs/imu"
 
     ### newer college 64
-    # topic = "/os1_cloud_node/imu" 
+    # topic = "/os1_cloud_node/imu"
+    # topic = "/camera/imu"
 
     ### newer college 128
     # topic = "/os_cloud_node/imu"
+    # topic = "/alphasense_driver_ros/imu"
 
     ### urban NAV
     # topic = "/imu/data"
 
     ### NTU VIRAL
     # topic = "/imu/imu" ### dt
-    topic = "/os1_cloud_node1/imu" ### dont use this, it not clear
+    # topic = "/os1_cloud_node1/imu" ### dont use this, it not clear
     # topic = "/os1_cloud_node2/imu" ### dont use this, it not clear
 
     LIOPara = LIO_Parameters(config, topic).init()
@@ -252,49 +254,75 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         KeyPoints_w = np.asarray(kw)
         cur_point_w = np.asarray(cur_point)
         Point_w = np.asarray(point_w)
-        if (KeyPoints_w.shape[0] == 0):
-            pass
-        else:
-            res = LIOEKF._getNavState()
-            pos = res.pos
-            vel = res.vel
-            euler = res.euler
-            # print("pos\n", pos)
-            # print("vel\n", vel)
-            # print("euler\n", euler)
-            newpose = LIOEKF.newpose
-            # print("newpose\n", newpose)
+        predict_pos = LIOEKF.newpose
+        
+        # if (KeyPoints_w.shape[0] == 0):
+        #     pass
+        # else:
+        #     res = LIOEKF._getNavState()
+        #     pos = res.pos
+        #     vel = res.vel
+        #     euler = res.euler
+        #     # print("pos\n", pos)
+        #     # print("vel\n", vel)
+        #     # print("euler\n", euler)
 
-            # o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(KeyPoints_w)
-            # o3d_vis.keypoint_lio_ekf.rotate(np.linalg.inv(LIOPara.Trans_lidar_imu_origin[:3, :3]))
-            # o3d_vis.keypoint_lio_ekf.transform(newpose)
-            # o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
-        if (Local_map.shape[0] == 0):
-            pass
-        else:
-            res = LIOEKF._getNavState()
-            pos = res.pos
-            vel = res.vel
-            euler = res.euler
-            newpose = LIOEKF.newpose
+        #     o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(KeyPoints_w)
+        #     o3d_vis.keypoint_lio_ekf.rotate(np.linalg.inv(LIOPara.Trans_lidar_imu_origin[:3, :3]))
+        #     o3d_vis.keypoint_lio_ekf.transform(predict_pos)
+        #     o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
+        # if (Local_map.shape[0] == 0):
+        #     pass
+        # else:
+        #     res = LIOEKF._getNavState()
+        #     pos = res.pos
+        #     vel = res.vel
+        #     euler = res.euler
 
-            o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(Local_map)
-            o3d_vis.keypoint_lio_ekf.paint_uniform_color(RED)
-            o3d_vis.keypoint_lio_ekf.transform(newpose)
-            o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
+        #     o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(Local_map)
+        #     o3d_vis.keypoint_lio_ekf.paint_uniform_color(RED)
+        #     o3d_vis.keypoint_lio_ekf.transform(predict_pos)
+        #     o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
 
-            o3d_vis.cur_point_w_lio_ekf.points = o3d.utility.Vector3dVector(cur_point_w)
-            o3d_vis.cur_point_w_lio_ekf.paint_uniform_color(PURPLE)
-            o3d_vis.cur_point_w_lio_ekf.transform(newpose)
-            o3d_vis.vis.update_geometry(o3d_vis.cur_point_w_lio_ekf)
+        #     o3d_vis.cur_point_w_lio_ekf.points = o3d.utility.Vector3dVector(cur_point_w)
+        #     o3d_vis.cur_point_w_lio_ekf.paint_uniform_color(PURPLE)
+        #     o3d_vis.cur_point_w_lio_ekf.transform(predict_pos)
+        #     o3d_vis.vis.update_geometry(o3d_vis.cur_point_w_lio_ekf)
 
-            o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(Point_w)
-            o3d_vis.point_w_lio_ekf.paint_uniform_color(BLUE)
-            o3d_vis.point_w_lio_ekf.transform(newpose)
-            o3d_vis.vis.update_geometry(o3d_vis.point_w_lio_ekf)
+        #     o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(Point_w)
+        #     o3d_vis.point_w_lio_ekf.paint_uniform_color(BLUE)
+        #     o3d_vis.point_w_lio_ekf.transform(predict_pos)
+        #     o3d_vis.vis.update_geometry(o3d_vis.point_w_lio_ekf)
 
 
         ############################### I.I/2 ohm - imu #################################
+        ############################### II.I/2 ohm - Odometry #################################
+        # if frame_id > 0: 
+        #     if config.track_on:
+
+        #         cur_pose_torch = torch.tensor(predict_pos, device=config.device, dtype=config.tran_dtype)
+        #         key_points_torch = torch.tensor(KeyPoints_w, device=config.device, dtype=config.dtype)
+
+        #         tracking_result = tracker.tracking(key_points_torch, cur_pose_torch, 
+        #                                            dataset.cur_source_colors)
+        #         cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag = tracking_result
+        #         dataset.lose_track = not valid_flag
+        #         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
+                
+        #         if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
+        #             o3d_vis.stop()
+                
+        #     else: # incremental mapping with gt pose
+        #         if dataset.gt_pose_provided:
+        #             dataset.update_odom_pose(dataset.cur_pose_guess_torch) 
+        #         else:
+        #             sys.exit("You are using the mapping mode, but no pose is provided.")
+
+        # travel_dist = dataset.travel_dist[:frame_id+1]
+        # neural_points.travel_dist = torch.tensor(travel_dist, device=config.device, dtype=config.dtype) # always update this
+                                                                                                                                                            
+        # T3 = get_time()
+        ############################### II.I/2 ohm - Odometry #################################
 
         # II. Odometry
         if frame_id > 0: 

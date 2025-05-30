@@ -230,10 +230,10 @@ class RosbagDataset:
                 av = np.array(frame_data["imu"][0])
                 la = np.array(frame_data["imu"][1])
 
-                av_homo = np.hstack((av, np.array([1])))
-                la_homo = np.hstack((la, np.array([1])))
-                av = self.extrinsic_main_imu @ av_homo
-                la = self.extrinsic_main_imu @ la_homo
+                # av_homo = np.hstack((av, np.array([1])))
+                # la_homo = np.hstack((la, np.array([1])))
+                # av = self.extrinsic_main_imu @ av_homo
+                # la = self.extrinsic_main_imu @ la_homo
 
                 av_x = av[0]
                 av_y = av[1]

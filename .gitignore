@@ -5,6 +5,7 @@ __pycache__/
 
 
 ohm/dataset/rosbag
+ohm/dataset/data
 # C extensions
 *.so
 

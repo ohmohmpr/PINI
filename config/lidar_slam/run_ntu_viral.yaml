@@ -1,5 +1,5 @@
 setting:
-  name: "test_m2dgr"
+  name: "test_ntu_viral"
   output_root: "./experiments"
   deskew: True
 process:
@@ -43,11 +43,11 @@ sensor_fusion:
     #                           0., 1., 0., 0.0,
     #                           0., 0., 1., 0.0]
     lidar:
-      topic: /velodyne_points
-      extrinsic_main_main: [ 1.0,  0.0,  0.0, -0.050,
-                              0.0,  1.0,  0.0,  0.000,
-                              0.0,  0.0,  1.0,  0.055,
-                              0.0,  0.0,  0.0,  1.000 ]
+      # topic: /velodyne_points
+      # extrinsic_main_main: [ 1.0,  0.0,  0.0, -0.050,
+      #                         0.0,  1.0,  0.0,  0.000,
+      #                         0.0,  0.0,  1.0,  0.055,
+      #                         0.0,  0.0,  0.0,  1.000 ]
       deskew: true
       preprocess: true
       max_range: 100.0 
@@ -59,8 +59,8 @@ sensor_fusion:
     imu:
       - topic: /imu/imu
         extrinsic_main_imu: [ 1.0,  0.0,  0.0,  0.0,
-                              0.0,  1.0,  0.0,  0.0,
-                              0.0,  0.0,  1.0,  0.0,
+                              0.0, -1.0,  0.0,  0.0,
+                              0.0,  0.0, -1.0,  0.0,
                               0.0,  0.0,  0.0,  1.0 ]
         # IMU noise parameters
         arw: [ 0.000433, 0.000433, 0.000433 ]          # [deg/sqrt(hr)]
@@ -71,13 +71,13 @@ sensor_fusion:
         init_pos_std: [ 0.01, 0.01, 0.01 ]
         init_vel_std: [ 0.05, 0.05, 0.05 ]
         init_att_std: [ 0.1, 0.1, 0.1 ]
-        imu_tran_R: [ [ 1, 0, 0],
+        imu_tran_R: [ [ 1, 0, 0], # checked
                       [ 0, 1, 0],
                       [ 0, 0, 1]]
       - topic: /os1_cloud_node1/imu
         extrinsic_main_imu: [ 1.0,  0.0,  0.0, -0.050,
-                              0.0,  1.0,  0.0,  0.000,
-                              0.0,  0.0,  1.0,  0.055,
+                              0.0, -1.0,  0.0,  0.000,
+                              0.0,  0.0, -1.0,  0.055,
                               0.0,  0.0,  0.0,  1.000 ]
         # IMU noise parameters
         arw: [2, 2, 2]          # [deg/sqrt(hr)]
@@ -88,37 +88,37 @@ sensor_fusion:
         init_pos_std: [ 0.01, 0.01, 0.01 ]
         init_vel_std: [ 0.05, 0.05, 0.05 ]
         init_att_std: [ 0.1, 0.1, 0.1 ]
-        imu_tran_R: [ [ 1, 0, 0],
+        imu_tran_R: [ [ 1, 0, 0], # checked
                       [ 0, 1, 0],
-                      [ 0, 0, 1]]
-      # - topic: /os1_cloud_node2/imu
-      #   extrinsic_main_imu: [ 1.0,  0.0,  0.0, -0.550,
-      #                         0.0,  1.0,  0.0,  0.030,
-      #                         0.0,  0.0,  1.0,  0.050,
-      #                         0.0,  0.0,  0.0,  1.000 ]
-      #   # IMU noise parameters
-      #   arw: [2, 2, 2]          # [deg/sqrt(hr)]
-      #   vrw: [40, 40, 40]          # [m/s/sqrt(hr)]
-      #   gbstd: [200.0, 200.0, 200.0]        # [deg/hr]
-      #   abstd: [500.0, 500.0, 500.0]     # [mGal]
-      #   corrtime: 1.0                    # [hr]
-      #   init_pos_std: [ 0.01, 0.01, 0.01 ]
-      #   init_vel_std: [ 0.05, 0.05, 0.05 ]
-      #   init_att_std: [ 0.1, 0.1, 0.1 ]
-      #   imu_tran_R: [ [ 1, 0, 0],
-      #                 [ 0,-1, 0],
-      #                 [ 0, 0,-1]]
-    lidar:
-      - topic: /os1_cloud_node1/points
-        extrinsic_main_lidar: [ 1.0,  0.0,  0.0, -0.050,
-                                0.0,  1.0,  0.0,  0.000,
-                                0.0,  0.0,  1.0,  0.055,
-                                0.0,  0.0,  0.0,  1.000 ]
-      - topic: /os1_cloud_node2/points
-        extrinsic_main_lidar: [-1.0,  0.0,  0.0, -0.550,
-                                0.0,  0.0,  1.0,  0.030,
-                                0.0,  1.0,  0.0,  0.050,
-                                0.0,  0.0,  0.0,  1.000 ]
+                      [ 0, 0, 1]]   
+      - topic: /os1_cloud_node2/imu
+        extrinsic_main_imu: [  -1,    0,    0, -0.550,
+                                0,    0,   -1,  0.030,
+                                0,   -1,    0,  0.050,
+                              0.0,  0.0,  0.0,  1.000 ]
+        # IMU noise parameters
+        arw: [2, 2, 2]          # [deg/sqrt(hr)]
+        vrw: [40, 40, 40]          # [m/s/sqrt(hr)]
+        gbstd: [200.0, 200.0, 200.0]        # [deg/hr]
+        abstd: [500.0, 500.0, 500.0]     # [mGal]
+        corrtime: 1.0                    # [hr]
+        init_pos_std: [ 0.01, 0.01, 0.01 ]
+        init_vel_std: [ 0.05, 0.05, 0.05 ]
+        init_att_std: [ 0.1, 0.1, 0.1 ]
+        imu_tran_R: [ [-1.,  0.,  0.],
+                      [ 0.,  0.,  1.],
+                      [ 0.,  1.,  0.]]
+    # lidar:
+    #   - topic: /os1_cloud_node1/points
+    #     extrinsic_main_lidar: [ 1.0,  0.0,  0.0, -0.050,
+    #                             0.0,  1.0,  0.0,  0.000,
+    #                             0.0,  0.0,  1.0,  0.055,
+    #                             0.0,  0.0,  0.0,  1.000 ]
+    #   - topic: /os1_cloud_node2/points
+    #     extrinsic_main_lidar: [-1.0,  0.0,  0.0, -0.550,
+    #                             0.0,  0.0,  1.0,  0.030,
+    #                             0.0,  1.0,  0.0,  0.050,
+    #                             0.0,  0.0,  0.0,  1.000 ]
                               
 
 

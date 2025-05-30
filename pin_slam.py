@@ -169,12 +169,12 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
     # m2dgr
     # topic = "/handsfree/imu"
-    topic = "/camera/imu" # 200 hz
+    # topic = "/camera/imu" # 200 hz
     # topic = "/dvs/imu"
 
     ### newer college 64
     # topic = "/os1_cloud_node/imu"
-    # topic = "/camera/imu"
+    topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning
 
     ### newer college 128
     # topic = "/os_cloud_node/imu"
@@ -183,23 +183,17 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     ### urban NAV
     # topic = "/imu/data"
 
-    ### NTU VIRAL
+    ### NTU VIRAL - NYA03
     # topic = "/imu/imu" ### dt
-    # topic = "/os1_cloud_node1/imu" ### dont use this, it not clear
-    # topic = "/os1_cloud_node2/imu" ### dont use this, it not clear
+    # topic = "/os1_cloud_node1/imu"
+    # topic = "/os1_cloud_node2/imu"
 
     LIOPara = LIO_Parameters(config, topic).init()
     LIOEKF = LIOEKF_pybind._LIOEKF(LIOPara)
     LIOEKF._openResults()
     LIOEKF._init()
 
-    # dataset.loader.imus['/handsfree/imu'].load_data_to_txt("handsfree_imu_data.txt")
-    # dataset.loader.imus['/camera/imu'].load_data_to_txt("camera_imu_data.txt")
-    # dataset.loader.imus['/dvs/imu'].load_data_to_txt("dvs_imu_data.txt")
-
     # dataset.loader.imus['/imu/imu'].load_data_to_txt("imu_imu_data.txt")
-    # dataset.loader.imus['/os1_cloud_node1/imu'].load_data_to_txt("os1_cloud_node1_imu_data.txt")
-    # dataset.loader.imus['/os1_cloud_node2/imu'].load_data_to_txt("os1_cloud_node2_imu_data.txt")
 
     # for each frame
     for frame_id in tqdm(range(dataset.total_pc_count)): # frame id as the processed frame, possible skipping done in data loader
@@ -223,13 +217,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         
         if (dataset.sensor_fusion_manager.get_latest_data(dataset.loader.timestamp_head, frame_id) == None):
             pass
-        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/handsfree/imu"].buffer))
-        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/camera/imu"].buffer))
-        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/dvs/imu"].buffer))
 
-        # newer college 2020 64 beams
-        # print("\n", len(dataset.sensor_fusion_manager.imu_manager_dict["/os1_cloud_node/imu"].buffer))
-        # print("dataset.point_ts", dataset.point_ts)
         LIOEKF._addLidarData([LIOEKF_pybind._Vector3dVector(dataset.points)], [dataset.timestamp], [dataset.point_ts])
         ############################### I.I/2 ohm - imu #################################
         for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
@@ -260,39 +248,30 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         #     pass
         # else:
         #     res = LIOEKF._getNavState()
-        #     pos = res.pos
-        #     vel = res.vel
-        #     euler = res.euler
-        #     # print("pos\n", pos)
-        #     # print("vel\n", vel)
-        #     # print("euler\n", euler)
 
         #     o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(KeyPoints_w)
         #     o3d_vis.keypoint_lio_ekf.rotate(np.linalg.inv(LIOPara.Trans_lidar_imu_origin[:3, :3]))
         #     o3d_vis.keypoint_lio_ekf.transform(predict_pos)
         #     o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
-        # if (Local_map.shape[0] == 0):
-        #     pass
-        # else:
-        #     res = LIOEKF._getNavState()
-        #     pos = res.pos
-        #     vel = res.vel
-        #     euler = res.euler
+        if (Local_map.shape[0] == 0):
+            pass
+        else:
+            res = LIOEKF._getNavState()
 
-        #     o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(Local_map)
-        #     o3d_vis.keypoint_lio_ekf.paint_uniform_color(RED)
-        #     o3d_vis.keypoint_lio_ekf.transform(predict_pos)
-        #     o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
+            o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(Local_map)
+            o3d_vis.keypoint_lio_ekf.paint_uniform_color(RED)
+            o3d_vis.keypoint_lio_ekf.transform(predict_pos)
+            o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
 
-        #     o3d_vis.cur_point_w_lio_ekf.points = o3d.utility.Vector3dVector(cur_point_w)
-        #     o3d_vis.cur_point_w_lio_ekf.paint_uniform_color(PURPLE)
-        #     o3d_vis.cur_point_w_lio_ekf.transform(predict_pos)
-        #     o3d_vis.vis.update_geometry(o3d_vis.cur_point_w_lio_ekf)
+            o3d_vis.cur_point_w_lio_ekf.points = o3d.utility.Vector3dVector(cur_point_w)
+            o3d_vis.cur_point_w_lio_ekf.paint_uniform_color(PURPLE)
+            o3d_vis.cur_point_w_lio_ekf.transform(predict_pos)
+            o3d_vis.vis.update_geometry(o3d_vis.cur_point_w_lio_ekf)
 
-        #     o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(Point_w)
-        #     o3d_vis.point_w_lio_ekf.paint_uniform_color(BLUE)
-        #     o3d_vis.point_w_lio_ekf.transform(predict_pos)
-        #     o3d_vis.vis.update_geometry(o3d_vis.point_w_lio_ekf)
+            o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(Point_w)
+            o3d_vis.point_w_lio_ekf.paint_uniform_color(BLUE)
+            o3d_vis.point_w_lio_ekf.transform(predict_pos)
+            o3d_vis.vis.update_geometry(o3d_vis.point_w_lio_ekf)
 
 
         ############################### I.I/2 ohm - imu #################################

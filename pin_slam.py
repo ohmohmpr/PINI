@@ -168,13 +168,13 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         frame_step=5, merged_downsample=True)
 
     # m2dgr
-    # topic = "/handsfree/imu"
+    topic = "/handsfree/imu"
     # topic = "/camera/imu" # 200 hz
     # topic = "/dvs/imu"
 
     ### newer college 64
     # topic = "/os1_cloud_node/imu"
-    topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning
+    # topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning
 
     ### newer college 128
     # topic = "/os_cloud_node/imu"
@@ -243,7 +243,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         cur_point_w = np.asarray(cur_point)
         Point_w = np.asarray(point_w)
         predict_pos = LIOEKF.newpose
-        
+
         # if (KeyPoints_w.shape[0] == 0):
         #     pass
         # else:

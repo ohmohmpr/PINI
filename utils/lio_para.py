@@ -45,8 +45,9 @@ class LIO_Parameters:
                 extrinsic_main_imu = np.reshape(
                     self.config['sensor_types']['imu'][i]['extrinsic_main_imu'], (4, 4))
                 ext = np.linalg.inv(extrinsic_main_imu)
-    
+                self.LIOPara.ext_imu_main = extrinsic_main_imu
                 print("self.topic",  self.topic)
+                print("self.LIOPara.ext_imu_main",  self.LIOPara.ext_imu_main)
                 print("self.config['sensor_types']['imu'][i]['topic']", self.config['sensor_types']['imu'][i]["topic"])
         # extrinsic_main_cameraimu = np.reshape(
         #     self.config['sensor_types']['imu'][1]['extrinsic_main_imu'], (4, 4))

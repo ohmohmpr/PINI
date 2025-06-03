@@ -453,6 +453,12 @@ def torch2o3d(points_torch):
 def o3d2torch(o3d, device="cpu", dtype=torch.float32):
     return torch.tensor(np.asarray(o3d.points), dtype=dtype, device=device)
 
+def transfrom_to_homo(matrix3by3: np.array):
+
+    matrix_homo = np.hstack((matrix3by3, np.array([[0], [0], [0]])))
+    matrix_homo = np.vstack((matrix_homo, np.array([[0, 0, 0, 1]])))
+
+    return matrix_homo
 
 def transform_torch(points: torch.tensor, transformation: torch.tensor):
     # points [N, 3]

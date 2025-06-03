@@ -23,12 +23,6 @@
 
 #include <Eigen/Dense>
 #include <deque>
-// #include <geometry_msgs/PoseStamped.h>
-// #include <geometry_msgs/TransformStamped.h>
-// #include <nav_msgs/Odometry.h>
-// #include <nav_msgs/Path.h>
-// #include <ros/ros.h>
-// #include <sensor_msgs/PointCloud2.h>
 #include <vector>
 
 #include "imuPropagation.hpp"
@@ -63,7 +57,7 @@ public:
   inline void addImuData(std::deque<lio_ekf::IMU> &imu_buffer_,
                          bool compensate = false) {
     IMU &imu = imu_buffer_.front();
-    writeResultsIMU(imu);
+
     imupre_ = imucur_;
     imucur_ = imu;
     // set current IMU timestamp as the current state timestamp
@@ -73,13 +67,6 @@ public:
       imuCompensate(imucur_, imuerror_);
     }
     imu_buffer_.pop_front();
-  }
-
-  inline void writeResultsIMU(IMU &imu) {
-
-    // odomRes_ << "IMU :" << imu.timestamp << " " << imu.dt << " "
-    //          << imu.angular_velocity.transpose() << " "
-    //          << imu.linear_acceleration.transpose() << std::endl;
   }
 
   inline auto NormalizeTimestamps(const std::vector<double> &timestamps) {
@@ -140,7 +127,15 @@ public:
 
   inline double getLiDARtimestamp() const { return lidar_t_; }
 
+  inline void setBodyStateCurrent(Eigen::Matrix4d &pose,
+                                  Eigen::Vector3d &vel) {
+
+    bodystate_cur_.pose = Sophus::SE3d(pose);
+    bodystate_cur_.vel = vel;
+  }
+
   NavState getNavState();
+  NavState getNavState_pin();
 
   inline Eigen::MatrixXd getCovariance() { return Cov_; }
 
@@ -183,13 +178,13 @@ public:
              const std::vector<double> &timestamps,
              const Sophus::SE3d &start_pose, const Sophus::SE3d &finish_pose);
 
-private:
+public:
   void navStateInitialization(const NavState &initstate,
                               const NavState &initstate_std);
 
   int isToUpdate(double imutime1, double imutime2, double updatetime) const;
 
-  void statePropagation(IMU &imupre, IMU &imucur, std::ofstream &odomRes_);
+  void statePropagation(IMU &imupre, IMU &imucur);
 
   auto processScan();
   void lidarUpdate();
@@ -223,7 +218,7 @@ private:
 
   void resetCov(Eigen::Matrix15d &Cov);
 
-private:
+public:
   LIOPara liopara_;
 
   double imu_t_, last_update_t_, lidar_t_, first_lidar_t = 0;

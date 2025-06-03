@@ -18,7 +18,7 @@ class SensorFusionManager:
 
         self.tqdm_bars = {}
         self.imu_manager_dict = {}
-        self.file = open("SensorFusionManager.txt", "w+")
+        # self.file = open("SensorFusionManager.txt", "w+")
 
         # self._start_tqdm()
         self._start_imu_manager_dict()
@@ -87,11 +87,11 @@ class SensorFusionManager:
         min_x = self.get_min(timestamp_head_main_sensor)
         while min_x != 0:
             min_x = self.get_min(timestamp_head_main_sensor)
-            self._write_ts(min_x)
+            # self._write_ts(min_x)
             # data to the self
             self._next(min_x)
             # self._update_bars(min_x)
-        self._write_main_sensor(timestamp_head_main_sensor, frame_id)
+        # self._write_main_sensor(timestamp_head_main_sensor, frame_id)
         return None
     
     class IMUManager:
@@ -101,7 +101,7 @@ class SensorFusionManager:
             self.topic = topic.topic
 
             self.start_ts = 0
-            self.time_for_initStaticAlignment = 45 # sec
+            self.time_for_initStaticAlignment = 10 # sec
             self.is_initStaticAlignment = False # sec
             self.init_roll = 0 # rad
             self.init_pitch = 0 # rad

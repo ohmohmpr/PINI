@@ -1,6 +1,5 @@
-// #include "lio_ekf_core/lio_ekf.hpp"
+#include "LIO_EKF/src/imuPropagation.hpp"
 #include "LIO_EKF/src/lio_ekf.hpp"
-// #include "lio_ekf_core/lio_types.hpp"
 #include "stl_vector_eigen.h"
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
@@ -19,10 +18,20 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
       py::py_array_to_vectors_double<Eigen::Vector3d>);
 
   m.def("_imuCompensate", &lio_ekf::imuCompensate, "imu"_a, "ImuError"_a);
+  m.def("_imuInterpolate", &lio_ekf::imuInterpolate, "imu1"_a, "imu2"_a,
+        "timestamp"_a, "midimu"_a);
 
-  py::class_<lio_ekf::IMU>(m, "_IMU").def(
-      py::init<double, double, Eigen::Vector3d, Eigen::Vector3d>(),
-      "timestamp"_a, "dt"_a, "angular_velocity"_a, "linear_acceleration"_a);
+  py::class_<lio_ekf::IMU>(m, "_IMU")
+      .def(py::init<>())
+      .def(py::init<double, double, Eigen::Vector3d, Eigen::Vector3d>(),
+           "timestamp"_a, "dt"_a, "angular_velocity"_a, "linear_acceleration"_a)
+      .def_readwrite("timestamp", &lio_ekf::IMU::timestamp);
+
+  // lio_types
+  py::class_<lio_ekf::BodyState>(m, "_BodyState")
+      .def(py::init<>())
+      .def_readwrite("pose", &lio_ekf::BodyState::pose)
+      .def_readwrite("vel", &lio_ekf::BodyState::vel);
 
   py::class_<lio_ekf::ImuError>(m, "_ImuError")
       .def(py::init<>())
@@ -53,7 +62,8 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
       .def_readwrite("euler",
                      &lio_ekf::NavState::euler) // Eigen::Vector3d
       .def_readwrite("imuerror",
-                     &lio_ekf::NavState::imuerror); // lio_ekf::ImuError
+                     &lio_ekf::NavState::imuerror) // lio_ekf::ImuError
+      .def_readwrite("rot", &lio_ekf::NavState::rot);
 
   py::class_<lio_ekf::LIOPara>(m, "_LIOPara", py::dynamic_attr())
       .def(py::init<>())
@@ -91,17 +101,36 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
       .def("_addImuData", &lio_ekf::LIOEKF::addImuData)
       .def("_addLidarData", &lio_ekf::LIOEKF::addLidarData)
       .def("_getImutimestamp", &lio_ekf::LIOEKF::getImutimestamp)
+      .def("_setBodyStateCurrent", &lio_ekf::LIOEKF::setBodyStateCurrent)
       .def("_TransformPoints", &lio_ekf::LIOEKF::TransformPoints)
       .def("_newImuProcess", &lio_ekf::LIOEKF::newImuProcess)
       .def("_getNavState", &lio_ekf::LIOEKF::getNavState)
+      .def("_getNavState_pin", &lio_ekf::LIOEKF::getNavState_pin)
+      // new
+      .def("_checkStateCov", &lio_ekf::LIOEKF::checkStateCov)
+      .def("_initFirstLiDAR", &lio_ekf::LIOEKF::initFirstLiDAR)
+      .def("_lidarUpdate", &lio_ekf::LIOEKF::lidarUpdate)
+      .def("_isToUpdate", &lio_ekf::LIOEKF::isToUpdate)
+      .def("_statePropagation", &lio_ekf::LIOEKF::statePropagation)
+      //
+      .def_readwrite("_imu_t_", &lio_ekf::LIOEKF::imu_t_)
+      .def_readwrite("_last_update_t_", &lio_ekf::LIOEKF::last_update_t_)
+      .def_readwrite("_lidar_t_", &lio_ekf::LIOEKF::lidar_t_)
+      .def_readwrite("_imupre_", &lio_ekf::LIOEKF::imupre_)
+      .def_readwrite("_imucur_", &lio_ekf::LIOEKF::imucur_)
+      .def_readwrite("_bodystate_cur_", &lio_ekf::LIOEKF::bodystate_cur_)
+      .def_readwrite("_bodystate_pre_", &lio_ekf::LIOEKF::bodystate_pre_)
+      //
+      .def_readwrite("_is_first_imu_", &lio_ekf::LIOEKF::is_first_imu_)
+      .def_readwrite("_is_first_lidar_", &lio_ekf::LIOEKF::is_first_lidar_)
       // Map
       .def("_LocalMap", &lio_ekf::LIOEKF::LocalMap)
       .def("_getFrame_w", &lio_ekf::LIOEKF::getFrame_w)
-      .def("_getKetPoints_w", &lio_ekf::LIOEKF::getKetPoints_w)
+      .def("_getKeyPoints_w", &lio_ekf::LIOEKF::getKetPoints_w)
       .def("_getPoint_w", &lio_ekf::LIOEKF::getPoint_w)
       .def("_openResults", &lio_ekf::LIOEKF::openResults)
       .def("_writeResults", &lio_ekf::LIOEKF::writeResults)
-      .def("_publishMsgs", &lio_ekf::LIOEKF::publishMsgs)
+      //   .def("_publishMsgs", &lio_ekf::LIOEKF::publishMsgs)
       .def("_getCovariance", &lio_ekf::LIOEKF::getCovariance)
       .def_readwrite("lidar_updated_",
                      &lio_ekf::LIOEKF::lidar_updated_) // Eigen::Matrix4d

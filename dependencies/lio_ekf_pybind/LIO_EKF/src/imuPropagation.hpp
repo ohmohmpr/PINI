@@ -32,7 +32,6 @@ void imuInterpolate(const IMU &imu1, IMU &imu2, const double timestamp,
                     IMU &midimu);
 
 void insMechanization(const BodyState &pvapre, BodyState &pvacur,
-                      const IMU &imupre, const IMU &imucur,
-                      std::ofstream &odomRes_);
+                      const IMU &imupre, const IMU &imucur);
 
 } // namespace lio_ekf

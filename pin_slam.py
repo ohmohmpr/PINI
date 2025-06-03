@@ -27,7 +27,6 @@ from utils.loop_detector import (
 )
 from utils.mapper import Mapper
 from utils.mesher import Mesher
-from utils.ekf import EKF 
 
 from utils.pgo import PoseGraphManager
 from utils.tools import (
@@ -42,8 +41,10 @@ from utils.tools import (
 from utils.tracker import Tracker
 from utils.visualizer import MapVisualizer
 from utils.lio_para import LIO_Parameters
+from utils.EKF_ohm import EKF_ohm
 
 import LIOEKF_pybind
+
 
 '''
     📍PIN-SLAM: LiDAR SLAM Using a Point-Based Implicit Neural Representation for Achieving Global Map Consistency
@@ -168,7 +169,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         frame_step=5, merged_downsample=True)
 
     # m2dgr
-    topic = "/handsfree/imu"
+    # topic = "/handsfree/imu"
     # topic = "/camera/imu" # 200 hz
     # topic = "/dvs/imu"
 
@@ -176,7 +177,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/os1_cloud_node/imu"
     # topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning
 
-    ### newer college 128
+    # newer college 128
     # topic = "/os_cloud_node/imu"
     # topic = "/alphasense_driver_ros/imu"
 
@@ -184,14 +185,13 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/imu/data"
 
     ### NTU VIRAL - NYA03
-    # topic = "/imu/imu" ### dt
+    topic = "/imu/imu" ### dt
     # topic = "/os1_cloud_node1/imu"
     # topic = "/os1_cloud_node2/imu"
 
     LIOPara = LIO_Parameters(config, topic).init()
-    LIOEKF = LIOEKF_pybind._LIOEKF(LIOPara)
-    LIOEKF._openResults()
-    LIOEKF._init()
+    EKF = EKF_ohm(LIOPara)
+    init_guess_file = open("init_guess_file_EKF.txt", "w+")
 
     # dataset.loader.imus['/imu/imu'].load_data_to_txt("imu_imu_data.txt")
 
@@ -218,73 +218,99 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         if (dataset.sensor_fusion_manager.get_latest_data(dataset.loader.timestamp_head, frame_id) == None):
             pass
 
-        LIOEKF._addLidarData([LIOEKF_pybind._Vector3dVector(dataset.points)], [dataset.timestamp], [dataset.point_ts])
-        ############################### I.I/2 ohm - imu #################################
-        for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
-            IMU = LIOEKF_pybind._IMU(imu['timestamp'], 
-                                     imu['dt'], 
-                                     LIOPara.imu_tran_R @ imu['imu'][0], 
-                                     LIOPara.imu_tran_R @ imu['imu'][1])
-
-            LIOEKF._addImuData([IMU], False)
-            LIOEKF._newImuProcess()
-        LIOEKF._writeResults()
-        if LIOEKF.lidar_updated_:
-            LIOEKF._publishMsgs()
-            LIOEKF.lidar_updated_ = False
-
-        local_map = LIOEKF._LocalMap()
-        kw = LIOEKF._getKetPoints_w()
-        cur_point = LIOEKF._getFrame_w()
-        point_w = LIOEKF._getPoint_w()
-
-        Local_map = np.asarray(local_map)
-        KeyPoints_w = np.asarray(kw)
-        cur_point_w = np.asarray(cur_point)
-        Point_w = np.asarray(point_w)
-        predict_pos = LIOEKF.newpose
-
-        # if (KeyPoints_w.shape[0] == 0):
-        #     pass
-        # else:
-        #     res = LIOEKF._getNavState()
-
-        #     o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(KeyPoints_w)
-        #     o3d_vis.keypoint_lio_ekf.rotate(np.linalg.inv(LIOPara.Trans_lidar_imu_origin[:3, :3]))
-        #     o3d_vis.keypoint_lio_ekf.transform(predict_pos)
-        #     o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
-        if (Local_map.shape[0] == 0):
-            pass
-        else:
-            res = LIOEKF._getNavState()
-
-            o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(Local_map)
-            o3d_vis.keypoint_lio_ekf.paint_uniform_color(RED)
-            o3d_vis.keypoint_lio_ekf.transform(predict_pos)
-            o3d_vis.vis.update_geometry(o3d_vis.keypoint_lio_ekf)
-
-            o3d_vis.cur_point_w_lio_ekf.points = o3d.utility.Vector3dVector(cur_point_w)
-            o3d_vis.cur_point_w_lio_ekf.paint_uniform_color(PURPLE)
-            o3d_vis.cur_point_w_lio_ekf.transform(predict_pos)
-            o3d_vis.vis.update_geometry(o3d_vis.cur_point_w_lio_ekf)
-
-            o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(Point_w)
-            o3d_vis.point_w_lio_ekf.paint_uniform_color(BLUE)
-            o3d_vis.point_w_lio_ekf.transform(predict_pos)
-            o3d_vis.vis.update_geometry(o3d_vis.point_w_lio_ekf)
-
-
-        ############################### I.I/2 ohm - imu #################################
         ############################### II.I/2 ohm - Odometry #################################
+        if frame_id > 0: 
+            if config.track_on:
+                # print("frame id : \n", frame_id)
+                if dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment:
+                    ############################### I.I/2 ohm - imu #################################
+                    EKF.addLidarData(dataset.points, dataset.timestamp, dataset.point_ts)
+                    for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
+                        IMU = EKF.convert_IMU(imu['timestamp'], 
+                                                imu['dt'], 
+                                                LIOPara.imu_tran_R @ imu['imu'][0], 
+                                                LIOPara.imu_tran_R @ imu['imu'][1])
+                        EKF.addImuData([IMU], False)
+
+                        cur_pose_torch_EKF, cur_odom_cov_EKF, \
+                        weight_pc_o3d_EKF, valid_flag_EKF = EKF.newImuProcess(dataset, tracker, config, topic)
+                        
+                        if valid_flag_EKF:
+                            cur_pose_torch = cur_pose_torch_EKF
+                            cur_odom_cov = cur_odom_cov_EKF 
+                            weight_pc_o3d = weight_pc_o3d_EKF
+                            valid_flag = valid_flag_EKF
+                            # o3d_vis.stop()
+
+                        if EKF.lidar_updated_:
+                            EKF.lidar_updated(False)
+
+                    # print("valid_flag_EKF\n", valid_flag_EKF)
+                    # print("EKF.pose_lidar_torch\n", EKF.pose_lidar_torch)
+                    # print("cur_pose_torch\n", cur_pose_torch)
+                    # EKF.writeResults()
+                    init_guess_file.write("EKF begin here \n")
+                    init_guess_file.write("frame_id: " + str(frame_id) + ", " + str(round(dataset.loader.timestamp_head, 10)) + ", " + str(valid_flag))
+                    init_guess_file.write("\n")
+                    init_guess_file.write("EKF.pose_lidar_torch\n")
+                    np.savetxt(fname=init_guess_file, X=EKF.pose_lidar_torch.cpu().numpy(), fmt='%1.10f')
+                    init_guess_file.write("cur_pose_torch\n")
+                    np.savetxt(fname=init_guess_file, X=cur_pose_torch.cpu().numpy(), fmt='%1.10f')
+                    init_guess_file.write("pre_pose\n")
+                    np.savetxt(fname=init_guess_file, X=EKF.pre_pose, fmt='%1.10f')
+                    init_guess_file.write("\n")
+                    ############################### I.I/2 ohm - imu #################################
+                    dataset.lose_track = not valid_flag
+                    dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
+                    
+                    if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
+                        o3d_vis.stop()
+
+                else:
+                    tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
+                                                    dataset.cur_source_colors)
+                    cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag = tracking_result
+
+                    init_guess_file.write("frame_id: " + str(frame_id) + ", " + str(round(dataset.loader.timestamp_head, 10)) + ", " + str(valid_flag))
+                    init_guess_file.write("\n")
+                    init_guess_file.write("dataset.cur_pose_guess_torch\n")
+                    np.savetxt(fname=init_guess_file, X=dataset.cur_pose_guess_torch.cpu().numpy(), fmt='%1.10f')
+                    init_guess_file.write("cur_pose_torch\n")
+                    np.savetxt(fname=init_guess_file, X=cur_pose_torch.cpu().numpy(), fmt='%1.10f')
+                    init_guess_file.write("\n")
+
+                    dataset.lose_track = not valid_flag
+                    dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
+                    
+                    if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
+                        o3d_vis.stop()
+
+            else: # incremental mapping with gt pose
+                if dataset.gt_pose_provided:
+                    dataset.update_odom_pose(dataset.cur_pose_guess_torch) 
+                else:
+                    sys.exit("You are using the mapping mode, but no pose is provided.")
+
+        travel_dist = dataset.travel_dist[:frame_id+1]
+        neural_points.travel_dist = torch.tensor(travel_dist, device=config.device, dtype=config.dtype) # always update this
+                                                                                                                                                            
+        T3 = get_time()
+        ############################# II.I/2 ohm - Odometry #################################
+
+        # # II. Odometry
         # if frame_id > 0: 
         #     if config.track_on:
-
-        #         cur_pose_torch = torch.tensor(predict_pos, device=config.device, dtype=config.tran_dtype)
-        #         key_points_torch = torch.tensor(KeyPoints_w, device=config.device, dtype=config.dtype)
-
-        #         tracking_result = tracker.tracking(key_points_torch, cur_pose_torch, 
+        #         tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
         #                                            dataset.cur_source_colors)
         #         cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag = tracking_result
+
+        #         init_guess_file.write("frame_id: " + str(frame_id) + ", " + str(round(dataset.loader.timestamp_head, 10)) + ", " + str(valid_flag))
+        #         init_guess_file.write("\n")
+        #         init_guess_file.write("cur_pose_guess_torch\n")
+        #         np.savetxt(fname=init_guess_file, X=dataset.cur_pose_guess_torch.cpu().numpy(), fmt='%1.10f')
+        #         init_guess_file.write("cur_pose_torch\n")
+        #         np.savetxt(fname=init_guess_file, X=cur_pose_torch.cpu().numpy(), fmt='%1.10f')
+        #         init_guess_file.write("\n")
         #         dataset.lose_track = not valid_flag
         #         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
                 
@@ -301,30 +327,6 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         # neural_points.travel_dist = torch.tensor(travel_dist, device=config.device, dtype=config.dtype) # always update this
                                                                                                                                                             
         # T3 = get_time()
-        ############################### II.I/2 ohm - Odometry #################################
-
-        # II. Odometry
-        if frame_id > 0: 
-            if config.track_on:
-                tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
-                                                   dataset.cur_source_colors)
-                cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag = tracking_result
-                dataset.lose_track = not valid_flag
-                dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
-                
-                if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
-                    o3d_vis.stop()
-                
-            else: # incremental mapping with gt pose
-                if dataset.gt_pose_provided:
-                    dataset.update_odom_pose(dataset.cur_pose_guess_torch) 
-                else:
-                    sys.exit("You are using the mapping mode, but no pose is provided.")
-
-        travel_dist = dataset.travel_dist[:frame_id+1]
-        neural_points.travel_dist = torch.tensor(travel_dist, device=config.device, dtype=config.dtype) # always update this
-                                                                                                                                                            
-        T3 = get_time()
 
         # III. Loop detection and pgo
         if frame_id == 0: # init

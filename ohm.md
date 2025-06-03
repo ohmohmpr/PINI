@@ -23,6 +23,7 @@ python3 pin_slam.py ./config/lidar_slam/run_m2dgr.yaml rosbag_ohm /velodyne_poin
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_01/ -dv
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_02/ -dv
 python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/nya_03/ -dv
+# PIN-SLAM PASS, PIN-LIO-SLAMFAILED frame 2968
 python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node2/points -i ~/data/NTU_VIRAL/nya_03/ -dv
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/rtp_01/ -dv
 # python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_ohm /os1_cloud_node1/points -i ~/data/NTU_VIRAL/rtp_02/ -dv
@@ -60,7 +61,7 @@ python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cl
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_1_newer_college/2021-07-01-10-40-50_0-stairs-005.bag -dv
 
 # # 128beams collection 2
-# good example for showing when turning, the lio-ekf failed
+# good example for showing when turning, the lio-ekf failed 
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_2_newer_college/2021-12-02-10-19-05_1-cloister.bag -dv
 # good example for going to new space and fail, the lio-ekf failed
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_2_newer_college/2021-11-30-17-09-49_0-park.bag -dv
@@ -71,7 +72,7 @@ python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cl
 
 
 # # collection 3
-# the lio-ekf failed and pin-slam
+# the lio-ekf failed and pin-slam, 1131 just one aggressive rotate
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_3_maths_institute/2021-04-07-13-58-54_0-math-hard.bag -dv
 
 

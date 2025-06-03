@@ -27,7 +27,7 @@ namespace lio_ekf {
 
 void insMechanization(const BodyState &pvapre, BodyState &pvacur,
                       const IMU &imupre,
-                      const IMU &imucur, std::ofstream &odomRes_) {
+                      const IMU &imucur) {
 
   // perform velocity update, position updata and attitude update in sequence,
   // irreversible order

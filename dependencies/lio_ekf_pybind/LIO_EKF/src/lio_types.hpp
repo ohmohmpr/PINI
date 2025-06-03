@@ -63,6 +63,8 @@ struct NavState {
   ;
 
   ImuError imuerror;
+
+  Eigen::Matrix<double, 3, 3> rot = Eigen::Matrix<double, 3, 3>::Zero();
 };
 
 struct ImuNoise {

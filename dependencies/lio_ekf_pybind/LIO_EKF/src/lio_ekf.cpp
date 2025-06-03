@@ -166,11 +166,6 @@ void LIOEKF::initFirstLiDAR(const int lidarUpdateFlag) {
   }
   }
 
-  // odomRes_
-  //     << " initLidarpose_w.rotationMatrix() : \n"
-  //     << Rotation::matrix2euler(initLidarpose_w.rotationMatrix()).transpose()
-  //     << std::endl;
-
   lio_map_.Update(curpoints_, initLidarpose_w);
   is_first_lidar_ = false;
   last_update_t_ = lidar_t_;
@@ -206,7 +201,7 @@ void LIOEKF::newImuProcess() {
   switch (lidarUpdateFlag) {
   case 0: {
     // only propagate navigation state
-    statePropagation(imupre_, imucur_, odomRes_);
+    statePropagation(imupre_, imucur_);
     break;
   }
   case 1: {
@@ -221,13 +216,13 @@ void LIOEKF::newImuProcess() {
     lidar_updated_ = true;
 
     bodystate_pre_ = bodystate_cur_;
-    statePropagation(imupre_, imucur_, odomRes_);
+    statePropagation(imupre_, imucur_);
     break;
   }
   case 2: {
     // lidardata is near current imudata, we should firstly propagate navigation
     // state
-    statePropagation(imupre_, imucur_, odomRes_);
+    statePropagation(imupre_, imucur_);
     if (is_first_lidar_) {
       initFirstLiDAR(lidarUpdateFlag);
     } else {
@@ -245,7 +240,7 @@ void LIOEKF::newImuProcess() {
     imuInterpolate(imupre_, imucur_, updatetime, midimu);
 
     // propagate navigation state for the first half imudata
-    statePropagation(imupre_, midimu, odomRes_);
+    statePropagation(imupre_, midimu);
 
     // do lidar position update at the whole second and feedback system states
     if (is_first_lidar_) {
@@ -257,7 +252,7 @@ void LIOEKF::newImuProcess() {
     lidar_updated_ = true;
     // propagate navigation state for the second half imudata
     bodystate_pre_ = bodystate_cur_;
-    statePropagation(midimu, imucur_, odomRes_);
+    statePropagation(midimu, imucur_);
     break;
   }
   }
@@ -270,15 +265,14 @@ void LIOEKF::newImuProcess() {
   imupre_ = imucur_;
 }
 
-void LIOEKF::statePropagation(IMU &imupre, IMU &imucur,
-                              std::ofstream &odomRes_) {
+void LIOEKF::statePropagation(IMU &imupre, IMU &imucur) {
 
   // debug_<<"statePropagation start"<<std::endl;
   // compensate imu error to 'imucur', 'imupre' has been compensated
   imuCompensate(imucur, imuerror_);
 
   // update imustate(mechanization)
-  insMechanization(bodystate_pre_, bodystate_cur_, imupre, imucur, odomRes_);
+  insMechanization(bodystate_pre_, bodystate_cur_, imupre, imucur);
 
   // system noise propagate, phi-angle error model for attitude error
 
@@ -336,9 +330,6 @@ LIOEKF::DeSkewScan(const std::vector<Eigen::Vector3d> &frame,
                    const Sophus::SE3d &finish_pose) {
   const auto delta_pose = (start_pose.inverse() * finish_pose).log();
   std::vector<Eigen::Vector3d> corrected_frame(frame.size());
-  // for (auto &ts : timestamps) {
-  //   odomRes_ << ts << std::endl;
-  // }
 
   tbb::parallel_for(size_t(0), frame.size(), [&](size_t i) {
     const auto motion =
@@ -353,43 +344,13 @@ auto LIOEKF::processScan() {
   Sophus::SE3d previous_pose_scan = bodystate_pre_.pose * lidar_to_imu;
   Sophus::SE3d current_pose_scan = bodystate_cur_.pose * lidar_to_imu;
   curpoints_w_ = DeSkewScan(curpoints_, timestamps_per_points_,
-                                      previous_pose_scan, current_pose_scan);
-
-  /// >>>>>>>>>>>>>>> OHM DEBUG >>>>>>>>>>>>>>>>>>>>>>>>>>>>||
-  // odomRes_
-  //     << " previous_pose_scan.rotationMatrix() : \n"
-  //     << Rotation::matrix2euler(previous_pose_scan.rotationMatrix()).transpose()
-  //     << " \n previous_pose_scan.translation().transpose() : \n "
-  //     << previous_pose_scan.translation().transpose() << std::endl;
-  // odomRes_
-  //     << " current_pose_scan.rotationMatrix(): \n"
-  //     << Rotation::matrix2euler(current_pose_scan.rotationMatrix()).transpose()
-  //     << " \n current_pose_scan.translation().transpose() : \n "
-  //     << current_pose_scan.translation().transpose() << std::endl;
-  // odomRes_ << " getNavState().pos : \n" << getNavState().pos << std::endl;
-  // odomRes_ << " getNavState().euler: \n" << getNavState().euler << std::endl;
-  // odomRes_ << "BEFORE: processScan() curpoints_w_ \n"
-  //          << curpoints_w_.size() << std::endl;
-  // for (auto &pt : curpoints_w_) {
-  //   odomRes_ << pt(0) << ", " << pt(1) << ", " << pt(2) << std::endl;
-  //   odomRes_ << pt.norm() << std::endl;
-  // }
-  /// <<<<<<<<<<<<<<< OHM DEBUG <<<<<<<<<<<<<<<<<<<<<<<<<<<<||
+                            previous_pose_scan, current_pose_scan);
 
   const auto cropped_frame = kiss_icp::Preprocess(
       curpoints_w_, liopara_.max_range, liopara_.min_range);
 
-  /// >>>>>>>>>>>>>>> OHM DEBUG >>>>>>>>>>>>>>>>>>>>>>>>>>>>||
-  // odomRes_ << "AFTER crop: processScan() cropped_frame \n"
-  //          << cropped_frame.size() << std::endl;
-  /// <<<<<<<<<<<<<<< OHM DEBUG <<<<<<<<<<<<<<<<<<<<<<<<<<<<||
-
   auto [source, frame_downsample] = Voxelize(cropped_frame);
   auto source_in_imu_frame = source;
-
-  /// >>>>>>>>>>>>>>> OHM DEBUG >>>>>>>>>>>>>>>>>>>>>>>>>>>>||
-  // odomRes_ << "processScan() source \n" << source.size() << std::endl;
-  /// <<<<<<<<<<<<<<< OHM DEBUG <<<<<<<<<<<<<<<<<<<<<<<<<<<<||
 
   keypoints_w_ = source;
   TransformPoints(lidar_to_imu.matrix(), source_in_imu_frame);
@@ -606,6 +567,13 @@ void LIOEKF::stateFeedback() {
   imuerror_.accbias += delta_bias_acc;
 }
 
+NavState LIOEKF::getNavState_pin() {
+  NavState state;
+  state.pos = bodystate_cur_.pose.translation();
+  state.rot = bodystate_cur_.pose.rotationMatrix();
+  return state;
+}
+
 NavState LIOEKF::getNavState() {
   NavState state;
   state.pos = bodystate_cur_.pose.translation();
@@ -674,9 +642,11 @@ void LIOEKF::writeResults() {
 
   // Eigen::Quaterniond quat = Rotation::euler2quaternion(euler);
 
-  // odomRes_tum_ << std::setprecision(18) << (lio_ekf_.getImutimestamp() / 1e9)
+  // odomRes_tum_ << std::setprecision(18) << (lio_ekf_.getImutimestamp() /
+  // 1e9)
   //              << "e+09"
-  //              << " " << std::setprecision(5) << pos[0] << " " << pos[1] << "
+  //              << " " << std::setprecision(5) << pos[0] << " " << pos[1] <<
+  //              "
   //              "
   //              << pos[2] << " " << quat.x() << " " << quat.y() << " "
   //              << quat.z() << " " << quat.w() << std::endl;
@@ -696,84 +666,10 @@ void LIOEKF::publishMsgs() {
   curpose.block<3, 1>(0, 3) = navstate.pos;
 
   newpose = poseTran(tmp, curpose);
-
   newpose = poseTran(newpose, tmp);
-  // rotM = newpose.block<3, 3>(0, 0);
-  // Eigen::Quaterniond q_current = Rotation::matrix2quaternion(rotM);
-
-  // Eigen::Vector3d t_current = newpose.block<3, 1>(0, 3);
-  // Broadcast alias transformations to debug all datasets with the same
-  // visualizer
-  // const auto original_pointcloud_frame = lio_ekf_.lidar_header_.frame_id;
-  // const auto stamp = lio_ekf_.lidar_header_.stamp;
-
-  // // Broadcast the tf
-  // geometry_msgs::TransformStamped transform_msg;
-  // transform_msg.header.stamp = stamp;
-  // transform_msg.header.frame_id = odom_frame_;
-  // transform_msg.child_frame_id = pointcloud_frame_;
-  // transform_msg.transform.rotation.x = q_current.x();
-  // transform_msg.transform.rotation.y = q_current.y();
-  // transform_msg.transform.rotation.z = q_current.z();
-  // transform_msg.transform.rotation.w = q_current.w();
-  // transform_msg.transform.translation.x = t_current.x();
-  // transform_msg.transform.translation.y = t_current.y();
-  // transform_msg.transform.translation.z = t_current.z();
-  // tf_broadcaster_.sendTransform(transform_msg);
-
-  // This hacky thing is to make sure we can use the same rviz configuration no
-  // matter the source of the data
-  // geometry_msgs::TransformStamped alias_transform_msg;
-  // alias_transform_msg.header.stamp = stamp;
-  // alias_transform_msg.header.frame_id = pointcloud_frame_;
-  // alias_transform_msg.child_frame_id = original_pointcloud_frame;
-  // alias_transform_msg.transform.translation.x = 0.0;
-  // alias_transform_msg.transform.translation.y = 0.0;
-  // alias_transform_msg.transform.translation.z = 0.0;
-  // alias_transform_msg.transform.rotation.x = 0.0;
-  // alias_transform_msg.transform.rotation.y = 0.0;
-  // alias_transform_msg.transform.rotation.z = 0.0;
-  // alias_transform_msg.transform.rotation.w = 1.0;
-  // tf_broadcaster_.sendTransform(alias_transform_msg);
-
-  // publish odometry msg
-  // nav_msgs::Odometry odom_msg;
-  // odom_msg.header.stamp = stamp;
-  // odom_msg.header.frame_id = odom_frame_;
-  // odom_msg.child_frame_id = pointcloud_frame_;
-  // odom_msg.pose.pose.orientation.x = q_current.x();
-  // odom_msg.pose.pose.orientation.y = q_current.y();
-  // odom_msg.pose.pose.orientation.z = q_current.z();
-  // odom_msg.pose.pose.orientation.w = q_current.w();
-  // odom_msg.pose.pose.position.x = t_current.x();
-  // odom_msg.pose.pose.position.y = t_current.y();
-  // odom_msg.pose.pose.position.z = t_current.z();
-  // odom_publisher_.publish(odom_msg);
-
-  // Publish trajectory msg
-  // geometry_msgs::PoseStamped pose_msg;
-  // pose_msg.pose = odom_msg.pose.pose;
-  // pose_msg.header = odom_msg.header;
-  // path_msg_.poses.push_back(pose_msg);
-  // traj_publisher_.publish(path_msg_);
-
-  // Publish point cloud
-  // std_msgs::Header frame_header = lio_ekf_.lidar_header_;
-  // frame_header.frame_id = pointcloud_frame_;
-
-  // frame_publisher_.publish(*std::move(kiss_icp_ros::utils::EigenToPointCloud2(
-  //     lio_ekf_.getFrame_w(), frame_header)));
-  // kpoints_publisher_.publish(*std::move(kiss_icp_ros::utils::EigenToPointCloud2(
-  //     lio_ekf_.getKetPoints_w(), frame_header)));
-
-  // Map is referenced to the odometry_frame
-  // std_msgs::Header local_map_header = lio_ekf_.lidar_header_;
-  // local_map_header.frame_id = odom_frame_;
 
   std::vector<Eigen::Vector3d> tmpmap = LocalMap();
   TransformPoints(tmp, tmpmap);
-  // map_publisher_.publish(*std::move(
-  //     kiss_icp_ros::utils::EigenToPointCloud2(tmpmap, local_map_header)));
 }
 
 } // namespace lio_ekf

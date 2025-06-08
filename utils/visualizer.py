@@ -13,6 +13,7 @@ import numpy as np
 import open3d as o3d
 
 from utils.config import Config
+from utils.tools import transfrom_to_homo
 
 YELLOW = np.array([1, 0.706, 0])
 RED = np.array([255, 0, 0]) / 255.0
@@ -58,6 +59,10 @@ class MapVisualizer:
         self.keypoint_lio_ekf = o3d.geometry.PointCloud()
         self.cur_point_w_lio_ekf = o3d.geometry.PointCloud()
         self.point_w_lio_ekf = o3d.geometry.PointCloud()
+        self.valid_points = o3d.geometry.PointCloud()
+        self.NED_frame_axis = o3d.geometry.TriangleMesh()
+        self.imu_frame_axis = o3d.geometry.TriangleMesh()
+        self.imu_topic = None
 
         self.log_path = "./"
         self.sdf_slice_height = 0.0
@@ -196,6 +201,11 @@ class MapVisualizer:
         self.vis.add_geometry(self.keypoint_lio_ekf)
         self.vis.add_geometry(self.cur_point_w_lio_ekf)
         self.vis.add_geometry(self.point_w_lio_ekf)
+
+        # EKF
+        self.vis.add_geometry(self.valid_points)
+        self.vis.add_geometry(self.NED_frame_axis)
+        self.vis.add_geometry(self.imu_frame_axis)
 
         self.vis.get_render_option().line_width = 500
         self.vis.get_render_option().light_on = True
@@ -575,6 +585,61 @@ class MapVisualizer:
 
         if pose is not None:
             self.last_pose = pose
+
+        if self.reset_bounding_box:
+            self.vis.reset_view_point(True)
+            self.reset_bounding_box = False
+
+    def _update_geometries_EKF(
+        self,
+        pose=None,
+    ):
+
+        # Coordinate frame axis (toggled by "A")
+        if self.render_frame_axis:
+            if pose is not None:
+
+                sensor_fusion = self.config.sensor_fusion
+                T_W_lidar = np.reshape(sensor_fusion['main_sensor']['lidar']['extrinsic_main_main'], (4, 4))
+                for i in range(len(sensor_fusion['sensor_types']['imu'])):
+                    if sensor_fusion['sensor_types']['imu'][i]['topic'] == self.imu_topic:
+                        num_topic = i
+                imu_tran_R = np.reshape(sensor_fusion['sensor_types']['imu'][num_topic]['imu_tran_R'], (3, 3))
+                extrinsic_main_imu = np.reshape(
+                    sensor_fusion['sensor_types']['imu'][num_topic]['extrinsic_main_imu'], (4, 4))
+                ext = np.linalg.inv(extrinsic_main_imu)
+
+                self.vis.remove_geometry(self.imu_frame_axis, self.reset_bounding_box)
+                self.imu_frame_axis = o3d.geometry.TriangleMesh.create_coordinate_frame(
+                    size=2, origin=np.zeros(3)
+                )
+                if not self.ego_view:
+                    self.imu_frame_axis = self.imu_frame_axis.transform(transfrom_to_homo(np.array(imu_tran_R)))
+                    self.imu_frame_axis = self.imu_frame_axis.transform(T_W_lidar)
+                    # self.imu_frame_axis = self.imu_frame_axis.transform(extrinsic_main_imu)
+                    self.imu_frame_axis = self.imu_frame_axis.transform(pose)
+                    # self.imu_frame_axis = self.imu_frame_axis.transform(transfrom_to_homo(np.array(imu_tran_R)))
+                self.vis.add_geometry(self.imu_frame_axis, self.reset_bounding_box)
+
+                # self.vis.remove_geometry(self.NED_frame_axis, self.reset_bounding_box)
+                # self.NED_frame_axis = o3d.geometry.TriangleMesh.create_coordinate_frame(
+                #     size=2, origin=np.zeros(3)
+                # )
+                # if not self.ego_view:
+                #     # self.NED_frame_axis = self.NED_frame_axis.rotate(np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]]), center=[0,0,0])
+                #     # self.NED_frame_axis = self.NED_frame_axis.rotate(np.linalg.inv(np.array(imu_tran_R)), center=[0,0,0])
+                #     # self.NED_frame_axis = self.NED_frame_axis.transform(extrinsic_main_imu)
+
+                #     self.NED_frame_axis = self.NED_frame_axis.transform(pose)
+                #     # self.NED_frame_axis = self.NED_frame_axis.rotate()
+                # self.vis.add_geometry(self.NED_frame_axis, self.reset_bounding_box)
+
+        else:
+            self.vis.remove_geometry(self.NED_frame_axis, self.reset_bounding_box)
+            # self.vis.remove_geometry(self.imu_frame_axis, self.reset_bounding_box)
+
+        # if pose is not None:
+        #     self.last_pose = pose
 
         if self.reset_bounding_box:
             self.vis.reset_view_point(True)

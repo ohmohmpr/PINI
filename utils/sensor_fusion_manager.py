@@ -101,7 +101,7 @@ class SensorFusionManager:
             self.topic = topic.topic
 
             self.start_ts = 0
-            self.time_for_initStaticAlignment = 10 # sec
+            self.time_for_initStaticAlignment = 3 # sec
             self.is_initStaticAlignment = False # sec
             self.init_roll = 0 # rad
             self.init_pitch = 0 # rad

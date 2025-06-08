@@ -479,6 +479,7 @@ class SLAMDataset(Dataset):
             )
             self.last_velocity = self.last_odom_tran[:3, 3] / (self.current_timestamp_frame - self.last_timestamp_frame)
             # print("frame_id", frame_id)
+            # print("dt", self.current_timestamp_frame - self.last_timestamp_frame)
             # print("last_velocity", self.last_velocity)
 
         if self.config.adaptive_range_on:

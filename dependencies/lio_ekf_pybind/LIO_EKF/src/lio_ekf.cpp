@@ -339,6 +339,24 @@ LIOEKF::DeSkewScan(const std::vector<Eigen::Vector3d> &frame,
   return corrected_frame;
 }
 
+std::vector<Eigen::Vector3d> LIOEKF::processScanPin() {
+  Sophus::SE3d lidar_to_imu = Sophus::SE3d(liopara_.Trans_lidar_imu);
+  Sophus::SE3d previous_pose_scan = bodystate_pre_.pose;
+  Sophus::SE3d current_pose_scan = bodystate_cur_.pose;
+  curpoints_w_ = DeSkewScan(curpoints_, timestamps_per_points_,
+                            previous_pose_scan, current_pose_scan);
+
+  const auto cropped_frame = kiss_icp::Preprocess(
+      curpoints_w_, liopara_.max_range, liopara_.min_range);
+
+  auto [source, frame_downsample] = Voxelize(cropped_frame);
+  auto source_in_imu_frame = source;
+
+  keypoints_w_ = source;
+
+  return keypoints_w_;
+}
+
 auto LIOEKF::processScan() {
   Sophus::SE3d lidar_to_imu = Sophus::SE3d(liopara_.Trans_lidar_imu);
   Sophus::SE3d previous_pose_scan = bodystate_pre_.pose * lidar_to_imu;
@@ -565,13 +583,6 @@ void LIOEKF::stateFeedback() {
   imuerror_.gyrbias += delta_bias_gyro;
   Eigen::Vector3d delta_bias_acc = delta_x_.block(ACC_BIAS_ID, 0, 3, 1);
   imuerror_.accbias += delta_bias_acc;
-}
-
-NavState LIOEKF::getNavState_pin() {
-  NavState state;
-  state.pos = bodystate_cur_.pose.translation();
-  state.rot = bodystate_cur_.pose.rotationMatrix();
-  return state;
 }
 
 NavState LIOEKF::getNavState() {

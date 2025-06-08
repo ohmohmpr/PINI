@@ -102,10 +102,14 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
       .def("_addLidarData", &lio_ekf::LIOEKF::addLidarData)
       .def("_getImutimestamp", &lio_ekf::LIOEKF::getImutimestamp)
       .def("_setBodyStateCurrent", &lio_ekf::LIOEKF::setBodyStateCurrent)
+      .def("_setPoseBodyStateCurrent",
+           &lio_ekf::LIOEKF::setPoseBodyStateCurrent)
       .def("_TransformPoints", &lio_ekf::LIOEKF::TransformPoints)
       .def("_newImuProcess", &lio_ekf::LIOEKF::newImuProcess)
       .def("_getNavState", &lio_ekf::LIOEKF::getNavState)
-      .def("_getNavState_pin", &lio_ekf::LIOEKF::getNavState_pin)
+      .def("_getBodyState", &lio_ekf::LIOEKF::getBodyState)
+      .def("_processScanPin", &lio_ekf::LIOEKF::processScanPin)
+      .def("_stateFeedback", &lio_ekf::LIOEKF::stateFeedback)
       // new
       .def("_checkStateCov", &lio_ekf::LIOEKF::checkStateCov)
       .def("_initFirstLiDAR", &lio_ekf::LIOEKF::initFirstLiDAR)
@@ -120,6 +124,11 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
       .def_readwrite("_imucur_", &lio_ekf::LIOEKF::imucur_)
       .def_readwrite("_bodystate_cur_", &lio_ekf::LIOEKF::bodystate_cur_)
       .def_readwrite("_bodystate_pre_", &lio_ekf::LIOEKF::bodystate_pre_)
+      //
+      .def_readwrite("_Cov_", &lio_ekf::LIOEKF::Cov_)
+      .def_readwrite("_Imu_Prediction_Covariance_",
+                     &lio_ekf::LIOEKF::Imu_Prediction_Covariance_)
+      .def_readwrite("_delta_x_", &lio_ekf::LIOEKF::delta_x_)
       //
       .def_readwrite("_is_first_imu_", &lio_ekf::LIOEKF::is_first_imu_)
       .def_readwrite("_is_first_lidar_", &lio_ekf::LIOEKF::is_first_lidar_)

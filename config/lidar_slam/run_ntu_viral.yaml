@@ -43,11 +43,11 @@ sensor_fusion:
     #                           0., 1., 0., 0.0,
     #                           0., 0., 1., 0.0]
     lidar:
-      # topic: /velodyne_points
-      # extrinsic_main_main: [ 1.0,  0.0,  0.0, -0.050,
-      #                         0.0,  1.0,  0.0,  0.000,
-      #                         0.0,  0.0,  1.0,  0.055,
-      #                         0.0,  0.0,  0.0,  1.000 ]
+      topic: /velodyne_points
+      extrinsic_main_main: [ 1.0,   0.0,  0.0, -0.050,
+                              0.0,  -1.0,  0.0,  0.000,
+                              0.0,  0.0,  -1.0,  0.055,
+                              0.0,  0.0,  0.0,  1.000 ]
       deskew: true
       preprocess: true
       max_range: 100.0 
@@ -71,7 +71,7 @@ sensor_fusion:
         init_pos_std: [ 0.01, 0.01, 0.01 ]
         init_vel_std: [ 0.05, 0.05, 0.05 ]
         init_att_std: [ 0.1, 0.1, 0.1 ]
-        imu_tran_R: [ [ 1, 0, 0], # checked
+        imu_tran_R: [ [ 1, 0, 0],
                       [ 0, 1, 0],
                       [ 0, 0, 1]]
       - topic: /os1_cloud_node1/imu
@@ -88,7 +88,7 @@ sensor_fusion:
         init_pos_std: [ 0.01, 0.01, 0.01 ]
         init_vel_std: [ 0.05, 0.05, 0.05 ]
         init_att_std: [ 0.1, 0.1, 0.1 ]
-        imu_tran_R: [ [ 1, 0, 0], # checked
+        imu_tran_R: [ [ 1, 0, 0],
                       [ 0, 1, 0],
                       [ 0, 0, 1]]   
       - topic: /os1_cloud_node2/imu

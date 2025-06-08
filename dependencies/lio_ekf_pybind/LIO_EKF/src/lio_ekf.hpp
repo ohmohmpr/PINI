@@ -127,15 +127,27 @@ public:
 
   inline double getLiDARtimestamp() const { return lidar_t_; }
 
-  inline void setBodyStateCurrent(Eigen::Matrix4d &pose,
-                                  Eigen::Vector3d &vel) {
+  inline void setPoseBodyStateCurrent(Eigen::Matrix4d &pose) {
+
+    bodystate_cur_.pose = Sophus::SE3d(pose);
+  }
+
+  inline void setBodyStateCurrent(Eigen::Matrix4d &pose, Eigen::Vector3d &vel) {
 
     bodystate_cur_.pose = Sophus::SE3d(pose);
     bodystate_cur_.vel = vel;
   }
 
+  inline std::pair<Eigen::Matrix4d, Eigen::Vector3d>
+  getBodyState(BodyState &bodystate) {
+
+    Eigen::Matrix4d pose = bodystate.pose.matrix();
+    Eigen::Vector3d vel = bodystate.vel;
+
+    return {pose, vel};
+  }
+
   NavState getNavState();
-  NavState getNavState_pin();
 
   inline Eigen::MatrixXd getCovariance() { return Cov_; }
 
@@ -187,6 +199,7 @@ public:
   void statePropagation(IMU &imupre, IMU &imucur);
 
   auto processScan();
+  std::vector<Eigen::Vector3d> processScanPin();
   void lidarUpdate();
 
   void ekfPredict(Eigen::Matrix15d &Phi, Eigen::Matrix15d &Qd);

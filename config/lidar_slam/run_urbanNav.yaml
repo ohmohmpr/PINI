@@ -69,3 +69,4 @@ sensor_fusion:
         imu_tran_R: [ [ 0, -1, 0],
                       [ -1, 0, 0],
                       [ 0, 0,-1]]
+        hz: 400 # In case, computing dt of timestamps failed.

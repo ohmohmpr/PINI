@@ -69,6 +69,7 @@ sensor_fusion:
         imu_tran_R: [ [ 1, 0, 0],
                       [ 0,-1, 0],
                       [ 0, 0,-1]]
+        hz: 150
       - topic: /camera/imu
         extrinsic_main_imu: [0.,  0., 1., 0.30456,
                              -1,  0., 0., 0.00065,
@@ -86,6 +87,7 @@ sensor_fusion:
         imu_tran_R: [ [0, 0, 1],
                       [1, 0, 0],
                       [0, 1, 0]]
+        hz: 200
       - topic: /dvs/imu
         extrinsic_main_imu: [0., 0., 1,   0.30474,
                              -1, 0., 0., -0.17065,
@@ -103,3 +105,4 @@ sensor_fusion:
         imu_tran_R: [ [ 0, 0, 1],
                       [ 1, 0, 0],
                       [ 0, 1, 0]]
+        hz: 840

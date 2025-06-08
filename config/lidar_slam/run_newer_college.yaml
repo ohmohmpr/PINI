@@ -75,6 +75,7 @@ sensor_fusion:
         imu_tran_R: [[ 1,  0,   0],
                      [ 0, -1,   0],
                      [ 0,  0,  -1]]
+        hz: 100
       - topic: /alphasense_driver_ros/imu
         extrinsic_main_imu: [ 1.0,  0.0,  0.0,  -0.037,
                               0.0, -1.0,  0.0,  -0.008,
@@ -83,6 +84,7 @@ sensor_fusion:
         imu_tran_R: [[ 1,  0,   0],
                      [ 0,  1,   0],
                      [ 0,  0,   1]]
+        hz: 200
     lidar:
       - topic: /os_cloud_node/points
         extrinsic_main_lidar: [ 1.0,  0.0,  0.0, -0.037,

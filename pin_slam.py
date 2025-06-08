@@ -170,21 +170,21 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
     # m2dgr
     # topic = "/handsfree/imu"
-    # topic = "/camera/imu" # 200 hz
-    topic = "/dvs/imu"
+    # topic = "/camera/imu"
+    # topic = "/dvs/imu"
 
     ### NTU VIRAL - NYA03
-    # topic = "/imu/imu" ### dt
+    # topic = "/imu/imu"
     # topic = "/os1_cloud_node1/imu"
     # topic = "/os1_cloud_node2/imu"
 
-    ### newer college 64
+    ### newer college 64 -> work on this
     # topic = "/os1_cloud_node/imu"
     # topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning # wrong -> orientation of sensor
 
-    # newer college 128
+    # newer college 128 -> work on this
     # topic = "/os_cloud_node/imu"
-    # topic = "/alphasense_driver_ros/imu"
+    topic = "/alphasense_driver_ros/imu"
 
     ### urban NAV
     # topic = "/imu/data"

@@ -15,6 +15,7 @@ from model.decoder import Decoder
 from model.neural_points import NeuralPoints
 from utils.config import Config
 from utils.tools import color_to_intensity, get_gradient, get_time, transform_torch
+import os 
 
 
 class Tracker:
@@ -39,6 +40,10 @@ class Tracker:
 
         self.sdf_scale = config.logistic_gaussian_ratio * config.sigma_sigmoid_m
 
+        initial_guess_file = os.path.join(self.config.run_path, "initial_guess.txt")
+        self.initial_guess_file = open(initial_guess_file, "w+")
+        np.printoptions(precision=10)
+
     # already under the scaled coordinate system
     def tracking(
         self,
@@ -51,6 +56,7 @@ class Tracker:
         cur_ts=None,
         loop_reg: bool = False,
         vis_result: bool = False,
+        dataset= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
     ):
 
         if init_pose is None:
@@ -126,6 +132,8 @@ class Tracker:
                 valid_points_torch,
                 sdf_residual_cm,
                 photo_residual,
+                sdf_residual,
+                J_mat
             ) = reg_result
 
             T03 = get_time()
@@ -208,7 +216,17 @@ class Tracker:
             T = init_pose
             cov_mat = None
 
-        return T, cov_mat, weight_point_cloud, valid_flag
+        ######### logging ##########
+        self.initial_guess_file.write("frame id: " + str(dataset.processed_frame) + ", ")
+        self.initial_guess_file.write("ts: " + str(dataset.current_timestamp_frame) + ", \n")
+        self.initial_guess_file.write("      init_pose: " + ", \n")
+        np.savetxt(fname=self.initial_guess_file, X=init_pose.cpu().numpy(), fmt='%1.10f')
+        self.initial_guess_file.write("      pose: " + ", \n")
+        np.savetxt(fname=self.initial_guess_file, X=T.cpu().numpy(), fmt='%1.10f')
+        self.initial_guess_file.write("      vec: " + str(dataset.last_velocity)+ "\n\n")
+        ######### logging ##########
+        # return T, cov_mat, weight_point_cloud, valid_flag
+        return T, cov_mat, weight_point_cloud, valid_flag, sdf_residual, J_mat
 
     def query_source_points(
         self,
@@ -411,10 +429,12 @@ class Tracker:
         )
 
         valid_points = points[valid_idx]
+        # self.valid_points = valid_points
         valid_point_count = valid_points.shape[0]
 
         if valid_point_count < 10:
             T = torch.eye(4, device=points.device, dtype=torch.float64)
+            print("Error: Not enough valid_point_count")
             return T, None, None, None, valid_points, 0.0, 0.0
         if vis_weight_pc:
             invalid_points = points[~valid_idx]
@@ -532,7 +552,7 @@ class Tracker:
             cov_mat = None
             eigenvalues = None
         else:
-            T, cov_mat, eigenvalues = implicit_reg(
+            T, cov_mat, eigenvalues, J_mat = implicit_reg(
                 valid_points,
                 sdf_grad,
                 sdf_residual,
@@ -597,6 +617,8 @@ class Tracker:
             valid_points,
             sdf_residual_mean_cm,
             color_residual_mean,
+            sdf_residual,
+            J_mat
         )
 
 
@@ -683,7 +705,7 @@ def implicit_reg(
         mse = torch.mean(weight * sdf_residual**2)
         cov_mat = torch.linalg.inv(N_mat_raw) * mse  # rotation , translation
 
-    return T_mat, cov_mat, eigenvalues
+    return T_mat, cov_mat, eigenvalues, J_mat
 
 
 # functions

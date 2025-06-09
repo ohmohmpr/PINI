@@ -1,5 +1,5 @@
 setting:
-  name: "test_m2dgr"
+  name: "test_newer_college_64"
   output_root: "./experiments"
   deskew: True
 process:
@@ -71,9 +71,9 @@ sensor_fusion:
                      [ 0,  0,-1]]
         hz: 100
       - topic: /camera/imu
-        extrinsic_main_imu: [  0, 0, 1, 0,
-                              -1, 0, 0, 0,
-                               0, -1, 0, 0,
+        extrinsic_main_imu: [  0,     0,    1,   0,
+                              -1,     0,    0,   0,
+                               0,    -1,    0,   0,
                               0.0,  0.0,  0.0,  1.0 ] 
         # IMU noise parameters
         arw: [2, 2, 2]          # [deg/sqrt(hr)]

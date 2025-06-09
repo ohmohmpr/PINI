@@ -614,11 +614,11 @@ class MapVisualizer:
                     size=2, origin=np.zeros(3)
                 )
                 if not self.ego_view:
-                    self.imu_frame_axis = self.imu_frame_axis.transform(transfrom_to_homo(np.array(imu_tran_R)))
-                    self.imu_frame_axis = self.imu_frame_axis.transform(T_W_lidar)
-                    # self.imu_frame_axis = self.imu_frame_axis.transform(extrinsic_main_imu)
+                    # IMU frame
+                    # self.imu_frame_axis = self.imu_frame_axis.transform(transfrom_to_homo(np.array(imu_tran_R))) # LIDAR
+                    # self.imu_frame_axis = self.imu_frame_axis.transform(T_W_lidar)
+                    # LIDAR frame
                     self.imu_frame_axis = self.imu_frame_axis.transform(pose)
-                    # self.imu_frame_axis = self.imu_frame_axis.transform(transfrom_to_homo(np.array(imu_tran_R)))
                 self.vis.add_geometry(self.imu_frame_axis, self.reset_bounding_box)
 
                 # self.vis.remove_geometry(self.NED_frame_axis, self.reset_bounding_box)

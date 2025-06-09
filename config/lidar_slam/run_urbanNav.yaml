@@ -41,8 +41,8 @@ sensor_fusion:
       topic: /velodyne_points
       extrinsic_main_main: [1., 0., 0., 0.0,
                               0., 1., 0., 0.0,
-                              0., 0., 1., 0.28, 
-                              0., 0., 0., 1.]
+                              0., 0., 1., 0, 
+                              0., 0., 0., 1.] # change to zero
       deskew: true
       preprocess: true
       max_range: 100.0 

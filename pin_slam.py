@@ -169,30 +169,30 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         frame_step=5, merged_downsample=True)
 
     # m2dgr
-    # topic = "/handsfree/imu"
-    # topic = "/camera/imu"
-    # topic = "/dvs/imu"
+    # topic = "/handsfree/imu" # pass
+    # topic = "/camera/imu" # pass
+    # topic = "/dvs/imu" # pass
 
     ### NTU VIRAL - NYA03
-    # topic = "/imu/imu"
-    # topic = "/os1_cloud_node1/imu"
-    # topic = "/os1_cloud_node2/imu"
+    # topic = "/imu/imu" # pass
+    # topic = "/os1_cloud_node1/imu" # pass
+    # topic = "/os1_cloud_node2/imu" # pass
 
-    ### newer college 64 -> work on this
-    # topic = "/os1_cloud_node/imu"
+    ### newer college 64 
+    # topic = "/os1_cloud_node/imu" # pass
     # topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning # wrong -> orientation of sensor
+    # sensitive
 
-    # newer college 128 -> work on this
-    # topic = "/os_cloud_node/imu"
-    topic = "/alphasense_driver_ros/imu"
+    # newer college 128 
+    # topic = "/os_cloud_node/imu" # pass
+    # topic = "/alphasense_driver_ros/imu" # pass
 
     ### urban NAV
-    # topic = "/imu/data"
+    topic = "/imu/data" # pass
 
     LIOPara = LIO_Parameters(config, topic).init()
     o3d_vis.imu_topic = topic 
-    EKF = EKF_ohm(config, LIOPara, o3d_vis)
-    init_guess_file = open("init_guess_file_EKF.txt", "w+")
+    EKF = EKF_ohm(config, LIOPara, o3d_vis, dataset)
 
     # dataset.loader.imus['/imu/imu'].load_data_to_txt("imu_imu_data.txt")
 
@@ -324,16 +324,17 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         if frame_id > 0: 
             if config.track_on:
                 tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
-                                                   dataset.cur_source_colors)
-                cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag = tracking_result
+                                                   dataset.cur_source_colors, dataset=dataset)
+                cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, _, _ = tracking_result
 
-                init_guess_file.write("frame_id: " + str(frame_id) + ", " + str(round(dataset.loader.timestamp_head, 10)) + ", " + str(valid_flag))
-                init_guess_file.write("\n")
-                init_guess_file.write("cur_pose_guess_torch\n")
-                np.savetxt(fname=init_guess_file, X=dataset.cur_pose_guess_torch.cpu().numpy(), fmt='%1.10f')
-                init_guess_file.write("cur_pose_torch\n")
-                np.savetxt(fname=init_guess_file, X=cur_pose_torch.cpu().numpy(), fmt='%1.10f')
-                init_guess_file.write("\n")
+                # init_guess_file.write("frame_id: " + str(frame_id) + ", " + str(round(dataset.loader.timestamp_head, 10)) + ", " + str(valid_flag))
+                # init_guess_file.write("\n")
+                # init_guess_file.write("cur_pose_guess_torch\n")
+                # np.savetxt(fname=init_guess_file, X=dataset.cur_pose_guess_torch.cpu().numpy(), fmt='%1.10f')
+                # init_guess_file.write("cur_pose_torch\n")
+                # np.savetxt(fname=init_guess_file, X=cur_pose_torch.cpu().numpy(), fmt='%1.10f')
+                # init_guess_file.write("\n")
+
                 dataset.lose_track = not valid_flag
                 dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
                 

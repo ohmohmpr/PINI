@@ -56,18 +56,18 @@ class BodyState:
         else:
             self.vel = vel
 
-def skew_symmetric(vec):
-    return np.array([[0, -vec[2], vec[1]], [vec[2], 0, -vec[0]], [-vec[1], vec[0], 0]])
-
-def create_covariance_block(vec):
-    return np.diag(np.abs(vec)**2)
 class EKF_ohm:
-    def __init__(self, config, LIOPara, o3d_vis):
+    def __init__(self, config, LIOPara, o3d_vis,
+                 dataset): #debug
 
         self.LIOEKF = LIOEKF_pybind._LIOEKF(LIOPara)
         self.LIOEKF._openResults()
         self.LIOEKF._init()
         self.LIOPara = LIOPara
+        self.config = config
+        self.config.sensor_fusion = self.config.sensor_fusion
+
+        self.dataset = dataset # debug
 
         # Visual
         self.o3d_vis = o3d_vis
@@ -81,13 +81,12 @@ class EKF_ohm:
         self.pose_lidar_torch = None
         self.T_imu_NED = np.linalg.inv(transfrom_to_homo(LIOPara.imu_tran_R))
         self.T_imu_LiDAR = LIOPara.ext_imu_main
-        self.T_LiDAR_NED = np.linalg.inv(self.T_imu_LiDAR) @ self.T_imu_NED
+        self.T_LiDAR_NED = np.linalg.inv(self.T_imu_LiDAR) @ self.T_imu_NED # please check
 
         self.config = config
         path_debug = os.path.join(self.config.run_path, "EKF_ohm.txt")
         self.debug_file = open(path_debug, "w+")
         np.printoptions(precision=10)
-
 
 
     # util
@@ -146,15 +145,27 @@ class EKF_ohm:
 
         vel_LiDAR = self.T_LiDAR_NED[:3, :3] @ vel_NED
         return pose_LiDAR, vel_LiDAR, euler_LiDAR
+    
+
+    def get_bodystate_for_prediction(self, Bodystate):
+        pose_LiDAR, vel_LiDAR, _ = self.get_bodystate_LiDAR(Bodystate)
+
+        
+        T_W_lidar = np.reshape(self.config.sensor_fusion['main_sensor']['lidar']['extrinsic_main_main'], (4, 4))
+        pred_pose_LiDAR = pose_LiDAR @ transfrom_to_homo(self.LIOPara.imu_tran_R)  @ self.T_imu_LiDAR 
+        # pred_pose_LiDAR = pose_LiDAR @ transfrom_to_homo(self.LIOPara.imu_tran_R)  @ self.T_imu_LiDAR @ T_W_lidar
+        pred_vel_LiDAR = vel_LiDAR @ transfrom_to_homo(self.LIOPara.imu_tran_R)[:3, :3] @ self.T_imu_LiDAR[:3, :3]
+
+
+        return pred_pose_LiDAR, pred_vel_LiDAR, None
 
     # main
-
     def newImuProcess_EKF(self):
         self.LIOEKF._newImuProcess()
 
 
     def newImuProcess_ohm(self):
-        
+
         if (self.LIOEKF._is_first_imu_):
             self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
             self.LIOEKF._imupre_ = self.LIOEKF._imucur_
@@ -162,9 +173,27 @@ class EKF_ohm:
             self.LIOEKF._is_first_imu_ = False
 
             # Vis
-            pose_NED, _, _ = self.get_bodystate_LiDAR(self.LIOEKF._bodystate_cur_)
-            # print("pose_NED", pose_NED) 
-            self.o3d_vis._update_geometries_EKF(pose_NED)
+            pose_LiDAR, vel_LiDAR, euler_LiDAR = self.get_bodystate_for_prediction(self.LIOEKF._bodystate_cur_)
+
+            ######### logging ##########
+            self.debug_file.write("frame id: " + str(self.dataset.processed_frame) + ", ")
+            self.debug_file.write("topic: " + self.LIOPara.topic + ", \n")
+            self.debug_file.write("ext_imu_main: " + "\n")
+            np.savetxt(fname=self.debug_file, X=self.LIOPara.ext_imu_main, fmt='%1.10f')
+            self.debug_file.write("\n")
+            ######### logging ##########
+
+            ######### logging ##########
+            self.debug_file.write("frame id: " + str(self.dataset.processed_frame) + ", ")
+            self.debug_file.write("ts: " + str(self.LIOEKF._imucur_.timestamp) + ", \n")
+            self.debug_file.write("      init_pose: " + ", \n")
+            np.savetxt(fname=self.debug_file, X=pose_LiDAR, fmt='%1.10f')
+            self.debug_file.write("      pose: " + ", \n")
+            np.savetxt(fname=self.debug_file, X=pose_LiDAR, fmt='%1.10f')
+            self.debug_file.write("      vec: " + str(vel_LiDAR)+ "\n\n")
+            ######### logging ##########
+
+            self.o3d_vis._update_geometries_EKF(pose_LiDAR)
             self.o3d_vis.stop()
             return
 
@@ -173,10 +202,21 @@ class EKF_ohm:
         updatetime = self.LIOEKF._lidar_t_
 
         lidarUpdateFlag = 0
+
         # Vis
-        pose_NED, _, _ = self.get_bodystate_LiDAR(self.LIOEKF._bodystate_cur_)
-        # print("pose_NED", pose_NED)
-        self.o3d_vis._update_geometries_EKF(pose_NED)
+        pose_LiDAR, vel_LiDAR, euler_LiDAR = self.get_bodystate_for_prediction(self.LIOEKF._bodystate_cur_)
+
+        ######### logging ##########
+        self.debug_file.write("frame id: " + str(self.dataset.processed_frame) + ", ")
+        self.debug_file.write("ts: " + str(self.LIOEKF._imucur_.timestamp) + ", \n")
+        self.debug_file.write("      init_pose: " + ", \n")
+        np.savetxt(fname=self.debug_file, X=pose_LiDAR, fmt='%1.10f')
+        self.debug_file.write("      pose: " + ", \n")
+        np.savetxt(fname=self.debug_file, X=pose_LiDAR, fmt='%1.10f')
+        self.debug_file.write("      vec: " + str(vel_LiDAR)+ "\n\n")
+        ######### logging ##########
+
+        self.o3d_vis._update_geometries_EKF(pose_LiDAR)
 
         if (self.LIOEKF._lidar_t_ > self.LIOEKF._last_update_t_ + 0.001 or self.LIOEKF._is_first_lidar_):
             lidarUpdateFlag = self.LIOEKF._isToUpdate(self.LIOEKF._imupre_.timestamp, self.LIOEKF._imucur_.timestamp, updatetime)

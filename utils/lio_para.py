@@ -38,6 +38,7 @@ class LIO_Parameters:
         self.LIOPara.initstate_std.imuerror.accbias = self.LIOPara.imunoise.accbias_std
 
 
+        self.LIOPara.topic = self.topic
         # depends on the topic
         for i in range(len(self.config['sensor_types']['imu'])):
             if self.topic == self.config['sensor_types']['imu'][i]["topic"]:
@@ -45,7 +46,7 @@ class LIO_Parameters:
 
                 extrinsic_main_imu = np.reshape(
                     self.config['sensor_types']['imu'][i]['extrinsic_main_imu'], (4, 4))
-                ext = np.linalg.inv(extrinsic_main_imu)
+                ext = np.linalg.inv(extrinsic_main_imu) # please check this ohm
                 self.LIOPara.ext_imu_main = ext
                 print("LIOPara.ext_imu_main",  self.LIOPara.ext_imu_main)
                 print("IMU TOPIC", self.config['sensor_types']['imu'][i]["topic"])

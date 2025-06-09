@@ -44,10 +44,14 @@ sensor_fusion:
     #                           0., 0., 1., 0.0]
     lidar:
       topic: /velodyne_points
-      extrinsic_main_main: [ 1.0,   0.0,  0.0, -0.050,
-                              0.0,  -1.0,  0.0,  0.000,
-                              0.0,  0.0,  -1.0,  0.055,
-                              0.0,  0.0,  0.0,  1.000 ]
+      extrinsic_main_main: [ 1.0,   0.0,  0.0, 0,
+                              0.0,  -1.0,  0.0,  0,
+                              0.0,  0.0,  -1.0,  0,
+                              0.0,  0.0,  0.0,  1.000 ] # change to zero
+      # extrinsic_main_main: [ 1.0,   0.0,  0.0, -0.050,
+      #                         0.0,  -1.0,  0.0,  0.000,
+      #                         0.0,  0.0,  -1.0,  0.055,
+      #                         0.0,  0.0,  0.0,  1.000 ] # for visual?
       deskew: true
       preprocess: true
       max_range: 100.0 

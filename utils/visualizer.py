@@ -63,6 +63,7 @@ class MapVisualizer:
         self.NED_frame_axis = o3d.geometry.TriangleMesh()
         self.imu_frame_axis = o3d.geometry.TriangleMesh()
         self.imu_topic = None
+        self.update_list = []
 
         self.log_path = "./"
         self.sdf_slice_height = 0.0
@@ -593,6 +594,8 @@ class MapVisualizer:
     def _update_geometries_EKF(
         self,
         pose=None,
+        update=False,
+        frame_id=None,
     ):
 
         # Coordinate frame axis (toggled by "A")
@@ -620,6 +623,21 @@ class MapVisualizer:
                     # LIDAR frame
                     self.imu_frame_axis = self.imu_frame_axis.transform(pose)
                 self.vis.add_geometry(self.imu_frame_axis, self.reset_bounding_box)
+
+                ####################### plot predict und update position ########################
+                # new_frame = o3d.geometry.TriangleMesh.create_icosahedron(0.02)
+                # if update == False:
+                #     new_frame.paint_uniform_color(RED)
+                # else:
+                #     new_frame.paint_uniform_color(BLUE)
+                # # new_frame.compute_vertex_normals()
+                # new_frame.transform(pose)
+                # self.update_list.append(new_frame)
+                # if update == True and frame_id % 10 == 0:
+                    # self.vis.add_geometry(self.update_list[round(sensor_fusion['sensor_types']['imu'][num_topic]['hz']/2)], self.reset_bounding_box)
+                    # self.vis.add_geometry(self.update_list[-1], self.reset_bounding_box)
+                    # self.update_list = []
+                ####################### plot predict und update position ########################
 
                 # self.vis.remove_geometry(self.NED_frame_axis, self.reset_bounding_box)
                 # self.NED_frame_axis = o3d.geometry.TriangleMesh.create_coordinate_frame(

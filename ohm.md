@@ -50,7 +50,7 @@ python3 pin_slam.py ./config/lidar_slam/run_newer_college64.yaml rosbag_ohm /os1
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college64.yaml rosbag_ohm /os1_cloud_node/points -i ~/data/newer_college_dataset/2020-ouster-os1-64-realsense/05_quad_with_dynamics/rosbag/rooster_2020-07-10-09-16-39_1-001.bag -dv
 
 # 64beams -> 6_dynamic_spinning
-python3 pin_slam.py ./config/lidar_slam/run_newer_college64.yaml rosbag_ohm /os1_cloud_node/points -i ~/data/newer_college_dataset/2020-ouster-os1-64-realsense/06_dynamic_spinning/rosbag/rooster_2020-07-10-09-23-18_0.bag -dv
+# python3 pin_slam.py ./config/lidar_slam/run_newer_college64.yaml rosbag_ohm /os1_cloud_node/points -i ~/data/newer_college_dataset/2020-ouster-os1-64-realsense/06_dynamic_spinning/rosbag/rooster_2020-07-10-09-23-18_0.bag -dv
 
 # # 128beams collection 1
 python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_1_newer_college/2021-07-01-10-37-38-quad-easy-002.bag -dv

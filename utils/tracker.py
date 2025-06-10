@@ -429,7 +429,7 @@ class Tracker:
         )
 
         valid_points = points[valid_idx]
-        # self.valid_points = valid_points
+        self.valid_points = valid_points
         valid_point_count = valid_points.shape[0]
 
         if valid_point_count < 10:

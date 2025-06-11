@@ -429,6 +429,7 @@ class Tracker:
         )
 
         valid_points = points[valid_idx]
+        # valid_points = points
         self.valid_points = valid_points
         valid_point_count = valid_points.shape[0]
 

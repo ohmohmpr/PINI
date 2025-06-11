@@ -174,18 +174,18 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/dvs/imu" # pass
 
     ### NTU VIRAL - NYA03
-    # topic = "/imu/imu" # pass
-    # topic = "/os1_cloud_node1/imu" # pass
-    # topic = "/os1_cloud_node2/imu" # pass
+    # topic = "/imu/imu" # go up at x axis
+    # topic = "/os1_cloud_node1/imu" # go down at x axis
+    # topic = "/os1_cloud_node2/imu" # go straight at x axis then left,
 
     ### newer college 64 
-    # topic = "/os1_cloud_node/imu" # pass
+    # topic = "/os1_cloud_node/imu" # go straight at x axis then right, quite same
     # topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning # wrong -> orientation of sensor
-    # sensitive
+    # sensitive # go straight at x axis then right, quite same
 
     # newer college 128 
-    topic = "/os_cloud_node/imu" # pass
-    # topic = "/alphasense_driver_ros/imu" # pass
+    topic = "/os_cloud_node/imu" # go backward, go left wrt x axis
+    # topic = "/alphasense_driver_ros/imu" # go backward seem like orientation correct  go left wrt x axis
 
     ### urban NAV
     # topic = "/imu/data" # pass
@@ -223,7 +223,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         if frame_id == 1: 
             o3d_vis.stop()
 
-        if EKF_TEST == False:
+        if EKF_TEST == True:
             ############################### II.I/2 ohm - Odometry #################################
             if frame_id > 0: 
                 if config.track_on:
@@ -243,15 +243,18 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                             EKF.addImuData([IMU], False)
                             # EKF.newImuProcess_ohm()
 
-                            cur_pose_torch_EKF, cur_odom_cov_EKF, \
-                            weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_given_init_pose()
+                            # cur_pose_torch_EKF, cur_odom_cov_EKF, \
+                            # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_given_init_pose()
 
-                        # print(cur_pose_torch_EKF, valid_flag_EKF)
+                            cur_pose_torch_EKF, cur_odom_cov_EKF, \
+                            weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
+
                         if valid_flag_EKF:
                             cur_pose_torch = cur_pose_torch_EKF
                             cur_odom_cov = cur_odom_cov_EKF 
                             weight_pc_o3d = weight_pc_o3d_EKF
                             valid_flag = valid_flag_EKF
+                            # print(cur_pose_torch, valid_flag_EKF)
 
                             # o3d_vis.stop()
 
@@ -263,6 +266,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
                         ############################### I.I/2 ohm - imu #################################
                         dataset.lose_track = not valid_flag
+                        if cur_pose_torch == None:
+                            print("cur_pose_torch", cur_pose_torch)
                         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
                         
                         if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:

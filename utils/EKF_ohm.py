@@ -10,6 +10,15 @@ from utils.tools import transfrom_to_homo
 import open3d as o3d
 import os 
 
+YELLOW = np.array([1, 0.706, 0])
+RED = np.array([255, 0, 0]) / 255.0
+PURPLE = np.array([238, 130, 238]) / 255.0
+BLACK = np.array([0, 0, 0]) / 255.0
+GOLDEN = np.array([1.0, 0.843, 0.0])
+GREEN = np.array([0, 128, 0]) / 255.0
+BLUE = np.array([0, 0, 128]) / 255.0
+LIGHTBLUE = np.array([0.00, 0.65, 0.93])
+
 class StateID():
     POS_ID = 0
     VEL_ID = 3
@@ -363,16 +372,21 @@ class EKF_ohm:
                 self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             else:
                 ###############################################################
+                deskew_points = self.LIOEKF._processScanPin()
+                deskew_points = np.asarray(deskew_points)
+                deskew_points_torch = torch.tensor(
+                    deskew_points, device=self.config.device, dtype=self.config.dtype
+                )
                 pred_pose_LiDAR_torch, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-                tracking_result = self.tracker.tracking(self.dataset.cur_source_points, pred_pose_LiDAR_torch, 
+                tracking_result = self.tracker.tracking(deskew_points_torch, pred_pose_LiDAR_torch, 
                                         self.dataset.cur_source_colors, dataset=self.dataset)
                 cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat = tracking_result
 
                 self.set_bodystate_for_prediction_torch(cur_pose_torch)
                 ###############################################################
                 self.LIOEKF._lidarUpdate()
-                cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-                self.set_bodystate_for_prediction_torch(cur_pose_torch)
+                # cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+                # self.set_bodystate_for_prediction_torch(cur_pose_torch)
 
             self.lidar_updated(True)
 
@@ -386,16 +400,21 @@ class EKF_ohm:
                 self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             else:
                 ###############################################################
+                deskew_points = self.LIOEKF._processScanPin()
+                deskew_points = np.asarray(deskew_points)
+                deskew_points_torch = torch.tensor(
+                    deskew_points, device=self.config.device, dtype=self.config.dtype
+                )
                 pred_pose_LiDAR_torch, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-                tracking_result = self.tracker.tracking(self.dataset.cur_source_points, pred_pose_LiDAR_torch, 
+                tracking_result = self.tracker.tracking(deskew_points_torch, pred_pose_LiDAR_torch, 
                                         self.dataset.cur_source_colors, dataset=self.dataset)
                 cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat = tracking_result
 
                 self.set_bodystate_for_prediction_torch(cur_pose_torch)
-                ###############################################################
+                # ###############################################################
                 self.LIOEKF._lidarUpdate()
-                cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-                self.set_bodystate_for_prediction_torch(cur_pose_torch)
+                # cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+                # self.set_bodystate_for_prediction_torch(cur_pose_torch)
 
             self.lidar_updated(True)
         elif (lidarUpdateFlag == 3):
@@ -411,16 +430,21 @@ class EKF_ohm:
                 self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             else:
                 ###############################################################
+                deskew_points = self.LIOEKF._processScanPin()
+                deskew_points = np.asarray(deskew_points)
+                deskew_points_torch = torch.tensor(
+                    deskew_points, device=self.config.device, dtype=self.config.dtype
+                )
                 pred_pose_LiDAR_torch, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-                tracking_result = self.tracker.tracking(self.dataset.cur_source_points, pred_pose_LiDAR_torch, 
+                tracking_result = self.tracker.tracking(deskew_points_torch, pred_pose_LiDAR_torch, 
                                         self.dataset.cur_source_colors, dataset=self.dataset)
                 cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat = tracking_result
                 
                 self.set_bodystate_for_prediction_torch(cur_pose_torch)
                 ###############################################################
                 self.LIOEKF._lidarUpdate()
-                cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-                self.set_bodystate_for_prediction_torch(cur_pose_torch)
+                # cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+                # self.set_bodystate_for_prediction_torch(cur_pose_torch)
 
 
             self.lidar_updated(True)
@@ -445,6 +469,11 @@ class EKF_ohm:
             self.debug_file.write("      vec: " + str(vel_LiDAR)+ "\n\n")
             ######### logging ##########
             self.o3d_vis._update_geometries_EKF(pose_LiDAR, False, self.dataset.processed_frame)
+
+            # print("self.dataset.cur_source_points.cpu().numpy()", self.dataset.cur_source_points.cpu().numpy())
+            self.o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(self.tracker.valid_points.cpu().numpy())
+            self.o3d_vis.keypoint_lio_ekf.paint_uniform_color(BLUE)
+            self.o3d_vis.vis.update_geometry(self.o3d_vis.keypoint_lio_ekf)
         else:
             ######### logging ##########
             self.debug_file.write("frame id: " + str(self.dataset.processed_frame) + ", ")
@@ -456,6 +485,10 @@ class EKF_ohm:
             self.debug_file.write("      valid points: " + str(self.tracker.valid_points.shape[0])+ "\n\n")
             ######### logging ##########
             self.o3d_vis._update_geometries_EKF(pose_LiDAR, True, self.dataset.processed_frame)
+
+            self.o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(self.tracker.valid_points.cpu().numpy())
+            self.o3d_vis.keypoint_lio_ekf.paint_uniform_color(BLUE)
+            self.o3d_vis.vis.update_geometry(self.o3d_vis.keypoint_lio_ekf)
 
         # update system state and imudata at the previous epoch
         self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
@@ -474,20 +507,205 @@ class EKF_ohm:
             return None, None, None, None, None, None
         return 
 
-    def update(self, residual: torch.tensor, jacobian: torch.tensor, config):
+    def newImuProcess_ohm_update(self):
+
+        cur_pose_torch = None
+        cur_odom_cov = None
+        weight_pc_o3d = None
+        valid_flag = None
+        sdf_res = None
+        J_mat = None
+        if (self.LIOEKF._is_first_imu_):
+            self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
+            self.LIOEKF._imupre_ = self.LIOEKF._imucur_
+            self.LIOEKF._imu_t_ = self.LIOEKF._imucur_.timestamp
+            self.LIOEKF._is_first_imu_ = False
+
+            # Vis
+            pose_LiDAR, vel_LiDAR, _ = self.get_bodystate_for_prediction(self.LIOEKF._bodystate_cur_)
+
+            ######### logging ##########
+            self.debug_file.write("frame id: " + str(self.dataset.processed_frame) + ", ")
+            self.debug_file.write("topic: " + self.LIOPara.topic + ", \n")
+            self.debug_file.write("ext_imu_main: " + "\n")
+            np.savetxt(fname=self.debug_file, X=self.LIOPara.ext_imu_main, fmt='%1.10f')
+            self.debug_file.write("\n")
+            ######### logging ##########
+
+            ######### logging ##########
+            self.debug_file.write("frame id: " + str(self.dataset.processed_frame) + ", ")
+            self.debug_file.write("ts: " + str(self.LIOEKF._imucur_.timestamp) + ", \n")
+            self.debug_file.write("      init_pose: " + ", \n")
+            np.savetxt(fname=self.debug_file, X=pose_LiDAR, fmt='%1.10f')
+            self.debug_file.write("      vec: " + str(vel_LiDAR)+ "\n\n")
+            ######### logging ##########
+
+            self.o3d_vis._update_geometries_EKF(pose_LiDAR, False, self.dataset.processed_frame)
+            self.o3d_vis.stop()
+            return None, None, None, None, None, None
+
+        # set update time as the lidar time stamp
+        # double
+        updatetime = self.LIOEKF._lidar_t_
+
+        lidarUpdateFlag = 0
+
+        if (self.LIOEKF._lidar_t_ > self.LIOEKF._last_update_t_ + 0.001 or self.LIOEKF._is_first_lidar_):
+            lidarUpdateFlag = self.LIOEKF._isToUpdate(self.LIOEKF._imupre_.timestamp, self.LIOEKF._imucur_.timestamp, updatetime)
+
+        if (lidarUpdateFlag == 0):
+            # only propagate navigation state
+            self.LIOEKF._statePropagation(self.LIOEKF._imupre_, self.LIOEKF._imucur_)
+        elif (lidarUpdateFlag == 1):
+            #  lidardata is near to the previous imudata, we should firstly do lidar
+            #  update
+
+            if (self.LIOEKF._is_first_lidar_): 
+                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+            else:
+                ###############################################################
+                deskew_points = self.LIOEKF._processScanPin()
+                deskew_points = np.asarray(deskew_points)
+                deskew_points_torch = torch.tensor(
+                    deskew_points, device=self.config.device, dtype=self.config.dtype
+                )
+                pred_pose_LiDAR_torch, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+                tracking_result = self.tracker.tracking(deskew_points_torch, pred_pose_LiDAR_torch, 
+                                        self.dataset.cur_source_colors, dataset=self.dataset)
+                cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat = tracking_result
+    
+                self.update(sdf_res, J_mat)
+                ###############################################################
+
+            self.lidar_updated(True)
+
+            self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
+            self.LIOEKF._statePropagation(self.LIOEKF._imupre_, self.LIOEKF._imucur_)
+        elif (lidarUpdateFlag == 2):
+            # lidardata is near current imudata, we should firstly propagate navigation state
+            self.LIOEKF._statePropagation(self.LIOEKF._imupre_, self.LIOEKF._imucur_)
+
+            if self.LIOEKF._is_first_lidar_:
+                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+            else:
+                ###############################################################
+                deskew_points = self.LIOEKF._processScanPin()
+                deskew_points = np.asarray(deskew_points)
+                deskew_points_torch = torch.tensor(
+                    deskew_points, device=self.config.device, dtype=self.config.dtype
+                )
+                pred_pose_LiDAR_torch, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+                tracking_result = self.tracker.tracking(deskew_points_torch, pred_pose_LiDAR_torch, 
+                                        self.dataset.cur_source_colors, dataset=self.dataset)
+                cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat = tracking_result
+
+                self.update(sdf_res, J_mat)
+                ###############################################################
+
+            self.lidar_updated(True)
+        elif (lidarUpdateFlag == 3):
+            # lidardata is between the two imudata, we interpolate current imudata to lidar time
+            midimu = LIOEKF_pybind._IMU()
+            LIOEKF_pybind._imuInterpolate(self.LIOEKF._imupre_, self.LIOEKF._imucur_, updatetime, midimu)
+
+            # propagate navigation state for the first half imudata
+            self.LIOEKF._statePropagation(self.LIOEKF._imupre_, midimu)
+
+            # do lidar position update at the whole second and feedback system states
+            if (self.LIOEKF._is_first_lidar_):
+                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+            else:
+                ###############################################################
+                deskew_points = self.LIOEKF._processScanPin()
+                deskew_points = np.asarray(deskew_points)
+                deskew_points_torch = torch.tensor(
+                    deskew_points, device=self.config.device, dtype=self.config.dtype
+                )
+                pred_pose_LiDAR_torch, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+                tracking_result = self.tracker.tracking(deskew_points_torch, pred_pose_LiDAR_torch, 
+                                        self.dataset.cur_source_colors, dataset=self.dataset)
+                cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat = tracking_result
+                
+                self.update(sdf_res, J_mat)
+                ###############################################################
+
+            self.lidar_updated(True)
+
+            # propagate navigation state for the second half imudata
+            self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
+            self.LIOEKF._statePropagation(midimu, self.LIOEKF._imucur_)
+
+        # check diagonal elements of current covariance matrix
+        self.LIOEKF._checkStateCov()
+
+        # Vis
+        pose_LiDAR, vel_LiDAR, _ = self.get_bodystate_for_prediction(self.LIOEKF._bodystate_cur_)
+
+        if self.LIOEKF.lidar_updated_ == False:
+            ######### logging ##########
+            self.debug_file.write("frame id: " + str(self.dataset.processed_frame) + ", ")
+            self.debug_file.write("ts: " + str(self.LIOEKF._imucur_.timestamp) + ", \n")
+            self.debug_file.write("lidarUpdateFlag: " + str(lidarUpdateFlag) + ", \n")
+            self.debug_file.write("      init_pose: " + ", \n")
+            np.savetxt(fname=self.debug_file, X=pose_LiDAR, fmt='%1.10f')
+            self.debug_file.write("      vec: " + str(vel_LiDAR)+ "\n\n")
+            ######### logging ##########
+            self.o3d_vis._update_geometries_EKF(pose_LiDAR, False, self.dataset.processed_frame)
+
+            # self.o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(self.tracker.valid_points.cpu().numpy())
+            # self.o3d_vis.keypoint_lio_ekf.paint_uniform_color(BLUE)
+            # self.o3d_vis.vis.update_geometry(self.o3d_vis.keypoint_lio_ekf)
+        else:
+            ######### logging ##########
+            self.debug_file.write("frame id: " + str(self.dataset.processed_frame) + ", ")
+            self.debug_file.write("ts: " + str(self.LIOEKF._imucur_.timestamp) + ", \n")
+            self.debug_file.write("lidarUpdateFlag: " + str(lidarUpdateFlag) + ", \n")
+            self.debug_file.write("      update: " + ", \n")
+            np.savetxt(fname=self.debug_file, X=pose_LiDAR, fmt='%1.10f')
+            self.debug_file.write("      vec: " + str(vel_LiDAR)+ "\n\n")
+            self.debug_file.write("      valid points: " + str(self.tracker.valid_points.shape[0])+ "\n\n")
+            ######### logging ##########
+            self.o3d_vis._update_geometries_EKF(pose_LiDAR, True, self.dataset.processed_frame)
+
+            self.o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(self.tracker.valid_points.cpu().numpy())
+            self.o3d_vis.keypoint_lio_ekf.paint_uniform_color(BLUE)
+            self.o3d_vis.vis.update_geometry(self.o3d_vis.keypoint_lio_ekf)
+
+        # update system state and imudata at the previous epoch
+        self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
+        self.LIOEKF._imupre_ = self.LIOEKF._imucur_
+
+        if lidarUpdateFlag == 1:
+            # print("lidarUpdateFlag", lidarUpdateFlag)
+            cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+            return cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat
+        elif lidarUpdateFlag == 2:
+            # print("lidarUpdateFlag", lidarUpdateFlag)
+            cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+            return cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat
+        elif lidarUpdateFlag == 3:
+            # print("lidarUpdateFlag", lidarUpdateFlag)
+            cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+            return cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat
+        elif lidarUpdateFlag == 0:
+            return None, None, None, None, None, None
+        return 
+
+    def update(self, residual: torch.tensor, jacobian: torch.tensor):
         # check if residual and jacobian have same rows
         assert residual.shape[0] == jacobian.shape[0]
 
+        # print("residual : ", )
         POS_ID = 0
         VEL_ID = 3
         ATT_ID = 6
-        H = torch.zeros(jacobian.shape[0], 15, device=config.device, dtype=config.tran_dtype)
+        H = torch.zeros(jacobian.shape[0], 15, device=self.config.device, dtype=self.config.tran_dtype)
         H[:, POS_ID:POS_ID+3] = jacobian[:, 3:6]
         H[:, ATT_ID:ATT_ID+3] = jacobian[:, 0:3]
 
-        R = torch.eye(residual.shape[0], device=config.device, dtype=config.tran_dtype) * 1000
+        R = torch.eye(residual.shape[0], device=self.config.device, dtype=self.config.tran_dtype) * 1000
 
-        state_cov_torch = torch.tensor(self.LIOEKF._Cov_, device=config.device, dtype=config.tran_dtype)
+        state_cov_torch = torch.tensor(self.LIOEKF._Cov_, device=self.config.device, dtype=self.config.tran_dtype)
 
         HTRH = H.T @ R @ H
         HTRz = H.T @ R @ residual.to(dtype=torch.float64)
@@ -498,24 +716,15 @@ class EKF_ohm:
         self.LIOEKF._delta_x_ = delta_x_torch.cpu().numpy()
         self.LIOEKF._Cov_ = state_cov_torch.cpu().numpy()
 
-        print(f"delta_x: {self.LIOEKF._delta_x_}")
+        # print(f"delta_x: {self.LIOEKF._delta_x_}")
 
         # self.stateFeedback()
         self.LIOEKF._stateFeedback()
         # self.delta_x = np.zeros((15, 1))
         self.LIOEKF._delta_x_ = np.zeros((15, 1))
-        print(f"after delta_x: {self.LIOEKF._delta_x_}")
 
         # self.prebodystate = copy.copy(self.curbodystate)
         self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
 
-        # state = self.LIOEKF._getNavState_pin()
-        # pos_T_NED = np.zeros((4, 4))
-        # pos_T_NED[:3, :3] = state.rot
-        # pos_T_NED[:3, 3] = state.pos
-        # pos_T_NED[3, 3] = 1
-
-        # # print("pos_T_NED\n", pos_T_NED)
-        # pos_T_LiDAR = self.T_LiDAR_NED @ pos_T_NED
         # # return lidar pose and cov
         # return torch.tensor(pos_T_LiDAR, device=config.device, dtype=config.tran_dtype)

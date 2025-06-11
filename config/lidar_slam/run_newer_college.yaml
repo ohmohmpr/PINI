@@ -81,6 +81,15 @@ sensor_fusion:
                               0.0, -1.0,  0.0,  -0.008,
                               0.0,  0.0, -1.0,  -0.026,
                               0.0,  0.0,  0.0,  1.0]
+        # IMU noise parameters #check this
+        arw: [0.2, 0.2, 0.2]          # [deg/sqrt(hr)]
+        vrw: [0.4, 0.4, 0.4]          # [m/s/sqrt(hr)]
+        gbstd: [2.0, 2.0, 2.0]        # [deg/hr]
+        abstd: [50.0, 50.0, 50.0]     # [mGal]
+        corrtime: 1.0                    # [hr]
+        init_pos_std: [ 0.05, 0.05, 0.05 ]
+        init_vel_std: [ 0.05, 0.05, 0.05 ]
+        init_att_std: [ 0.1, 0.1, 0.1 ]
         imu_tran_R: [[ 1,  0,   0],
                      [ 0,  1,   0],
                      [ 0,  0,   1]]

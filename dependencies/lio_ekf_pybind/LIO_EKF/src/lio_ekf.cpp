@@ -457,11 +457,7 @@ void LIOEKF::lidarUpdate() {
     KH = S_inv * HTRH;
     stateFeedback();
 
-    // odomRes_ << "points_w.size(): \n" << points_w.size() << std::endl;
-    // odomRes_ << "src.size(): \n" << src.size() << std::endl;
     if ((delta_x_ - last_dx).norm() < 0.001) {
-      // odomRes_ << "(delta_x_ - last_dx).norm(): \n"
-      //          << (delta_x_ - last_dx).norm() << std::endl;
       break;
     }
     last_dx = delta_x_;
@@ -472,18 +468,6 @@ void LIOEKF::lidarUpdate() {
   Sophus::SE3d pose_in_lidar_frame =
       bodystate_cur_.pose * Sophus::SE3d(liopara_.Trans_lidar_imu);
 
-  // std::cout << "\nliopara_.Trans_lidar_imu_origin\n"
-  //           << liopara_.Trans_lidar_imu_origin << std::endl;
-  // std::cout << "\nliopara_.imu_tran_R\n" << liopara_.imu_tran_R << std::endl;
-  // std::cout << "\nliopara_.Trans_lidar_imu\n"
-  //           << liopara_.Trans_lidar_imu << std::endl;
-
-  // odomRes_ << " pose_in_lidar_frame :\n"
-  //          << Rotation::matrix2euler(pose_in_lidar_frame.rotationMatrix())
-  //                 .transpose()
-  //          << " \npose_in_lidar_frame.translation() : \n "
-  //          << pose_in_lidar_frame.translation().transpose() << std::endl;
-  Imu_Prediction_Covariance_.setZero();
   lio_map_.Update(frame_downsample, pose_in_lidar_frame);
   last_update_t_ = lidar_t_;
 }

@@ -137,6 +137,7 @@ class EKF_ohm:
         euler_NED = rot_euler_NED.as_euler("zyx",degrees=True)
         return pose_NED, vel_NED, euler_NED
     def set_bodystate(self, cur_pose):
+        # self.LIOEKF._setBodyStateCurrent(cur_pose, np.array([0, 0, 0]))
         self.LIOEKF._setPoseBodyStateCurrent(cur_pose)
 
 
@@ -369,7 +370,9 @@ class EKF_ohm:
 
                 self.set_bodystate_for_prediction_torch(cur_pose_torch)
                 ###############################################################
-                # self.LIOEKF._lidarUpdate()
+                self.LIOEKF._lidarUpdate()
+                cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+                self.set_bodystate_for_prediction_torch(cur_pose_torch)
 
             self.lidar_updated(True)
 
@@ -390,7 +393,9 @@ class EKF_ohm:
 
                 self.set_bodystate_for_prediction_torch(cur_pose_torch)
                 ###############################################################
-                # self.LIOEKF._lidarUpdate()
+                self.LIOEKF._lidarUpdate()
+                cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+                self.set_bodystate_for_prediction_torch(cur_pose_torch)
 
             self.lidar_updated(True)
         elif (lidarUpdateFlag == 3):
@@ -413,7 +418,10 @@ class EKF_ohm:
                 
                 self.set_bodystate_for_prediction_torch(cur_pose_torch)
                 ###############################################################
-                # self.LIOEKF._lidarUpdate()
+                self.LIOEKF._lidarUpdate()
+                cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
+                self.set_bodystate_for_prediction_torch(cur_pose_torch)
+
 
             self.lidar_updated(True)
 

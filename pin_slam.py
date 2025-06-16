@@ -169,28 +169,28 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         frame_step=5, merged_downsample=True)
 
     # m2dgr
-    # topic = "/handsfree/imu" # pass
-    # topic = "/camera/imu" # pass
-    # topic = "/dvs/imu" # pass
+    # topic = "/handsfree/imu" #
+    # topic = "/camera/imu" #
+    # topic = "/dvs/imu" #
 
     ### NTU VIRAL - NYA03
-    # topic = "/imu/imu" # go up at x axis
-    # topic = "/os1_cloud_node1/imu" # go down at x axis
-    # topic = "/os1_cloud_node2/imu" # go straight at x axis then left,
+    # topic = "/imu/imu" #
+    # topic = "/os1_cloud_node1/imu" #
+    # topic = "/os1_cloud_node2/imu" #
 
     ### newer college 64 
-    # topic = "/os1_cloud_node/imu" # go straight at x axis then right, quite same
+    # topic = "/os1_cloud_node/imu" #
     # topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning # wrong -> orientation of sensor
-    # sensitive # go straight at x axis then right, quite same
 
     # newer college 128 
-    topic = "/os_cloud_node/imu" # go backward, go left wrt x axis
-    # topic = "/alphasense_driver_ros/imu" # go backward seem like orientation correct  go left wrt x axis
+    topic = "/os_cloud_node/imu" # 
+    # topic = "/alphasense_driver_ros/imu" #
 
     ### urban NAV
-    # topic = "/imu/data" # pass
+    # topic = "/imu/data" #
 
     EKF_TEST = True
+    # EKF_TEST = False
     LIOPara = LIO_Parameters(config, topic).init()
     o3d_vis.imu_topic = topic 
     EKF = EKF_ohm(config, LIOPara, o3d_vis, tracker, dataset)
@@ -241,19 +241,19 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                                                     LIOPara.imu_tran_R @ imu['imu'][0], 
                                                     LIOPara.imu_tran_R @ imu['imu'][1])
                             EKF.addImuData([IMU], False)
-                            # EKF.newImuProcess_ohm()
+                            cur_pose_torch = EKF.newImuProcess_ohm()
 
                             # cur_pose_torch_EKF, cur_odom_cov_EKF, \
                             # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_given_init_pose()
 
-                            cur_pose_torch_EKF, cur_odom_cov_EKF, \
-                            weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
+                            # cur_pose_torch_EKF, cur_odom_cov_EKF, \
+                            # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
 
-                        if valid_flag_EKF:
-                            cur_pose_torch = cur_pose_torch_EKF
-                            cur_odom_cov = cur_odom_cov_EKF 
-                            weight_pc_o3d = weight_pc_o3d_EKF
-                            valid_flag = valid_flag_EKF
+                        # if valid_flag_EKF:
+                        #     cur_pose_torch = cur_pose_torch_EKF
+                        #     cur_odom_cov = cur_odom_cov_EKF 
+                        #     weight_pc_o3d = weight_pc_o3d_EKF
+                        #     valid_flag = valid_flag_EKF
                             # print(cur_pose_torch, valid_flag_EKF)
 
                             # o3d_vis.stop()

@@ -143,7 +143,7 @@ void LIOEKF::navStateInitialization(const NavState &initstate,
 void LIOEKF::initFirstLiDAR(const int lidarUpdateFlag) {
   Sophus::SE3d initLidarpose_w = Sophus::SE3d();
   const auto &lidar_to_imu_extrinsic = Sophus::SE3d(liopara_.Trans_lidar_imu);
-  odomRes_ << " initFirstLiDAR : " << lidarUpdateFlag << std::endl;
+  // odomRes_ << " initFirstLiDAR : " << lidarUpdateFlag << std::endl;
   switch (lidarUpdateFlag) {
   case 1: {
     initLidarpose_w = bodystate_pre_.pose * lidar_to_imu_extrinsic;
@@ -357,7 +357,7 @@ std::vector<Eigen::Vector3d> LIOEKF::processScanPin() {
   return keypoints_w_;
 }
 
-auto LIOEKF::processScan() {
+std::tuple<Vector3dVector, Vector3dVector> LIOEKF::processScan() {
   Sophus::SE3d lidar_to_imu = Sophus::SE3d(liopara_.Trans_lidar_imu);
   Sophus::SE3d previous_pose_scan = bodystate_pre_.pose * lidar_to_imu;
   Sophus::SE3d current_pose_scan = bodystate_cur_.pose * lidar_to_imu;
@@ -411,6 +411,8 @@ void LIOEKF::lidarUpdate() {
   int j = 0;
   const auto &cur_pose = bodystate_cur_.pose;
 
+  // odomRes_ << std::setprecision(10) << "cur_pose: \n"
+  //          << cur_pose.matrix() << std::endl;
   Eigen::Matrix15d KH;
   for (j = 0; j < liopara_.max_iteration; ++j) {
     points_w = source;
@@ -454,7 +456,17 @@ void LIOEKF::lidarUpdate() {
 
     Eigen::Matrix15d S_inv = (HTRH + Cov_.inverse()).inverse();
     delta_x_ = S_inv * HTRz;
+
+    // odomRes_ << std::setprecision(10) << getImutimestamp() << std::endl;
+    // odomRes_ << std::setprecision(10) << "max_correspondence_distance: \n"
+    //          << max_correspondence_distance << std::endl;
+    // odomRes_ << std::setprecision(10) << "HTRH: \n" << HTRH << std::endl;
+    // odomRes_ << std::setprecision(10) << "HTRz: \n" << HTRz << std::endl;
+    // odomRes_ << std::setprecision(10) << "S_inv: \n" << S_inv << std::endl;
+    // odomRes_ << std::setprecision(10) << "delta_x_: \n"
+    //          << delta_x_ << std::endl;
     KH = S_inv * HTRH;
+    // odomRes_ << std::setprecision(10) << "KH: \n" << KH << std::endl;
     stateFeedback();
 
     if ((delta_x_ - last_dx).norm() < 0.001) {
@@ -463,10 +475,15 @@ void LIOEKF::lidarUpdate() {
     last_dx = delta_x_;
     delta_x_.setZero();
   }
+  // odomRes_ << std::setprecision(10) << "Cov_ outer loop: \n" << Cov_ << std::endl;
   Cov_ -= KH * Cov_;
+  // odomRes_ << std::setprecision(10) << "Cov_: \n" << Cov_ << std::endl;
 
   Sophus::SE3d pose_in_lidar_frame =
       bodystate_cur_.pose * Sophus::SE3d(liopara_.Trans_lidar_imu);
+
+  // odomRes_ << std::setprecision(10) << "pose_in_lidar_frame: \n"
+  //          << pose_in_lidar_frame.matrix() << std::endl;
 
   lio_map_.Update(frame_downsample, pose_in_lidar_frame);
   last_update_t_ = lidar_t_;
@@ -611,6 +628,12 @@ void LIOEKF::openResults() {
   odomRes_.open(odomoutputpath.c_str());
   odomRes_.setf(std::ios::fixed, std::ios::floatfield);
   odomRes_.precision(10);
+
+  // std::string odomoutputpath = "ohm/data/lio_ekf_update.txt";
+
+  // odomRes_.open(odomoutputpath.c_str());
+  // odomRes_.setf(std::ios::fixed, std::ios::floatfield);
+  // odomRes_.precision(10);
 };
 
 void LIOEKF::writeResults() {

@@ -1,6 +1,7 @@
 #include "LIO_EKF/src/imuPropagation.hpp"
 #include "LIO_EKF/src/lio_ekf.hpp"
 #include "stl_vector_eigen.h"
+#include <kiss_icp/core/VoxelHashMap.hpp>
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -20,6 +21,8 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
   m.def("_imuCompensate", &lio_ekf::imuCompensate, "imu"_a, "ImuError"_a);
   m.def("_imuInterpolate", &lio_ekf::imuInterpolate, "imu1"_a, "imu2"_a,
         "timestamp"_a, "midimu"_a);
+  //   m.def("_propagateUscendent", &propagateUscendent, "mean"_a,
+  //   "covariance"_a);
 
   py::class_<lio_ekf::IMU>(m, "_IMU")
       .def(py::init<>())
@@ -93,6 +96,31 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
                          Trans_lidar_imu_origin); // Eigen::Matrix4d
                                                   // Eigen::Matrix4d::Identity()
 
+  // Map representation
+  py::class_<kiss_icp::VoxelHashMap> internal_map(m, "_VoxelHashMap", "Don't use this");
+  internal_map
+      .def(py::init<double, double, int>(), "voxel_size"_a, "max_distance"_a,
+           "max_points_per_voxel"_a)
+      .def("_clear", &kiss_icp::VoxelHashMap::Clear)
+      .def("_empty", &kiss_icp::VoxelHashMap::Empty)
+      .def("_update",
+           py::overload_cast<const kiss_icp::VoxelHashMap::Vector3dVector &,
+                             const Eigen::Vector3d &>(
+               &kiss_icp::VoxelHashMap::Update),
+           "points"_a, "origin"_a)
+      .def(
+          "_update",
+          [](kiss_icp::VoxelHashMap &self,
+             const kiss_icp::VoxelHashMap::Vector3dVector &points,
+             const Eigen::Matrix4d &T) {
+            Sophus::SE3d pose(T);
+            self.Update(points, pose);
+          },
+          "points"_a, "pose"_a)
+      .def("_point_cloud", &kiss_icp::VoxelHashMap::Pointcloud)
+      .def("_get_correspondences", &kiss_icp::VoxelHashMap::GetCorrespondences,
+           "points"_a, "max_correspondance_distance"_a);
+
   py::class_<lio_ekf::LIOEKF>(m, "_LIOEKF")
       .def(py::init<lio_ekf::LIOPara &>(), "LIOPara"_a)
       .def(py::init<>())
@@ -108,6 +136,7 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
       .def("_newImuProcess", &lio_ekf::LIOEKF::newImuProcess)
       .def("_getNavState", &lio_ekf::LIOEKF::getNavState)
       .def("_getBodyState", &lio_ekf::LIOEKF::getBodyState)
+      .def("_processScan", &lio_ekf::LIOEKF::processScan)
       .def("_processScanPin", &lio_ekf::LIOEKF::processScanPin)
       .def("_stateFeedback", &lio_ekf::LIOEKF::stateFeedback)
       // new
@@ -141,6 +170,7 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
       .def("_writeResults", &lio_ekf::LIOEKF::writeResults)
       //   .def("_publishMsgs", &lio_ekf::LIOEKF::publishMsgs)
       .def("_getCovariance", &lio_ekf::LIOEKF::getCovariance)
+      .def_readwrite("_lio_map_", &lio_ekf::LIOEKF::lio_map_)
       .def_readwrite("lidar_updated_",
                      &lio_ekf::LIOEKF::lidar_updated_) // Eigen::Matrix4d
       .def_readwrite("newpose",

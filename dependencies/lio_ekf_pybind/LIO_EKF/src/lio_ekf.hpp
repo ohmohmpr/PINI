@@ -198,7 +198,7 @@ public:
 
   void statePropagation(IMU &imupre, IMU &imucur);
 
-  auto processScan();
+  std::tuple<Vector3dVector, Vector3dVector> processScan();
   std::vector<Eigen::Vector3d> processScanPin();
   void lidarUpdate();
 

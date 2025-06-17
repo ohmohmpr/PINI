@@ -24,8 +24,8 @@ continual:
   pool_capacity: 5e6
   pool_filter_freq: 10
 tracker:
-  iter_n: 100
-  # iter_n: 10
+  # iter_n: 100
+  iter_n: 10
   # iter_n: 1
 pgo:
   map_context: True

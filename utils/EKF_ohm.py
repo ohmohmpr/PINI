@@ -148,6 +148,14 @@ class EKF_ohm:
         rot_euler_NED = R.from_matrix(pose_NED[:3, :3])
         euler_NED = rot_euler_NED.as_euler("zyx",degrees=True)
         return pose_NED, vel_NED, euler_NED
+    def get_bodystate_torch(self, Bodystate):
+        pose_NED, vel_NED = self.LIOEKF._getBodyState(Bodystate)
+
+        pose_NED_torch = torch.tensor(pose_NED, device=self.config.device, dtype=self.config.tran_dtype)
+        vel_NED_torch = torch.tensor(vel_NED, device=self.config.device, dtype=self.config.tran_dtype)
+
+        return pose_NED_torch, vel_NED_torch, None
+    
     def set_bodystate(self, cur_pose):
         # self.LIOEKF._setBodyStateCurrent(cur_pose, np.array([0, 0, 0]))
         self.LIOEKF._setPoseBodyStateCurrent(cur_pose)
@@ -165,6 +173,13 @@ class EKF_ohm:
     def set_bodystate_LiDAR(self, cur_pose):
         cur_pose = np.linalg.inv(self.T_LiDAR_NED) @ cur_pose
         self.set_bodystate(cur_pose)
+    def get_bodystate_LiDAR_torch(self, Bodystate):
+        pose_LiDAR, vel_LiDAR, _ = self.get_bodystate_LiDAR(Bodystate)
+
+        pose_LiDAR_torch = torch.tensor(pose_LiDAR, device=self.config.device, dtype=self.config.tran_dtype)
+        vel_LiDAR_torch = torch.tensor(vel_LiDAR, device=self.config.device, dtype=self.config.tran_dtype)
+
+        return pose_LiDAR_torch, vel_LiDAR_torch, _
     
 
     def get_bodystate_for_prediction(self, Bodystate):
@@ -580,11 +595,11 @@ class EKF_ohm:
                     deskew_points, device=self.config.device, dtype=self.config.dtype
                 )
                 pred_pose_LiDAR_torch, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-                tracking_result = self.tracker.tracking(self.dataset.cur_source_points, self.dataset.cur_pose_guess_torch, 
+                tracking_result = self.tracker.tracking(deskew_points_torch, pred_pose_LiDAR_torch, 
                                         self.dataset.cur_source_colors, dataset=self.dataset)
                 cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat = tracking_result
     
-                self.update(sdf_res, J_mat)
+                self.update_EKF_SDF(sdf_res, J_mat)
                 ###############################################################
 
             self.lidar_updated(True)
@@ -605,11 +620,11 @@ class EKF_ohm:
                     deskew_points, device=self.config.device, dtype=self.config.dtype
                 )
                 pred_pose_LiDAR_torch, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-                tracking_result = self.tracker.tracking(self.dataset.cur_source_points, self.dataset.cur_pose_guess_torch, 
+                tracking_result = self.tracker.tracking(deskew_points_torch, pred_pose_LiDAR_torch, 
                                         self.dataset.cur_source_colors, dataset=self.dataset)
                 cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat = tracking_result
 
-                self.update(sdf_res, J_mat)
+                self.update_EKF_SDF(sdf_res, J_mat)
                 ###############################################################
 
             self.lidar_updated(True)
@@ -632,11 +647,11 @@ class EKF_ohm:
                     deskew_points, device=self.config.device, dtype=self.config.dtype
                 )
                 pred_pose_LiDAR_torch, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-                tracking_result = self.tracker.tracking(deskew_points_torch, self.dataset.cur_pose_guess_torch, 
+                tracking_result = self.tracker.tracking(deskew_points_torch, pred_pose_LiDAR_torch, 
                                         self.dataset.cur_source_colors, dataset=self.dataset)
                 cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat = tracking_result
                 
-                self.update(sdf_res, J_mat)
+                self.update_EKF_SDF(sdf_res, J_mat)
                 ###############################################################
 
             self.lidar_updated(True)
@@ -854,3 +869,66 @@ class EKF_ohm:
         self.LIOEKF._lio_map_._update(frame_downsample, pose_in_lidar_frame)
         self.LIOEKF._last_update_t_ = self.LIOEKF._lidar_t_
 
+
+    def update_EKF_SDF(self, residual: torch.tensor, jacobian: torch.tensor):
+        last_dx = torch.zeros(1, 15, device=self.config.device, dtype=self.config.tran_dtype)
+        weight = 1000
+        j = 0
+
+        # torch.Size([1531]) # residual
+        
+        # torch.Size([1531, 6]) # jacobian
+
+        max_num = self.LIOPara.max_iteration
+        for j in range(max_num):
+
+            residual_torch = torch.reshape(residual, (residual.shape[0], 1, 1)) # num, 3, 1
+            # print("residual_torch", residual_torch)
+            scale = 1
+            residual_torch = torch.tensor(residual_torch.clone().detach(), device=self.config.device, dtype=self.config.tran_dtype) * scale
+            jacobian_torch = torch.reshape(jacobian, (jacobian.shape[0], 1, jacobian.shape[1])) * scale # num, 3, 1
+            # print("residual_torch", residual_torch.shape)
+            # print("jacobian", jacobian_torch.shape)
+
+            # R_bG_p = src_numpy - cur_pose[:3, 3]
+            # R_bG_p_torch = torch.tensor(R_bG_p, device=self.config.device, dtype=self.config.tran_dtype)
+
+            H = torch.zeros((jacobian.shape[0], 1, 15), device=self.config.device, dtype=self.config.tran_dtype) # num, 3, 15
+            H[:, :, 0:3] = jacobian_torch[:, :, 3:6]
+            # H[:, :, 0:3] = torch.ones(1, 3)
+            # R_bG_p_torch_so3_hat = self.so3_hat(R_bG_p_torch)
+            H[:, :, 6:9] = jacobian_torch[:, :, 0:3]
+
+            R_inv = torch.ones([residual_torch.shape[0], 1, 1], device=self.config.device, dtype=self.config.tran_dtype) # num, 3, 3
+            R_inv = R_inv * weight
+            # R_inv[:, 0:3] = torch.ones(3) * weight
+            H_T = torch.transpose(H, 1, 2)
+            HTRH = torch.matmul(H_T, torch.matmul(R_inv, H))              # num,15,3 @ num,3,3 @ num,3,15
+            HTRz = torch.matmul(H_T, torch.matmul(R_inv, residual_torch)) # num,15,3 @ num,3,3 @ num,3,1
+
+            HTRH = torch.sum(HTRH, 0) # 15,3 @ 3,3 @ 3,15
+            HTRz = torch.sum(HTRz, 0) # 15,3 @ 3,3 @ 3,1
+            # self.delta_x_file.write(str(self.LIOEKF._lidar_t_) + "\n")
+
+            state_cov_torch = torch.tensor(self.LIOEKF._Cov_, device=self.config.device, dtype=self.config.tran_dtype)
+            S_inv = torch.inverse(HTRH + torch.inverse(state_cov_torch))
+
+            delta_x_torch = S_inv @ HTRz
+            KH = S_inv @ HTRH
+            print(delta_x_torch)
+
+            self.LIOEKF._delta_x_ = delta_x_torch.cpu().numpy()
+            print(self.LIOEKF._delta_x_)
+            self.LIOEKF._stateFeedback()
+
+            # if ((delta_x_ - last_dx).norm() < 0.001) {
+            # break;
+            # }
+            # last_dx = delta_x_;
+            self.LIOEKF._delta_x_ = np.zeros(15)
+
+
+        state_cov_torch -= KH @ state_cov_torch
+        self.LIOEKF._Cov_ = state_cov_torch.cpu().numpy()
+
+        self.LIOEKF._last_update_t_ = self.LIOEKF._lidar_t_

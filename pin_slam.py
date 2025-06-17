@@ -38,6 +38,7 @@ from utils.tools import (
     split_chunks,
     transform_torch,
 )
+
 from utils.tracker import Tracker
 from utils.visualizer import MapVisualizer
 from utils.lio_para import LIO_Parameters
@@ -241,19 +242,19 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                                                     LIOPara.imu_tran_R @ imu['imu'][0], 
                                                     LIOPara.imu_tran_R @ imu['imu'][1])
                             EKF.addImuData([IMU], False)
-                            cur_pose_torch = EKF.newImuProcess_ohm()
+                            # cur_pose_torch = EKF.newImuProcess_ohm()
 
                             # cur_pose_torch_EKF, cur_odom_cov_EKF, \
                             # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_given_init_pose()
 
-                            # cur_pose_torch_EKF, cur_odom_cov_EKF, \
-                            # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
+                            cur_pose_torch_EKF, cur_odom_cov_EKF, \
+                            weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
 
-                        # if valid_flag_EKF:
-                        #     cur_pose_torch = cur_pose_torch_EKF
-                        #     cur_odom_cov = cur_odom_cov_EKF 
-                        #     weight_pc_o3d = weight_pc_o3d_EKF
-                        #     valid_flag = valid_flag_EKF
+                        if valid_flag_EKF:
+                            cur_pose_torch = cur_pose_torch_EKF
+                            cur_odom_cov = cur_odom_cov_EKF 
+                            weight_pc_o3d = weight_pc_o3d_EKF
+                            valid_flag = valid_flag_EKF
                             # print(cur_pose_torch, valid_flag_EKF)
 
                             # o3d_vis.stop()
@@ -302,7 +303,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                 if config.track_on:
                     tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
                                                     dataset.cur_source_colors, dataset=dataset)
-                    cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, _, _ = tracking_result
+                    cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_residual, J_mat = tracking_result
 
                     dataset.lose_track = not valid_flag
                     dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch

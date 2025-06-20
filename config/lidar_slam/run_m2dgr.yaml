@@ -70,39 +70,39 @@ sensor_fusion:
                       [ 0,-1, 0],
                       [ 0, 0,-1]]
         hz: 150
-      - topic: /camera/imu
-        extrinsic_main_imu: [0.,  0., 1., 0.30456,
-                             -1,  0., 0., 0.00065,
-                             0.,  -1, 0., 0.65376,
-                             0.,  0., 0., 1.]
-        # IMU noise parameters
-        arw: [2, 2, 2]          # [deg/sqrt(hr)]
-        vrw: [40, 40, 40]          # [m/s/sqrt(hr)]
-        gbstd: [200.0, 200.0, 200.0]        # [deg/hr]
-        abstd: [500.0, 500.0, 500.0]     # [mGal]
-        corrtime: 1.0                    # [hr]
-        init_pos_std: [ 0.01, 0.01, 0.01 ]
-        init_vel_std: [ 0.05, 0.05, 0.05 ]
-        init_att_std: [ 0.1, 0.1, 0.1 ]
-        imu_tran_R: [ [0, 0, 1],
-                      [1, 0, 0],
-                      [0, 1, 0]]
-        hz: 200
-      - topic: /dvs/imu
-        extrinsic_main_imu: [0., 0., 1,   0.30474,
-                             -1, 0., 0., -0.17065,
-                             0., -1, 0.,  0.65376,
-                             0., 0., 0.,  1. ]
-        # IMU noise parameters
-        arw: [2, 2, 2]          # [deg/sqrt(hr)]
-        vrw: [40, 40, 40]          # [m/s/sqrt(hr)]
-        gbstd: [200.0, 200.0, 200.0]        # [deg/hr]
-        abstd: [500.0, 500.0, 500.0]     # [mGal]
-        corrtime: 1.0                    # [hr]
-        init_pos_std: [ 0.01, 0.01, 0.01 ]
-        init_vel_std: [ 0.05, 0.05, 0.05 ]
-        init_att_std: [ 0.1, 0.1, 0.1 ]
-        imu_tran_R: [ [ 0, 0, 1],
-                      [ 1, 0, 0],
-                      [ 0, 1, 0]]
-        hz: 840
+      # - topic: /camera/imu
+      #   extrinsic_main_imu: [0.,  0., 1., 0.30456,
+      #                        -1,  0., 0., 0.00065,
+      #                        0.,  -1, 0., 0.65376,
+      #                        0.,  0., 0., 1.]
+      #   # IMU noise parameters
+      #   arw: [2, 2, 2]          # [deg/sqrt(hr)]
+      #   vrw: [40, 40, 40]          # [m/s/sqrt(hr)]
+      #   gbstd: [200.0, 200.0, 200.0]        # [deg/hr]
+      #   abstd: [500.0, 500.0, 500.0]     # [mGal]
+      #   corrtime: 1.0                    # [hr]
+      #   init_pos_std: [ 0.01, 0.01, 0.01 ]
+      #   init_vel_std: [ 0.05, 0.05, 0.05 ]
+      #   init_att_std: [ 0.1, 0.1, 0.1 ]
+      #   imu_tran_R: [ [0, 0, 1],
+      #                 [1, 0, 0],
+      #                 [0, 1, 0]]
+      #   hz: 200
+      # - topic: /dvs/imu
+      #   extrinsic_main_imu: [0., 0., 1,   0.30474,
+      #                        -1, 0., 0., -0.17065,
+      #                        0., -1, 0.,  0.65376,
+      #                        0., 0., 0.,  1. ]
+      #   # IMU noise parameters
+      #   arw: [2, 2, 2]          # [deg/sqrt(hr)]
+      #   vrw: [40, 40, 40]          # [m/s/sqrt(hr)]
+      #   gbstd: [200.0, 200.0, 200.0]        # [deg/hr]
+      #   abstd: [500.0, 500.0, 500.0]     # [mGal]
+      #   corrtime: 1.0                    # [hr]
+      #   init_pos_std: [ 0.01, 0.01, 0.01 ]
+      #   init_vel_std: [ 0.05, 0.05, 0.05 ]
+      #   init_att_std: [ 0.1, 0.1, 0.1 ]
+      #   imu_tran_R: [ [ 0, 0, 1],
+      #                 [ 1, 0, 0],
+      #                 [ 0, 1, 0]]
+      #   hz: 840

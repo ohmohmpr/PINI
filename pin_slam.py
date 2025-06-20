@@ -170,7 +170,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         frame_step=5, merged_downsample=True)
 
     # m2dgr
-    # topic = "/handsfree/imu" #
+    topic = "/handsfree/imu" #
     # topic = "/camera/imu" #
     # topic = "/dvs/imu" #
 
@@ -184,7 +184,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning # wrong -> orientation of sensor
 
     # newer college 128 
-    topic = "/os_cloud_node/imu" # 
+    # topic = "/os_cloud_node/imu" # 
     # topic = "/alphasense_driver_ros/imu" #
 
     ### urban NAV
@@ -232,32 +232,45 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     # if len(dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer) > 8: # debug here for first frame
                     #     print(frame_id)
                     #     print(len(dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer))
-                    if len(dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer) > 8 and frame_id > 1:
+                    if len(dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer) > 0 and frame_id > 0:
                         ############################### I.I/2 ohm - imu #################################
                         EKF.addLidarData(dataset.points, dataset.timestamp, dataset.point_ts)
 
                         for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
+                            # print("imu['timestamp']", imu['timestamp'])
                             IMU = EKF.convert_IMU(imu['timestamp'], 
                                                     imu['dt'], 
                                                     LIOPara.imu_tran_R @ imu['imu'][0], 
                                                     LIOPara.imu_tran_R @ imu['imu'][1])
                             EKF.addImuData([IMU], False)
+                            EKF.newImuProcess_EKF()
                             # cur_pose_torch = EKF.newImuProcess_ohm()
 
                             # cur_pose_torch_EKF, cur_odom_cov_EKF, \
                             # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_given_init_pose()
 
-                            cur_pose_torch_EKF, cur_odom_cov_EKF, \
-                            weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
+                            # cur_pose_torch_EKF, cur_odom_cov_EKF, \
+                            # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
 
-                        if valid_flag_EKF:
-                            cur_pose_torch = cur_pose_torch_EKF
-                            cur_odom_cov = cur_odom_cov_EKF 
-                            weight_pc_o3d = weight_pc_o3d_EKF
-                            valid_flag = valid_flag_EKF
-                            # print(cur_pose_torch, valid_flag_EKF)
+                        # if valid_flag_EKF:
+                        #     cur_pose_torch = cur_pose_torch_EKF
+                        #     cur_odom_cov = cur_odom_cov_EKF 
+                        #     weight_pc_o3d = weight_pc_o3d_EKF
+                        #     valid_flag = valid_flag_EKF
+                        #     print(cur_pose_torch, valid_flag_EKF)
 
                             # o3d_vis.stop()
+
+                        # if True:
+                        #     pos_pts = cur_pose_torch.cpu().numpy()
+                        #     pts = np.asarray(EKF.LIOEKF._LocalMap())
+                        #     if pts.shape[0] > 1:
+                        #         o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(pts)
+
+                        #         o3d_vis.vis.remove_geometry(o3d_vis.point_w_lio_ekf, o3d_vis.reset_bounding_box)
+                        #         o3d_vis.vis.add_geometry(o3d_vis.point_w_lio_ekf, o3d_vis.reset_bounding_box)
+                        #         o3d_vis.point_w_lio_ekf.transform(pos_pts)
+                        #         o3d_vis.point_w_lio_ekf.paint_uniform_color(PURPLE)
 
                         if EKF.lidar_updated_ == True:
                             EKF.lidar_updated(False)
@@ -266,15 +279,16 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                         EKF.writeResults()
 
                         ############################### I.I/2 ohm - imu #################################
-                        dataset.lose_track = not valid_flag
-                        if cur_pose_torch == None:
-                            print("cur_pose_torch", cur_pose_torch)
-                        dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
+                        # dataset.lose_track = not valid_flag
+                        # if cur_pose_torch == None:
+                        #     print("cur_pose_torch", cur_pose_torch)
+                        # dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
                         
-                        if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
-                            o3d_vis.stop()
+                        # if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
+                        #     o3d_vis.stop()
 
                     else:
+                        print("PIN-SLAM")
                         tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
                                                         dataset.cur_source_colors, dataset=dataset)
                         cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, _, _ = tracking_result
@@ -488,8 +502,13 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         # if lose track, we will not update the map and data pool (don't let the wrong pose to corrupt the map)
         # if the robot stop, also don't process this frame, since there's no new oberservations
         if frame_id < 5 or (not dataset.lose_track and not dataset.stop_status):
+
+            ####################################### Mapping ohm #######################################
             mapper.process_frame(dataset.cur_point_cloud_torch, dataset.cur_sem_labels_torch,
                                  dataset.cur_pose_torch, frame_id, (config.dynamic_filter_on and frame_id > 0))
+            # EKF.update_map(neural_points.added_pt)
+            ####################################### Mapping ohm #######################################
+
         else:
             mapper.determine_used_pose()
             neural_points.reset_local_map(dataset.cur_pose_torch[:3,3], None, frame_id) # not efficient for large map

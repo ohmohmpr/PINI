@@ -48,6 +48,7 @@ struct BodyState {
 };
 
 struct ImuError {
+  // put it here
   Eigen::Vector3d gyrbias = Eigen::Vector3d::Zero();
   ;
   Eigen::Vector3d accbias = Eigen::Vector3d::Zero();
@@ -59,6 +60,7 @@ struct NavState {
   ;
   Eigen::Vector3d vel = Eigen::Vector3d::Zero();
   ;
+  // roll pitch
   Eigen::Vector3d euler = Eigen::Vector3d::Zero();
   ;
 

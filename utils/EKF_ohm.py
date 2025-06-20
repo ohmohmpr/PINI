@@ -126,6 +126,11 @@ class EKF_ohm:
         self.lidar_updated_ = boolean
         self.LIOEKF.lidar_updated_ = boolean
 
+    def update_map(self, neural_points):
+        pose_in_lidar_frame = self.LIOPara.Trans_lidar_imu
+        neural_points_numpy = neural_points.cpu().numpy()
+        self.LIOEKF._lio_map_._update(LIOEKF_pybind._Vector3dVector(neural_points_numpy), pose_in_lidar_frame)
+
     # get
     def getKeyPoints(self):
         kw = self.LIOEKF._getKeyPoints_w()
@@ -208,8 +213,8 @@ class EKF_ohm:
         self.set_bodystate_for_prediction(cur_pose)
 
     # main
-    # def newImuProcess_EKF(self):
-    #     self.LIOEKF._newImuProcess()
+    def newImuProcess_EKF(self):
+        self.LIOEKF._newImuProcess()
 
     def newImuProcess_ohm(self):
 
@@ -260,10 +265,10 @@ class EKF_ohm:
             #  update
 
             if (self.LIOEKF._is_first_lidar_): 
-                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+                pose_for_map = self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             else:
                 # self.LIOEKF._lidarUpdate()
-                self.update_EKF()
+                pose_for_map = self.update_EKF()
                 # pred_pose_LiDAR, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
                 # self.set_bodystate_for_prediction_torch(pred_pose_LiDAR)
 
@@ -276,10 +281,10 @@ class EKF_ohm:
             self.LIOEKF._statePropagation(self.LIOEKF._imupre_, self.LIOEKF._imucur_)
 
             if self.LIOEKF._is_first_lidar_:
-                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+                pose_for_map = self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             else:
                 # self.LIOEKF._lidarUpdate()
-                self.update_EKF()
+                pose_for_map = self.update_EKF()
                 # pred_pose_LiDAR, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
                 # self.set_bodystate_for_prediction_torch(pred_pose_LiDAR)
 
@@ -294,10 +299,10 @@ class EKF_ohm:
 
             # do lidar position update at the whole second and feedback system states
             if (self.LIOEKF._is_first_lidar_):
-                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+                pose_for_map = self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             else:
                 # self.LIOEKF._lidarUpdate()
-                self.update_EKF()
+                pose_for_map = self.update_EKF()
                 # pred_pose_LiDAR, pred_vel_LiDAR, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
                 # self.set_bodystate_for_prediction_torch(pred_pose_LiDAR)
             self.lidar_updated(True)
@@ -866,9 +871,9 @@ class EKF_ohm:
 
         pose_in_lidar_frame = cur_pose @ np.array(self.LIOPara.Trans_lidar_imu)
 
-        self.LIOEKF._lio_map_._update(frame_downsample, pose_in_lidar_frame)
+        # self.LIOEKF._lio_map_._update(frame_downsample, pose_in_lidar_frame)
         self.LIOEKF._last_update_t_ = self.LIOEKF._lidar_t_
-
+        return pose_in_lidar_frame
 
     def update_EKF_SDF(self, residual: torch.tensor, jacobian: torch.tensor):
         last_dx = torch.zeros(1, 15, device=self.config.device, dtype=self.config.tran_dtype)

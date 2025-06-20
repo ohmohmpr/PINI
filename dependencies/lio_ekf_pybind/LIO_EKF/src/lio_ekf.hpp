@@ -227,7 +227,7 @@ public:
   std::pair<Vector3dVector, Vector3dVector>
   Voxelize(const std::vector<Eigen::Vector3d> &frame) const;
 
-  void initFirstLiDAR(const int lidarUpdateFlag);
+  Eigen::Matrix4d initFirstLiDAR(const int lidarUpdateFlag);
 
   void resetCov(Eigen::Matrix15d &Cov);
 

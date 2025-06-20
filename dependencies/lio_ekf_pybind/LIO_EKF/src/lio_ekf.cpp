@@ -140,7 +140,7 @@ void LIOEKF::navStateInitialization(const NavState &initstate,
       create_covariance_block(imuerror_std.accbias);
 }
 
-void LIOEKF::initFirstLiDAR(const int lidarUpdateFlag) {
+Eigen::Matrix4d LIOEKF::initFirstLiDAR(const int lidarUpdateFlag) {
   Sophus::SE3d initLidarpose_w = Sophus::SE3d();
   const auto &lidar_to_imu_extrinsic = Sophus::SE3d(liopara_.Trans_lidar_imu);
   // odomRes_ << " initFirstLiDAR : " << lidarUpdateFlag << std::endl;
@@ -170,6 +170,7 @@ void LIOEKF::initFirstLiDAR(const int lidarUpdateFlag) {
   is_first_lidar_ = false;
   last_update_t_ = lidar_t_;
   first_lidar_t = lidar_t_;
+  return initLidarpose_w.matrix();
 }
 
 void LIOEKF::newImuProcess() {
@@ -192,11 +193,11 @@ void LIOEKF::newImuProcess() {
         isToUpdate(imupre_.timestamp, imucur_.timestamp, updatetime);
   // determine if we should do  update
 
-  // odomRes_ << "isToUpdate :"
-  //          << " " << lidarUpdateFlag << " "
-  //          << ", imutime1 :" << imupre_.timestamp
-  //          << ", updatetime :" << updatetime
-  //          << ", imutime2 :" << imucur_.timestamp << std::endl;
+  odomRes_ << "isToUpdate :"
+           << " " << lidarUpdateFlag << " "
+           << ", imutime1 :" << imupre_.timestamp
+           << ", updatetime :" << updatetime
+           << ", imutime2 :" << imucur_.timestamp << std::endl;
 
   switch (lidarUpdateFlag) {
   case 0: {

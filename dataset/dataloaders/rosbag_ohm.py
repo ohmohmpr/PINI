@@ -201,7 +201,9 @@ class RosbagDataset:
             """
             DON'T call it directly. It is for iteration.
             """
-            connection, _, rawdata = next(self.msgs)
+            connection, _, rawdata = next(self.msgs, (None, None, None))
+            if connection == None or rawdata == None:
+                return None
             msg = self.bag.deserialize(rawdata, connection.msgtype)
 
             imu, imu_timestamp = self.read_imu(msg)

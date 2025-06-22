@@ -1,4 +1,5 @@
 #include "LIO_EKF/src/imuPropagation.hpp"
+#include "LIO_EKF/src/unscendent_transform.hpp"
 #include "LIO_EKF/src/lio_ekf.hpp"
 #include "stl_vector_eigen.h"
 #include <kiss_icp/core/VoxelHashMap.hpp>
@@ -21,8 +22,9 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
   m.def("_imuCompensate", &lio_ekf::imuCompensate, "imu"_a, "ImuError"_a);
   m.def("_imuInterpolate", &lio_ekf::imuInterpolate, "imu1"_a, "imu2"_a,
         "timestamp"_a, "midimu"_a);
-  //   m.def("_propagateUscendent", &propagateUscendent, "mean"_a,
-  //   "covariance"_a);
+
+  m.def("_propagateUscendentEigen", &propagateUscendentEigen, "mean_eigen"_a,
+        "covariance"_a);
 
   py::class_<lio_ekf::IMU>(m, "_IMU")
       .def(py::init<>())
@@ -97,7 +99,8 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
                                                   // Eigen::Matrix4d::Identity()
 
   // Map representation
-  py::class_<kiss_icp::VoxelHashMap> internal_map(m, "_VoxelHashMap", "Don't use this");
+  py::class_<kiss_icp::VoxelHashMap> internal_map(m, "_VoxelHashMap",
+                                                  "Don't use this");
   internal_map
       .def(py::init<double, double, int>(), "voxel_size"_a, "max_distance"_a,
            "max_points_per_voxel"_a)

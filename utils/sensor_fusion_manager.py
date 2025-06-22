@@ -53,9 +53,11 @@ class SensorFusionManager:
     def _next(self, min_x):
         sensor_idx = min_x-1
         rosimu = self.imu_ROSIMU_list[sensor_idx]
-
+        if rosimu == None:
+            return True
         topic = rosimu.topic
         self.imu_manager_dict[topic].add(rosimu[rosimu.idx_ros_imu])
+        return False
         # important
         # self.buffer.append(rosimu[rosimu.idx_ros_imu])
 
@@ -85,11 +87,12 @@ class SensorFusionManager:
             self.imu_manager_dict[topic].buffer = []
 
         min_x = self.get_min(timestamp_head_main_sensor)
-        while min_x != 0:
+        skip = False
+        while min_x != 0 or skip == True:
             min_x = self.get_min(timestamp_head_main_sensor)
             # self._write_ts(min_x)
             # data to the self
-            self._next(min_x)
+            skip = self._next(min_x)
             # self._update_bars(min_x)
         # self._write_main_sensor(timestamp_head_main_sensor, frame_id)
         return None
@@ -128,7 +131,8 @@ class SensorFusionManager:
             self.curr_timestamp_head = 0
 
         def add(self, frame_data):
-
+            if frame_data == None:
+                return
             self.curr_timestamp_head = frame_data["timestamp"]
             dt = self.curr_timestamp_head - self.prev_timestamp
             if dt < 1e-5 or self.prev_timestamp < 1e-5:

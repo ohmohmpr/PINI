@@ -27,6 +27,7 @@
 #include <sophus/se3.hpp>
 #include <vector>
 
+namespace { // why? ohm for pybind
 static constexpr int dim = 6;
 static constexpr int num_sigma_points = 2 * dim + 1;
 static constexpr double w = 1.0 / num_sigma_points;
@@ -88,3 +89,17 @@ double propagateUscendent(const Sophus::SE3d &mean,
   double sigma = getVariance(new_sigmas);
   return sigma;
 }
+
+double propagateUscendentEigen(const Eigen::Matrix4d &mean_eigen,
+                               const MatrixType &covariance) {
+  Sophus::SE3d mean = Sophus::SE3d(mean_eigen);
+  auto tau = [](const Sophus::SE3d &pose) {
+    return pose.translation().norm() +
+           2.0 * 100 * std::sin(0.5 * pose.so3().log().norm());
+  };
+  SigmaPoints sigmas = toSigmaPoints(mean, covariance);
+  auto new_sigmas = propagate(sigmas, tau);
+  double sigma = getVariance(new_sigmas);
+  return sigma;
+}
+} // namespace

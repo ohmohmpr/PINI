@@ -46,29 +46,23 @@ class LIO_Parameters:
 
                 extrinsic_main_imu = np.reshape(
                     self.config['sensor_types']['imu'][i]['extrinsic_main_imu'], (4, 4))
-                ext = np.linalg.inv(extrinsic_main_imu) # please check this ohm
-                self.LIOPara.ext_imu_main = ext
-                print("LIOPara.ext_imu_main",  self.LIOPara.ext_imu_main)
                 print("IMU TOPIC", self.config['sensor_types']['imu'][i]["topic"])
 
-        extrinsic_R = ext[:3, :3]
-        extrinsic_T = ext[:3, 3]
-
-        imu_tran_R = self.imu_tran_R
+        extrinsic_R = extrinsic_main_imu[:3, :3]
+        extrinsic_T = extrinsic_main_imu[:3, 3]
 
         Trans_lidar_imu_origin = np.identity(4)
         Trans_lidar_imu_origin[:3, :3] = extrinsic_R
         Trans_lidar_imu_origin[:3, 3] = extrinsic_T
         self.LIOPara.Trans_lidar_imu_origin = Trans_lidar_imu_origin
 
-        self.LIOPara.imu_tran_R = imu_tran_R
-        extrinsic_R = imu_tran_R @ extrinsic_R
-        extrinsic_T = imu_tran_R @ extrinsic_T
+        extrinsic_R = self.imu_tran_R @ extrinsic_R
+        extrinsic_T = self.imu_tran_R @ extrinsic_T
+        self.LIOPara.imu_tran_R = self.imu_tran_R
 
         Trans_lidar_imu = np.identity(4)
         Trans_lidar_imu[:3, :3] = extrinsic_R
         Trans_lidar_imu[:3, 3] = extrinsic_T
-
         self.LIOPara.Trans_lidar_imu = Trans_lidar_imu
 
         return self.LIOPara

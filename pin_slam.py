@@ -190,8 +190,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     ### urban NAV
     # topic = "/imu/data" #
 
-    EKF_TEST = True
-    # EKF_TEST = False
+    # EKF_TEST = True
+    EKF_TEST = False
     LIOPara = LIO_Parameters(config, topic).init()
     o3d_vis.imu_topic = topic 
     EKF = EKF_ohm(config, LIOPara, o3d_vis, tracker, dataset)
@@ -244,14 +244,15 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                                                     LIOPara.imu_tran_R @ imu['imu'][1])
                             EKF.addImuData([IMU], False)
                             EKF.newImuProcess_EKF()
-                            # cur_pose_torch = EKF.newImuProcess_ohm()
-
-                            # cur_pose_torch_EKF, cur_odom_cov_EKF, \
-                            # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_given_init_pose()
+                            # cur_pose_torch = EKF.newImuProcess_ohm(myupdate=False)
+                            # cur_pose_torch = EKF.newImuProcess_ohm(myupdate=True)
 
                             # cur_pose_torch_EKF, cur_odom_cov_EKF, \
                             # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
 
+                            if EKF.LIOEKF.lidar_updated_ == True:
+                                EKF.writeResults()
+                                EKF.lidar_updated(False)
                         # if valid_flag_EKF:
                         #     cur_pose_torch = cur_pose_torch_EKF
                         #     cur_odom_cov = cur_odom_cov_EKF 
@@ -259,33 +260,30 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                         #     valid_flag = valid_flag_EKF
                         #     print(cur_pose_torch, valid_flag_EKF)
 
-                            # o3d_vis.stop()
+                        # o3d_vis.stop()
 
-                        # if True:
-                        #     pos_pts = cur_pose_torch.cpu().numpy()
-                        #     pts = np.asarray(EKF.LIOEKF._LocalMap())
-                        #     if pts.shape[0] > 1:
-                        #         o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(pts)
+                    # if True:
+                    #     pos_pts = cur_pose_torch.cpu().numpy()
+                    #     pts = np.asarray(EKF.LIOEKF._LocalMap())
+                    #     if pts.shape[0] > 1:
+                    #         o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(pts)
 
-                        #         o3d_vis.vis.remove_geometry(o3d_vis.point_w_lio_ekf, o3d_vis.reset_bounding_box)
-                        #         o3d_vis.vis.add_geometry(o3d_vis.point_w_lio_ekf, o3d_vis.reset_bounding_box)
-                        #         o3d_vis.point_w_lio_ekf.transform(pos_pts)
-                        #         o3d_vis.point_w_lio_ekf.paint_uniform_color(PURPLE)
+                    #         o3d_vis.vis.remove_geometry(o3d_vis.point_w_lio_ekf, o3d_vis.reset_bounding_box)
+                    #         o3d_vis.vis.add_geometry(o3d_vis.point_w_lio_ekf, o3d_vis.reset_bounding_box)
+                    #         o3d_vis.point_w_lio_ekf.transform(pos_pts)
+                    #         o3d_vis.point_w_lio_ekf.paint_uniform_color(PURPLE)
 
-                        if EKF.lidar_updated_ == True:
-                            EKF.lidar_updated(False)
-                        
-                        # print(valid_flag)
-                        EKF.writeResults()
-
+                    
+                    # print(valid_flag)
+                        valid_flag = True
                         ############################### I.I/2 ohm - imu #################################
-                        # dataset.lose_track = not valid_flag
-                        # if cur_pose_torch == None:
-                        #     print("cur_pose_torch", cur_pose_torch)
-                        # dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
+                        dataset.lose_track = not valid_flag
+                        if cur_pose_torch == None:
+                            print("cur_pose_torch", cur_pose_torch)
+                        dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
                         
-                        # if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
-                        #     o3d_vis.stop()
+                        if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
+                            o3d_vis.stop()
 
                     else:
                         print("PIN-SLAM")
@@ -388,7 +386,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     pose_init_torch = torch.tensor((dataset.pgo_poses[loop_id] @ loop_transform), device=config.device, dtype=torch.float64) # T_w<-c = T_w<-l @ T_l<-c 
                     neural_points.recreate_hash(pose_init_torch[:3,3], None, True, True, loop_id) # recreate hash and local map at the loop candidate frame for registration, this is the reason why we'd better to keep the duplicated neural points until the end
                     loop_reg_source_point = dataset.cur_source_points.clone()
-                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)
+                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag, _ , _ = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)
                     
                     if reg_valid_flag: # refine succeed
                         pose_refine_np = pose_refine_torch.detach().cpu().numpy()
@@ -460,7 +458,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     pose_init_torch = torch.tensor((dataset.pgo_poses[loop_id] @ loop_transform), device=config.device, dtype=torch.float64) # T_w<-c = T_w<-l @ T_l<-c 
                     neural_points.recreate_hash(pose_init_torch[:3,3], None, True, True, loop_id) # recreate hash and local map at the loop candidate frame for registration, this is the reason why we'd better to keep the duplicated neural points until the end
                     loop_reg_source_point = dataset.cur_source_points.clone()
-                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)    
+                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag, _, _ = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)    
                     # only conduct pgo when the loop and loop constraint is correct
                     if reg_valid_flag: # refine succeed
                         pose_refine_np = pose_refine_torch.detach().cpu().numpy()

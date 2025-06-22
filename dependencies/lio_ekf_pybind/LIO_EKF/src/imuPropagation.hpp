@@ -22,7 +22,6 @@
 #pragma once
 
 #include "lio_types.hpp"
-#include <fstream>
 
 namespace lio_ekf {
 

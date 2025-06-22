@@ -55,21 +55,18 @@ python3 pin_slam.py ./config/lidar_slam/run_newer_college64.yaml rosbag_ohm /os1
 
 # # 128beams collection 1
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_1_newer_college/2021-07-01-10-37-38-quad-easy-002.bag -dv
-## too hard -- 700 lio-ekf, 1605 for pin-slam
+#### 1605 for pin-slam
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_1_newer_college/2021-07-01-11-31-35_0-quad-medium-004.bag -dv
 ## too DAMN hard
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_1_newer_college/2021-07-01-11-35-14_0-quad-hard-001.bag -dv
-## too DAMN hard
+## failed
 python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_1_newer_college/2021-07-01-10-40-50_0-stairs-005.bag -dv
 
-# # 128beams collection 2
-# good example for showing when turning, the lio-ekf failed 
+## 128beams collection 2
 python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_2_newer_college/2021-12-02-10-19-05_1-cloister.bag -dv
-# good example for going to new space and fail, the lio-ekf failed
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_2_newer_college/2021-11-30-17-09-49_0-park.bag -dv
 
 # # collection 3
-# the lio-ekf failed and pin-slam, 1131 just one aggressive rotate
 # python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_3_maths_institute/2021-04-07-13-58-54_0-math-hard.bag -dv
 
 
@@ -100,3 +97,7 @@ cp CMakeLists.txt lio_ekf_pybind.cpp stl_vector_eigen.h dependencies/lio_ekf_pyb
 cp cmake dependencies/lio_ekf_pybind/LIO_EKF
 ## commend out something related to ros packages in *.hpp *.cpp
 ```
+
+## BUG
+
+if you have one imu, ts will be different.

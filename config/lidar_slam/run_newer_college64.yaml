@@ -70,7 +70,7 @@ sensor_fusion:
                      [ 0,  1, 0],
                      [ 0,  0,-1]]
         hz: 100
-      # - topic: /camera/imu
+      # - topic: /camera/imu #both ts of result and incompatible with LIO-EKF are wrong, doesn't use [BUG] -> 05 and 06 [BUG]
       #   extrinsic_main_imu: [  0,     0,    1,   0,
       #                         -1,     0,    0,   0,
       #                          0,    -1,    0,   0,

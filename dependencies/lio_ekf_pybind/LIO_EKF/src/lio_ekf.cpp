@@ -193,11 +193,11 @@ void LIOEKF::newImuProcess() {
         isToUpdate(imupre_.timestamp, imucur_.timestamp, updatetime);
   // determine if we should do  update
 
-  odomRes_ << "isToUpdate :"
-           << " " << lidarUpdateFlag << " "
-           << ", imutime1 :" << imupre_.timestamp
-           << ", updatetime :" << updatetime
-           << ", imutime2 :" << imucur_.timestamp << std::endl;
+  // odomRes_ << "isToUpdate :"
+  //          << " " << lidarUpdateFlag << " "
+  //          << ", imutime1 :" << imupre_.timestamp
+  //          << ", updatetime :" << updatetime
+  //          << ", imutime2 :" << imucur_.timestamp << std::endl;
 
   switch (lidarUpdateFlag) {
   case 0: {
@@ -364,13 +364,10 @@ std::tuple<Vector3dVector, Vector3dVector> LIOEKF::processScan() {
   Sophus::SE3d current_pose_scan = bodystate_cur_.pose * lidar_to_imu;
   curpoints_w_ = DeSkewScan(curpoints_, timestamps_per_points_,
                             previous_pose_scan, current_pose_scan);
-
   const auto cropped_frame = kiss_icp::Preprocess(
       curpoints_w_, liopara_.max_range, liopara_.min_range);
-
   auto [source, frame_downsample] = Voxelize(cropped_frame);
   auto source_in_imu_frame = source;
-
   keypoints_w_ = source;
   TransformPoints(lidar_to_imu.matrix(), source_in_imu_frame);
 
@@ -412,8 +409,6 @@ void LIOEKF::lidarUpdate() {
   int j = 0;
   const auto &cur_pose = bodystate_cur_.pose;
 
-  // odomRes_ << std::setprecision(10) << "cur_pose: \n"
-  //          << cur_pose.matrix() << std::endl;
   Eigen::Matrix15d KH;
   for (j = 0; j < liopara_.max_iteration; ++j) {
     points_w = source;
@@ -457,17 +452,7 @@ void LIOEKF::lidarUpdate() {
 
     Eigen::Matrix15d S_inv = (HTRH + Cov_.inverse()).inverse();
     delta_x_ = S_inv * HTRz;
-
-    // odomRes_ << std::setprecision(10) << getImutimestamp() << std::endl;
-    // odomRes_ << std::setprecision(10) << "max_correspondence_distance: \n"
-    //          << max_correspondence_distance << std::endl;
-    // odomRes_ << std::setprecision(10) << "HTRH: \n" << HTRH << std::endl;
-    // odomRes_ << std::setprecision(10) << "HTRz: \n" << HTRz << std::endl;
-    // odomRes_ << std::setprecision(10) << "S_inv: \n" << S_inv << std::endl;
-    // odomRes_ << std::setprecision(10) << "delta_x_: \n"
-    //          << delta_x_ << std::endl;
     KH = S_inv * HTRH;
-    // odomRes_ << std::setprecision(10) << "KH: \n" << KH << std::endl;
     stateFeedback();
 
     if ((delta_x_ - last_dx).norm() < 0.001) {
@@ -476,16 +461,11 @@ void LIOEKF::lidarUpdate() {
     last_dx = delta_x_;
     delta_x_.setZero();
   }
-  // odomRes_ << std::setprecision(10) << "Cov_ outer loop: \n" << Cov_ << std::endl;
   Cov_ -= KH * Cov_;
-  // odomRes_ << std::setprecision(10) << "Cov_: \n" << Cov_ << std::endl;
 
   Sophus::SE3d pose_in_lidar_frame =
       bodystate_cur_.pose * Sophus::SE3d(liopara_.Trans_lidar_imu);
-
-  // odomRes_ << std::setprecision(10) << "pose_in_lidar_frame: \n"
-  //          << pose_in_lidar_frame.matrix() << std::endl;
-
+  Imu_Prediction_Covariance_.setZero();
   lio_map_.Update(frame_downsample, pose_in_lidar_frame);
   last_update_t_ = lidar_t_;
 }

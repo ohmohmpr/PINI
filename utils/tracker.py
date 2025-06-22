@@ -40,8 +40,6 @@ class Tracker:
 
         self.sdf_scale = config.logistic_gaussian_ratio * config.sigma_sigmoid_m
 
-        initial_guess_file = os.path.join(self.config.run_path, "initial_guess.txt")
-        self.initial_guess_file = open(initial_guess_file, "w+")
         np.printoptions(precision=10)
 
     # already under the scaled coordinate system
@@ -216,15 +214,6 @@ class Tracker:
             T = init_pose
             cov_mat = None
 
-        ######### logging ##########
-        self.initial_guess_file.write("frame id: " + str(dataset.processed_frame) + ", ")
-        self.initial_guess_file.write("ts: " + str(dataset.current_timestamp_frame) + ", \n")
-        self.initial_guess_file.write("      init_pose: " + ", \n")
-        np.savetxt(fname=self.initial_guess_file, X=init_pose.cpu().numpy(), fmt='%1.10f')
-        self.initial_guess_file.write("      pose: " + ", \n")
-        np.savetxt(fname=self.initial_guess_file, X=T.cpu().numpy(), fmt='%1.10f')
-        self.initial_guess_file.write("      vec: " + str(dataset.last_velocity)+ "\n\n")
-        ######### logging ##########
         # return T, cov_mat, weight_point_cloud, valid_flag
         return T, cov_mat, weight_point_cloud, valid_flag, sdf_residual, J_mat
 

@@ -23,5 +23,4 @@ target_link_libraries(lio_ekf_core PUBLIC
 
 pybind11_add_module(LIOEKF_pybind MODULE lio_ekf_pybind.cpp)
 target_link_libraries(LIOEKF_pybind PRIVATE lio_ekf_core)
-target_include_directories(lio_ekf_core PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/LIO_EKF/src)
 install(TARGETS LIOEKF_pybind LIBRARY DESTINATION .)

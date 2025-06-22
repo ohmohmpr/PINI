@@ -26,8 +26,7 @@
 namespace lio_ekf {
 
 void insMechanization(const BodyState &pvapre, BodyState &pvacur,
-                      const IMU &imupre,
-                      const IMU &imucur) {
+                      const IMU &imupre, const IMU &imucur) {
 
   // perform velocity update, position updata and attitude update in sequence,
   // irreversible order
@@ -71,7 +70,6 @@ void insMechanization(const BodyState &pvapre, BodyState &pvacur,
   rot_bframe = imucur_dtheta + imupre_dtheta.cross(imucur_dtheta) / 12;
 
   pvacur.pose.so3() = pvapre.pose.so3() * Sophus::SO3d::exp(rot_bframe);
-  // odomRes_ << " imucur.dt : " << imucur.dt  << std::endl;
 }
 
 void imuInterpolate(const IMU &imu1, IMU &imu2, const double timestamp,

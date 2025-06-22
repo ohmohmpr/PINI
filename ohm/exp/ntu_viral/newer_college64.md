@@ -8,7 +8,10 @@
 
 |   seq    |     topic      | result  |      frame       | Loop corrected |    BUG/info   |
 | -------  |  ------------  | ---     | ---------------- | -------------- | ------------- |
-| short    | /handsfree/imu | success | -/1670,          |                | gross shift |
+| short    | /handsfree/imu | success | -/1670,          |                |               |
+| long     | /handsfree/imu | success | -/1670,          |                |               |
+| dynamic  | /handsfree/imu | failed  | -/1670,          |                | failed in sensor_fusion |
+| spinning | /handsfree/imu | failed  | -/1670,          |                | failed in sensor_fusion |
 
 ## [BUG 1]
 

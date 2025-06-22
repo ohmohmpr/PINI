@@ -9,6 +9,7 @@
 |   seq    |     topic      | result  |         frame    | Loop corrected |    BUG/info   |
 | -------  |  ------------  | ---     | ---------------- | -------------- | ------------- |
 |street_03 | /handsfree/imu | success | 4573/4573, 14:40 |                | gross outlier |
+|rotation_01| /handsfree/imu | failed | 4573/4573, 14:40 |                | gross outlier |
 
 ## [BUG 1]
 

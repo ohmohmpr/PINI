@@ -207,7 +207,6 @@ class SLAMDataset(Dataset):
         self.cur_frame_imus = None
 
         # EKF
-        self.last_velocity = np.zeros(3)
         self.last_timestamp_frame = None
         self.current_timestamp_frame = None
 
@@ -477,10 +476,6 @@ class SLAMDataset(Dataset):
             self.cur_pose_guess_torch = torch.tensor(
                 cur_pose_init_guess, dtype=torch.float64, device=self.device
             )
-            self.last_velocity = self.last_odom_tran[:3, 3] / (self.current_timestamp_frame - self.last_timestamp_frame)
-            # print("frame_id", frame_id)
-            # print("dt", self.current_timestamp_frame - self.last_timestamp_frame)
-            # print("last_velocity", self.last_velocity)
 
         if self.config.adaptive_range_on:
             pc_max_bound, _ = torch.max(self.cur_point_cloud_torch[:, :3], dim=0)

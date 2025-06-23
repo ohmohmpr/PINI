@@ -170,13 +170,13 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         frame_step=5, merged_downsample=True)
 
     # m2dgr
-    topic = "/handsfree/imu" #
+    # topic = "/handsfree/imu" #
     # topic = "/camera/imu" #
     # topic = "/dvs/imu" #
 
     ### NTU VIRAL - NYA03
     # topic = "/imu/imu" #
-    # topic = "/os1_cloud_node1/imu" #
+    topic = "/os1_cloud_node1/imu" #
     # topic = "/os1_cloud_node2/imu" #
 
     ### newer college 64 
@@ -190,8 +190,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     ### urban NAV
     # topic = "/imu/data" #
 
-    # EKF_TEST = True
-    EKF_TEST = False
+    EKF_TEST = True
+    # EKF_TEST = False
     LIOPara = LIO_Parameters(config, topic).init()
     o3d_vis.imu_topic = topic 
     EKF = EKF_ohm(config, LIOPara, o3d_vis, tracker, dataset)
@@ -237,21 +237,21 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                         EKF.addLidarData(dataset.points, dataset.timestamp, dataset.point_ts)
 
                         for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
-                            # print("imu['timestamp']", imu['timestamp'])
                             IMU = EKF.convert_IMU(imu['timestamp'], 
                                                     imu['dt'], 
                                                     LIOPara.imu_tran_R @ imu['imu'][0], 
                                                     LIOPara.imu_tran_R @ imu['imu'][1])
                             EKF.addImuData([IMU], False)
                             EKF.newImuProcess_EKF()
-                            # cur_pose_torch = EKF.newImuProcess_ohm(myupdate=False)
-                            # cur_pose_torch = EKF.newImuProcess_ohm(myupdate=True)
+                            # EKF.newImuProcess_ohm(myupdate=False)
+                            # EKF.newImuProcess_ohm(myupdate=True)
 
                             # cur_pose_torch_EKF, cur_odom_cov_EKF, \
                             # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
 
                             if EKF.LIOEKF.lidar_updated_ == True:
                                 EKF.writeResults()
+                                cur_pose_torch = EKF.get_bodystate_torch(EKF.LIOEKF._bodystate_cur_)
                                 EKF.lidar_updated(False)
                         # if valid_flag_EKF:
                         #     cur_pose_torch = cur_pose_torch_EKF
@@ -278,8 +278,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                         valid_flag = True
                         ############################### I.I/2 ohm - imu #################################
                         dataset.lose_track = not valid_flag
-                        if cur_pose_torch == None:
-                            print("cur_pose_torch", cur_pose_torch)
+                        # if cur_pose_torch == None:
+                        #     print("cur_pose_torch", cur_pose_torch)
                         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
                         
                         if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
@@ -302,7 +302,6 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                         dataset.update_odom_pose(dataset.cur_pose_guess_torch) 
                     else:
                         sys.exit("You are using the mapping mode, but no pose is provided.")
-
             travel_dist = dataset.travel_dist[:frame_id+1]
             neural_points.travel_dist = torch.tensor(travel_dist, device=config.device, dtype=config.dtype) # always update this
                                                                                                                                                                 

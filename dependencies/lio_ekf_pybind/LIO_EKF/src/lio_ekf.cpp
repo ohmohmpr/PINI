@@ -83,42 +83,6 @@ void LIOEKF::init() {
 
   is_first_imu_ = true;
   is_first_lidar_ = true;
-
-  odomRes_ << "\nliopara_.Trans_lidar_imu_origin : \n"
-           << liopara_.Trans_lidar_imu_origin << "\nliopara_.imu_tran_R : \n"
-           << liopara_.imu_tran_R << "\nliopara_.Trans_lidar_imu : \n"
-           << liopara_.Trans_lidar_imu << std::endl;
-
-  odomRes_ << "\nliopara_.initstate_std.pos : \n"
-           << liopara_.initstate_std.pos << "\nliopara_.initstate_std.vel : \n"
-           << liopara_.initstate_std.vel
-           << "\nliopara_.initstate_std.euler : \n"
-           << liopara_.initstate_std.euler
-           << "\nliopara_.initstate_std.imuerror.gyrbias : \n"
-           << liopara_.initstate_std.imuerror.gyrbias
-           << "\nliopara_.initstate_std.imuerror.accbias : \n"
-           << liopara_.initstate_std.imuerror.accbias << std::endl;
-
-  odomRes_ << "\nliopara_.imunoise.angle_randomwalk : \n"
-           << liopara_.imunoise.angle_randomwalk
-           << "\nliopara_.imunoise.velocity_randomwalk : \n"
-           << liopara_.imunoise.velocity_randomwalk
-           << "\nliopara_.imunoise.gyrbias_std : \n"
-           << liopara_.imunoise.gyrbias_std
-           << "\nliopara_.imunoise.accbias_std : \n"
-           << liopara_.imunoise.accbias_std
-           << "\nliopara_.imunoise.correlation_time : \n"
-           << liopara_.imunoise.correlation_time << std::endl;
-
-  odomRes_ << "\nliopara_.deskew : " << liopara_.deskew
-           << "\nliopara_.preprocess : " << liopara_.preprocess
-           << "\nliopara_.max_range : " << liopara_.max_range
-           << "\nliopara_.min_range : " << liopara_.min_range
-           << "\nliopara_.max_points_per_voxel : "
-           << liopara_.max_points_per_voxel
-           << "\nliopara_.voxel_size : " << liopara_.voxel_size
-           << "\nliopara_.max_iteration : " << liopara_.max_iteration
-           << std::endl;
 }
 
 void LIOEKF::navStateInitialization(const NavState &initstate,

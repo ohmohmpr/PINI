@@ -19,8 +19,8 @@
 
 |       seq       |     topic      | result  |      frame       | Loop corrected |    BUG/info   |
 | --------------- |  ------------  | ------  | ---------------- | -------------- | ------------- |
-| cloister        | /os_cloud_node | success |     923/923      |                |               |
-| park_0          | /os_cloud_node | success |    1577/1577     |                |               |
+| cloister        | /os_cloud_node | success |     923/923      |                | all written functions same |
+| park_0          | /os_cloud_node | success |    1577/1577     |                | all written functions same |
 
 ### Collection 3
 
@@ -32,11 +32,11 @@
 
 ### Collection 4
 
-[EASY] short with building.
+undermine
 
 |   seq    |     topic      | result  |      frame       | Loop corrected |    BUG/info   |
 | -------  |  ------------  | ---     | ---------------- | -------------- | ------------- |
-| easy     | /os_cloud_node | success |     1412/1412    |                |               |
-| hard     | /os_cloud_node | success |     1908/1908    |                |               |
+| easy     | /os_cloud_node | success |     1412/1412    |                | all written functions same |
+| hard     | /os_cloud_node | success |     1908/1908    |                | all written functions same |
 
 ## [BUG 1]

@@ -397,9 +397,6 @@ class EKF_ohm:
 
     #     # print(f"delta_x: {self.LIOEKF._delta_x_}")
 
-    #     ################### write python of LIO-EKF here ####################
-    #     ################### write python of LIO-EKF here ####################
-    #     ################### write python of LIO-EKF here ####################
     #     # self.stateFeedback()
     #     self.LIOEKF._stateFeedback()
     #     # self.delta_x = np.zeros((15, 1))
@@ -413,30 +410,23 @@ class EKF_ohm:
 
 
     def so3_hat(self, omega: torch.Tensor) -> torch.Tensor:
-        # rewrite - ohm
         """
-        Maps a 3D vector to a 3x3 skew-symmetric matrix (so(3) hat operator).
-        
-        Args:
-            omega (torch.Tensor): A tensor of shape (3,) or (..., 3)
-
-        Returns:
-            torch.Tensor: A skew-symmetric matrix of shape (3, 3) or (..., 3, 3)
+        skew-symmetric matrix or so(3) hat operator.
         """
         if omega.shape[-1] != 3:
             raise ValueError("Input must be a 3D vector or batch of 3D vectors.")
 
         x, y, z = omega[..., 0], omega[..., 1], omega[..., 2]
         
-        O = torch.zeros(omega.shape[:-1] + (3, 3), dtype=self.config.tran_dtype, device=self.config.device)
-        O[..., 0, 1] = -z
-        O[..., 0, 2] = y
-        O[..., 1, 0] = z
-        O[..., 1, 2] = -x
-        O[..., 2, 0] = -y
-        O[..., 2, 1] = x
+        hat = torch.zeros(omega.shape[:-1] + (3, 3), dtype=self.config.tran_dtype, device=self.config.device)
+        hat[..., 0, 1] = -z
+        hat[..., 0, 2] = y
+        hat[..., 1, 0] = z
+        hat[..., 1, 2] = -x
+        hat[..., 2, 0] = -y
+        hat[..., 2, 1] = x
         
-        return O
+        return hat
 
     def update_EKF(self):
         source, frame_downsample = self.LIOEKF._processScan()
@@ -449,7 +439,6 @@ class EKF_ohm:
         pose_NED_cur = self.get_bodystate(self.LIOEKF._bodystate_cur_)
         pose_NED_pre = self.get_bodystate(self.LIOEKF._bodystate_pre_)
         relative_pose = np.linalg.inv(pose_NED_pre) @ pose_NED_cur
-        initial_guess = pose_NED_cur
 
         uncertainty_motion = LIOEKF_pybind._propagateUscendentEigen(relative_pose, imu_pose_covariance)
         map_uncertainty = np.square(self.LIOPara.voxel_size / np.sqrt(self.LIOPara.max_points_per_voxel))
@@ -461,7 +450,6 @@ class EKF_ohm:
         j = 0
         cur_pose = pose_NED_cur
 
-        # KH = torch.zeros(15, 15, device=self.config.device, dtype=self.config.tran_dtype)
         for j in range(self.LIOPara.max_iteration):
             points_w = source
 
@@ -476,7 +464,7 @@ class EKF_ohm:
             residual_torch = torch.reshape(residual_torch, (residual_torch.shape[0], residual_torch.shape[1], 1))
             R_bG_p = src_numpy - cur_pose[:3, 3]
             R_bG_p_torch = torch.tensor(R_bG_p, device=self.config.device, dtype=self.config.tran_dtype)
-            R_bG_p_torch_3d = torch.reshape(R_bG_p_torch, (R_bG_p_torch.shape[0], R_bG_p_torch.shape[1], 1))
+
             H = torch.zeros((R_bG_p_torch.shape[0], 3, 15), device=self.config.device, dtype=self.config.tran_dtype)
             H[:, :, 0:3] = torch.eye(3)
             R_bG_p_torch_so3_hat = self.so3_hat(R_bG_p_torch)
@@ -495,21 +483,20 @@ class EKF_ohm:
             S_inv = torch.inverse(HTRH + torch.inverse(state_cov_torch))
 
             delta_x_torch = S_inv @ HTRz
+            self.LIOEKF._delta_x_ = delta_x_torch.cpu().numpy()
             KH = S_inv @ HTRH
 
-            self.LIOEKF._delta_x_ = delta_x_torch.cpu().numpy()
             self.LIOEKF._stateFeedback()
 
-            # if ((delta_x_ - last_dx).norm() < 0.001) {
-            # break;
-            # }
-            # last_dx = delta_x_;
-            # delta_x_.setZero();
+            if ( torch.norm(delta_x_torch - last_dx) < 0.001):
+                continue
+            last_dx = delta_x_torch
             self.LIOEKF._delta_x_ = np.zeros(15)
 
         state_cov_torch -= KH @ state_cov_torch
         self.LIOEKF._Cov_ = state_cov_torch.cpu().numpy()
 
+        cur_pose = self.get_bodystate(self.LIOEKF._bodystate_cur_)
         pose_in_lidar_frame = cur_pose @ np.array(self.LIOPara.Trans_lidar_imu)
 
         self.LIOEKF._Imu_Prediction_Covariance_ = np.zeros((15, 15))

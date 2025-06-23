@@ -157,16 +157,16 @@ class SensorFusionManager:
             self.init_acc_mean += frame_data["imu"][1]
             self.idx = self.idx + 1
 
-            if ((frame_data["timestamp"] - self.start_ts) > self.time_for_initStaticAlignment
-                and self.is_initStaticAlignment == False):
-                self.init_gyro_mean = self.init_gyro_mean / self.idx
-                self.init_acc_mean = self.init_acc_mean / self.idx
-                self.initStaticAlignment()
-                print("self.topic", self.topic)
-                print("self.idx", self.idx)
-                print("self.init_roll_degree", self.init_roll_degree)
-                print("self.init_pitch_degree", self.init_pitch_degree)
-                self.is_initStaticAlignment = True
+            # if ((frame_data["timestamp"] - self.start_ts) > self.time_for_initStaticAlignment
+            #     and self.is_initStaticAlignment == False):
+            # if (self.is_initStaticAlignment == False):
+            #     self.init_gyro_mean = self.init_gyro_mean / self.idx
+            #     self.init_acc_mean = self.init_acc_mean / self.idx
+            #     self.initStaticAlignment()
+                # print("self.topic", self.topic)
+                # print("self.idx", self.idx)
+                # print("self.init_roll_degree", self.init_roll_degree)
+                # print("self.init_pitch_degree", self.init_pitch_degree)
 
         def initStaticAlignment(self):
 

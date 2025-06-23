@@ -8,8 +8,8 @@ outdoor but smaller area.
 
 | seq   | topic  | result  |         frame    | Loop corrected |     BUG/info         |
 | ---   |  ----  | ------  | ---------------- | -------------- | -------------------- |
-|eee_01 | topic 1| success | 4094/4094        |                |                      |
-|eee_02 | topic 1| success | 3210/3210, 09:00 |                |                      |
+|eee_01 | topic 1| success | 3987/3987        |                | all written functions same/ ts not same[BUG] |
+|eee_02 | topic 1| success | 3210/3210, 09:00 |                | all written functions same |
 
 ### Collected inside the Nanyang Auditorium
 

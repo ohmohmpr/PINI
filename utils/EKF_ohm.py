@@ -240,21 +240,14 @@ class EKF_ohm:
         self.LIOEKF._imupre_ = self.LIOEKF._imucur_
 
 
-    def newImuProcess_ohm_update(self):
+    def wrapper(self):
 
-        cur_pose_torch = None
-        cur_odom_cov = None
-        weight_pc_o3d = None
-        valid_flag = None
-        sdf_res = None
-        J_mat = None
         if (self.LIOEKF._is_first_imu_):
             self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
             self.LIOEKF._imupre_ = self.LIOEKF._imucur_
             self.LIOEKF._imu_t_ = self.LIOEKF._imucur_.timestamp
             self.LIOEKF._is_first_imu_ = False
-
-            return None, None, None, None, None, None
+            return
 
         # set update time as the lidar time stamp
         # double
@@ -354,21 +347,7 @@ class EKF_ohm:
         self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
         self.LIOEKF._imupre_ = self.LIOEKF._imucur_
 
-        if lidarUpdateFlag == 1:
-            # print("lidarUpdateFlag", lidarUpdateFlag)
-            cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-            return cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat
-        elif lidarUpdateFlag == 2:
-            # print("lidarUpdateFlag", lidarUpdateFlag)
-            cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-            return cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat
-        elif lidarUpdateFlag == 3:
-            # print("lidarUpdateFlag", lidarUpdateFlag)
-            cur_pose_torch, _, _ = self.get_bodystate_for_prediction_torch(self.LIOEKF._bodystate_cur_)
-            return cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_res, J_mat
-        elif lidarUpdateFlag == 0:
-            return None, None, None, None, None, None
-        return 
+
 
     # def update(self, residual: torch.tensor, jacobian: torch.tensor):
     #     # check if residual and jacobian have same rows

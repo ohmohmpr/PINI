@@ -181,7 +181,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
     ### newer college 64 
     # topic = "/os1_cloud_node/imu" #
-    # topic = "/camera/imu" # couldn't find in seq 5_quad_dynamics and 6_dynamic_spinning # wrong -> orientation of sensor
+    # topic = "/camera/imu" #
 
     # newer college 128 
     # topic = "/os_cloud_node/imu" # 
@@ -195,8 +195,6 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     LIOPara = LIO_Parameters(config, topic).init()
     o3d_vis.imu_topic = topic 
     EKF = EKF_ohm(config, LIOPara, o3d_vis, tracker, dataset)
-
-    # dataset.loader.imus['/imu/imu'].load_data_to_txt("imu_imu_data.txt")
 
     # for each frame
     for frame_id in tqdm(range(dataset.total_pc_count)): # frame id as the processed frame, possible skipping done in data loader
@@ -221,17 +219,12 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         if (dataset.sensor_fusion_manager.get_latest_data(dataset.loader.timestamp_head, frame_id) == None):
             pass
 
-        # if frame_id == 1: 
-        #     o3d_vis.stop()
-
         if EKF_TEST == True:
             ############################### II.I/2 ohm - Odometry #################################
             if frame_id > 0: 
                 if config.track_on:
                     dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment = True
-                    # if len(dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer) > 0 and \
-                    #     dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment:
-                    # bind pose of pin-slam and lio-ekf, and set pose.
+
                     if len(dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer) > 0 and frame_id > 0:
                         ############################### I.I/2 ohm - imu #################################
                         EKF.addLidarData(dataset.points, dataset.timestamp, dataset.point_ts)
@@ -242,42 +235,24 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                                                     LIOPara.imu_tran_R @ imu['imu'][0], 
                                                     LIOPara.imu_tran_R @ imu['imu'][1])
                             EKF.addImuData([IMU], False)
-                            # EKF.newImuProcess_EKF()
-                            EKF.newImuProcess_ohm(myupdate=True)
+                            # EKF.wrapper()
+                            # if EKF.LIOEKF.lidar_updated_ == True:
+                            #     EKF.writeResults()
+                            #     cur_pose_torch = EKF.get_bodystate_torch(EKF.LIOEKF._bodystate_cur_)
+                            #     EKF.lidar_updated(False)
+                                # o3d_vis.stop()
 
-                            # cur_pose_torch_EKF, cur_odom_cov_EKF, \
-                            # weight_pc_o3d_EKF, valid_flag_EKF, sdf_res_EKF, J_mat_EKF = EKF.newImuProcess_ohm_update()
-
-                            # print("cur_pose_torch", np.linalg.norm(EKF.get_bodystate_torch(EKF.LIOEKF._bodystate_cur_)[:3, 3].cpu().numpy()))
+                        ############################### I.I/2 ohm - work #################################
+                            EKF.newImuProcess_EKF()
+                            # EKF.newImuProcess_ohm(myupdate=True)
                             if EKF.LIOEKF.lidar_updated_ == True:
                                 EKF.writeResults()
                                 cur_pose_torch = EKF.get_bodystate_torch(EKF.LIOEKF._bodystate_cur_)
                                 EKF.lidar_updated(False)
-                        # if valid_flag_EKF:
-                        #     cur_pose_torch = cur_pose_torch_EKF
-                        #     cur_odom_cov = cur_odom_cov_EKF 
-                        #     weight_pc_o3d = weight_pc_o3d_EKF
-                        #     valid_flag = valid_flag_EKF
-                        #     print(cur_pose_torch, valid_flag_EKF)
-
-                        # o3d_vis.stop()
-
-                    # if True:
-                    #     pos_pts = cur_pose_torch.cpu().numpy()
-                    #     pts = np.asarray(EKF.LIOEKF._LocalMap())
-                    #     if pts.shape[0] > 1:
-                    #         o3d_vis.point_w_lio_ekf.points = o3d.utility.Vector3dVector(pts)
-
-                    #         o3d_vis.vis.remove_geometry(o3d_vis.point_w_lio_ekf, o3d_vis.reset_bounding_box)
-                    #         o3d_vis.vis.add_geometry(o3d_vis.point_w_lio_ekf, o3d_vis.reset_bounding_box)
-                    #         o3d_vis.point_w_lio_ekf.transform(pos_pts)
-                    #         o3d_vis.point_w_lio_ekf.paint_uniform_color(PURPLE)
-
                         valid_flag = True
+                        ############################### I.I/2 ohm - work #################################
                         ############################### I.I/2 ohm - imu #################################
                         dataset.lose_track = not valid_flag
-                        # if cur_pose_torch == None:
-                        #     print("cur_pose_torch", cur_pose_torch)
                         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
                         
                         if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
@@ -309,7 +284,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
         else:
             # II. Odometry
             if frame_id > 0: 
-                print("not here")
+
                 if config.track_on:
                     tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
                                                     dataset.cur_source_colors, dataset=dataset)

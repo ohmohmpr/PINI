@@ -15,17 +15,17 @@ outdoor but smaller area.
 
 [EASY] indoor, The building with a big stair.
 
-| seq   | topic  | result  |         frame    | Loop corrected |     BUG/info         |
-| ---   |  ----  | ---     | ---------------- | -------------- | -------------------- |
-|nya_03 | topic 1| success | 4094/4094, 08:36 |                |                      |
+| seq   | topic  | result  |         frame    |  start frame   | Loop corrected |     BUG/info         |
+| ---   |  ----  | ---     | ---------------- | -------------- | -------------- | -------------------- |
+|nya_03 | topic 1| success | 4094/4094, 08:36 |        -1      |                |                      |
 
 ### Collected at the Research Techno Plaza's carpark
 
-| seq   | topic  | result  |       frame      |   Loop corrected   |        BUG/info      |
-| ---   |  ----  | ---     | ---------------- | ------------------ | -------------------- |
-|rtp_01 | topic 1| success | 4616/4616, 19:40 | Loop corrected:  6 |  BUG 2, sometimes?   |
-|rtp_02 | topic 1| success | 4153/4153, 14:03 |                    |                      |
-|rtp_03 | topic 1| success | 3557/3557, 11:24 | -                  |                      |
+| seq   | topic  | result  |       frame      |  start frame   | Loop corrected |     BUG/info         |
+| ---   |  ----  | ---     | ---------------- | -------------- | -------------- | -------------------- |
+|rtp_01 | topic 1| success | 4616/4616, 19:40 |  0/set state   |              6 |  BUG 2, sometimes?   |
+|rtp_02 | topic 1| success | 4153/4153, 14:03 |                |                |                      |
+|rtp_03 | topic 1| success | 3557/3557, 11:24 |                |                |                      |
 
 ### Collected at the School of Bio. Science's front square
 
@@ -49,10 +49,11 @@ outdoor but smaller area.
 
 [EASY] UAV slowly rotate that's why this thing, cycle stair in the building.
 
-| seq   | topic  | result  |         frame    | Loop corrected |    BUG/info   |
-| ---   |  ----  | ---     | ---------------- | -------------- | ------------- |
-|tnp_02 | topic 1| success | 4573/4573, 14:40 |                |               |
-|tnp_03 | topic 1| success | 4078/4078, 12:35 |                |               |
+| seq   | topic  | result  |         frame    |  start frame   | Loop corrected |     BUG/info         |
+| ---   |  ----  | ---     | ---------------- | -------------- | -------------- | -------------------- |
+|tnp_01 | topic 1| success | 4573/4573, 14:40 |                |                |                      |
+|tnp_02 | topic 1| success | 4573/4573, 14:40 |        -1      |                |                      |
+|tnp_03 | topic 1| success | 4078/4078, 12:35 |                |                |                      |
 
 ## [BUG 1]
 

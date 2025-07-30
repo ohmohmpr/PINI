@@ -148,7 +148,21 @@ class EKF_ohm:
         pose_NED, vel_NED = self.LIOEKF._getBodyState(Bodystate)
 
         return pose_NED
-    def get_bodystate_torch(self, Bodystate):
+    def set_bodystate_LiDAR_to_IMU(self, pose_fLiDAR):
+        '''
+        get pose 4x4(6DoF) from LiDAR frame
+        transform and set to IMU frame
+        NED_IMU = Trans_lidar_imu + pose_fLiDAR
+        Trans_lidar_imu = imu_tran_R @ Trans_lidar_imu_origin
+        '''
+        # self.LIOEKF._setPoseBodyStateCurrent(dataset.last_pose_ref)
+        Trans_lidar_imu = self.LIOPara.Trans_lidar_imu
+        imu_tran_R = transfrom_to_homo(self.LIOPara.imu_tran_R)
+        pose_NED = Trans_lidar_imu @ pose_fLiDAR @ imu_tran_R
+        print("pose_NED", pose_NED)
+        self.LIOEKF._setPoseBodyStateCurrent(pose_NED)
+
+    def get_bodystate_fLiDAR_torch(self, Bodystate):
         pose_NED, vel_NED = self.LIOEKF._getBodyState(Bodystate)
         imu_tran_R = transfrom_to_homo(self.LIOPara.imu_tran_R)
         Trans_lidar_imu = self.LIOPara.Trans_lidar_imu
@@ -240,13 +254,27 @@ class EKF_ohm:
         self.LIOEKF._imupre_ = self.LIOEKF._imucur_
 
 
-    def wrapper(self):
+    def wrapper(self, dataset, tracker, topic):
 
+        self.newImuProcess_wrapper(dataset)
+
+        # if dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment == True:
+        #     pass
+        # else:
+        #     tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
+        #                                     dataset.cur_source_colors, dataset=dataset)
+        #     cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, _, _ = tracking_result
+        # return tracking_result
+
+    def newImuProcess_wrapper(self, dataset):
         if (self.LIOEKF._is_first_imu_):
+            print("dataset.last_pose_ref :\n", dataset.last_pose_ref)
+            self.set_bodystate_LiDAR_to_IMU(dataset.last_pose_ref)
             self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
             self.LIOEKF._imupre_ = self.LIOEKF._imucur_
             self.LIOEKF._imu_t_ = self.LIOEKF._imucur_.timestamp
             self.LIOEKF._is_first_imu_ = False
+            print("First IMU")
             return
 
         # set update time as the lidar time stamp

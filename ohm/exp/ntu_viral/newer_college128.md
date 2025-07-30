@@ -17,10 +17,10 @@
 
 [] short with building.
 
-|       seq       |     topic      | result  |      frame       | Loop corrected |    BUG/info   |
-| --------------- |  ------------  | ------  | ---------------- | -------------- | ------------- |
-| cloister        | /os_cloud_node | success |     923/923      |                | all written functions same |
-| park_0          | /os_cloud_node | success |    1577/1577     |                | all written functions same |
+|       seq       |     topic      | result  |      frame       |  start frame   | Loop corrected |     BUG/info         |
+| --------------- |  ------------  | ------  | ---------------- | -------------- | -------------- | -------------------- |
+| cloister        | /os_cloud_node | success |     923/923      |   0/set state  |                |                      |
+| park_0          | /os_cloud_node | success |    1577/1577     |                |                |                      |
 
 ### Collection 3
 

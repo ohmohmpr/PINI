@@ -61,9 +61,9 @@ sensor_fusion:
   sensor_types: 
     imu:
       - topic: /os_cloud_node/imu
-        extrinsic_main_imu: [ 1.0,  0.0,  0.0, -0.051,
-                              0.0,  1.0,  0.0, -0.021,
-                              0.0,  0.0,  1.0, -0.041,
+        extrinsic_main_imu: [ 1.0,  0.0,  0.0,  0.014,
+                              0.0,  1.0,  0.0, -0.012,
+                              0.0,  0.0,  1.0, -0.015,
                               0.0,  0.0,  0.0,  1.0 ]
         # IMU noise parameters #check this
         arw: [2, 2, 2]          # [deg/sqrt(hr)]

@@ -14,6 +14,8 @@ import open3d as o3d
 
 from utils.config import Config
 from utils.tools import transfrom_to_homo
+from scipy.spatial.transform import Rotation as R
+from rich import print
 
 YELLOW = np.array([1, 0.706, 0])
 RED = np.array([255, 0, 0]) / 255.0
@@ -60,7 +62,7 @@ class MapVisualizer:
         self.cur_point_w_lio_ekf = o3d.geometry.PointCloud()
         self.point_w_lio_ekf = o3d.geometry.PointCloud()
         self.valid_points = o3d.geometry.PointCloud()
-        self.NED_frame_axis = o3d.geometry.TriangleMesh()
+        self.original_NED_frame_axis = o3d.geometry.TriangleMesh()
         self.imu_frame_axis = o3d.geometry.TriangleMesh()
         self.imu_topic = None
         self.update_list = []
@@ -205,7 +207,7 @@ class MapVisualizer:
 
         # EKF
         self.vis.add_geometry(self.valid_points)
-        self.vis.add_geometry(self.NED_frame_axis)
+        self.vis.add_geometry(self.original_NED_frame_axis)
         self.vis.add_geometry(self.imu_frame_axis)
 
         self.vis.get_render_option().line_width = 500
@@ -591,6 +593,23 @@ class MapVisualizer:
             self.vis.reset_view_point(True)
             self.reset_bounding_box = False
 
+    def _add_geometries_EKF(self, r, p , y):
+        self.original_NED_frame_axis = o3d.geometry.TriangleMesh.create_coordinate_frame(
+            size=2, origin=np.zeros(3)
+        )
+        self.vis.add_geometry(self.original_NED_frame_axis, self.reset_bounding_box)
+
+        self.NED_frame_axis = o3d.geometry.TriangleMesh.create_coordinate_frame(
+            size=2, origin=np.zeros(3)
+        )
+        r = R.from_euler('xyz', [r, p, y], degrees=True)
+        # print("(MapVisualizer)[visualize]: init Rotation mtx, \n", r.as_matrix()[:3, :3])
+        self.NED_frame_axis.rotate(r.as_matrix()[:3, :3])
+        self.NED_frame_axis.paint_uniform_color(YELLOW)
+        self.vis.add_geometry(self.NED_frame_axis, self.reset_bounding_box)
+
+        
+
     def _update_geometries_EKF(
         self,
         pose=None,
@@ -652,8 +671,8 @@ class MapVisualizer:
                 #     # self.NED_frame_axis = self.NED_frame_axis.rotate()
                 # self.vis.add_geometry(self.NED_frame_axis, self.reset_bounding_box)
 
-        else:
-            self.vis.remove_geometry(self.NED_frame_axis, self.reset_bounding_box)
+        # else:
+            # self.vis.remove_geometry(self.NED_frame_axis, self.reset_bounding_box)
             # self.vis.remove_geometry(self.imu_frame_axis, self.reset_bounding_box)
 
         # if pose is not None:

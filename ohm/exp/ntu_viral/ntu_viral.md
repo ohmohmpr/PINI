@@ -9,50 +9,50 @@ outdoor but smaller area.
 | seq   | topic  | result  |         frame    | Loop corrected |     BUG/info         |
 | ---   |  ----  | ------  | ---------------- | -------------- | -------------------- |
 |eee_01 | topic 1| success | 3987/3987        |                | all written functions same/ ts not same[BUG] |
-|eee_02 | topic 1| success | 3210/3210, 09:00 |                | all written functions same |
+|eee_02 | topic 1| success | 3210/3210, 09:00 |                | all written functions same [28.08]|
 
 ### Collected inside the Nanyang Auditorium
 
-[EASY] indoor, The building with a big stair.
+indoor, The building with a big stair.
 
 | seq   | topic  | result  |         frame    |  start frame   | Loop corrected |     BUG/info         |
 | ---   |  ----  | ---     | ---------------- | -------------- | -------------- | -------------------- |
-|nya_03 | topic 1| success | 4094/4094, 08:36 |        -1      |                |                      |
+|nya_03 | topic 1| success | 4094/4094, 08:36 |        -1      |                |                     [28.08] |
 
 ### Collected at the Research Techno Plaza's carpark
 
 | seq   | topic  | result  |       frame      |  start frame   | Loop corrected |     BUG/info         |
 | ---   |  ----  | ---     | ---------------- | -------------- | -------------- | -------------------- |
-|rtp_01 | topic 1| success | 4616/4616, 19:40 |  0/set state   |              6 |  BUG 2, sometimes?   |
+|rtp_01 | topic 1| success | 4616/4616, 19:40 |  0/set state   |              6 |  BUG 2, sometimes? [28.08]|
 |rtp_02 | topic 1| success | 4153/4153, 14:03 |                |                |                      |
 |rtp_03 | topic 1| success | 3557/3557, 11:24 |                |                |                      |
 
 ### Collected at the School of Bio. Science's front square
 
-[EASY] outside but slowly rotate
+outside but slowly rotate
 
 | seq   | topic  | result  |         frame    | Loop corrected |     BUG/info         |
 | ---   |  ----  | ---     | ---------------- | -------------- | -------------------- |
-|sbs_01 | topic 1| success | 4573/4573, 14:40 |                | BUG whileloop of sensor |
+|sbs_01 | topic 1| success | 4573/4573, 14:40 |                | BUG whileloop of sensor [28.08] wrong init guess |
 
 ### School of Physical and Mathematical Science's Facade
 
-[HARD] Flying in front of buildings and trees.
+Flying in front of buildings and trees.
 
 | seq   | topic  | result  |       frame      |   Loop corrected   |        BUG/info      |
 | ---   |  ----  | ---     | ---------------- | ------------------ | -------------------- |
-|spms_01| topic 1| success | 4183/4183 20:00  |                    |                      |
+|spms_01| topic 1| success | 4183/4183 20:00  |                    |         [28.08]      |
 |spms_02| topic 1| success | 3653/3653        |                    |                      |
 |spms_03| topic 1| success | 3819/3819, 11:56 |                    |                      |
 
 ### Collected inside Research Techno Plaza
 
-[EASY] UAV slowly rotate that's why this thing, cycle stair in the building.
+UAV slowly rotate that's why this thing, cycle stair in the building.
 
 | seq   | topic  | result  |         frame    |  start frame   | Loop corrected |     BUG/info         |
 | ---   |  ----  | ---     | ---------------- | -------------- | -------------- | -------------------- |
 |tnp_01 | topic 1| success | 4573/4573, 14:40 |                |                |                      |
-|tnp_02 | topic 1| success | 4573/4573, 14:40 |        -1      |                |                      |
+|tnp_02 | topic 1| success | 4573/4573, 14:40 |        -1      |                |          [28.08]     |
 |tnp_03 | topic 1| success | 4078/4078, 12:35 |                |                |                      |
 
 ## [BUG 1]

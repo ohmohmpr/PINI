@@ -14,6 +14,7 @@ import torch
 import wandb
 from rich import print
 from tqdm import tqdm
+from scipy.spatial.transform import Rotation as R
 
 from dataset.dataset_indexing import set_dataset_path
 from dataset.slam_dataset import SLAMDataset
@@ -174,7 +175,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/camera/imu" #
     # topic = "/dvs/imu" #
 
-    ### NTU VIRAL - NYA03
+    ### NTU VIRAL
     # topic = "/imu/imu" #
     topic = "/os1_cloud_node1/imu" # use this
     # topic = "/os1_cloud_node2/imu" #
@@ -228,41 +229,38 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
                         ############################### I.I/2 ohm - imu #################################
                         EKF.addLidarData(dataset.points, dataset.timestamp, dataset.point_ts)
-
+                        int_imu = 0
                         for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
                             IMU = EKF.convert_IMU(imu['timestamp'], 
                                                     imu['dt'], 
                                                     LIOPara.imu_tran_R @ imu['imu'][0], 
                                                     LIOPara.imu_tran_R @ imu['imu'][1])
                             EKF.addImuData([IMU], False)
-                            # EKF.wrapper(dataset, tracker, topic)
-
                             ################################# debug #################################
-                            # cur_pose_t = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
-                            # cur_pose = cur_pose_t.cpu().numpy()
-                            # print("IMU_POSE get_bodystate IMU frame: \n", EKF.get_bodystate(EKF.LIOEKF._bodystate_cur_))
-                            # print("IMU_POSE get_bodystate_fLiDAR_torch: \n", cur_pose)
-                            # o3d_vis._update_geometries_EKF(cur_pose)
-                            # o3d_vis.stop()
-                            ################################# debug #################################
+                            EKF.wrapper(dataset, tracker, topic, o3d_vis, int_imu)
                             if EKF.LIOEKF.lidar_updated_ == True:
                                 EKF.writeResults()
-                                cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
+                                cur_pose_torch = EKF.cur_pose_torch
                                 EKF.lidar_updated(False)
-                                o3d_vis.stop()
+                                dataset.pin_updated = False
+                            ################################# debug #################################
 
                         ############################### I.I/2 ohm - work #################################
-                            EKF.newImuProcess_EKF()
-                            # EKF.newImuProcess_ohm(myupdate=True)
-                            if EKF.LIOEKF.lidar_updated_ == True:
-                                EKF.writeResults()
-                                cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
-                                EKF.lidar_updated(False)
+                            # EKF.newImuProcess_ohm(int_imu)
+                            # # EKF.newImuProcess_ohm(myupdate=True)
+                            # if EKF.LIOEKF.lidar_updated_ == True:
+                            #     EKF.writeResults()
+                            #     cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
+                            #     EKF.lidar_updated(False)
+                        ############################### I.I/2 ohm - work #################################
+                            int_imu = int_imu + 1
                         valid_flag = True
-                        ############################### I.I/2 ohm - work #################################
                         ############################### I.I/2 ohm - imu #################################
                         dataset.lose_track = not valid_flag
                         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
+                        # print("[bold blue](PIN_SLAM)[/bold blue] LiDAR trans:\n", 
+                        #         R.from_matrix(dataset.last_odom_tran[:3, :3]).as_euler('xyz', degrees=True), 
+                        #         dataset.last_odom_tran[:3, 3])
                         
                         # o3d_vis.stop()
                         if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
@@ -276,12 +274,20 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
                         dataset.lose_track = not valid_flag
                         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
-                        
+                        # print("[bold blue](PIN_SLAM)[/bold blue] LiDAR state:\n", 
+                        #         R.from_matrix(dataset.last_pose_ref[:3, :3]).as_euler('xyz', degrees=True), 
+                        #         dataset.last_pose_ref[:3, 3])
                         norm = np.linalg.norm(dataset.last_odom_tran[:3, 3])
                         if norm > 0.03:
                             dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment = True
-                            print("norm: ", norm)
-                            print("it's moving.")
+                            dataset.sensor_fusion_manager.imu_manager_dict[topic].initStaticAlignment()
+
+                            dataset.init_roll_degree = dataset.sensor_fusion_manager.imu_manager_dict[topic].init_roll_degree
+                            dataset.init_pitch_degree = dataset.sensor_fusion_manager.imu_manager_dict[topic].init_pitch_degree
+
+                            o3d_vis._add_geometries_EKF(dataset.init_roll_degree, dataset.init_pitch_degree, 0)
+                            print(f"[bold blue](PIN_SLAM)[/bold blue]: norm, {norm} m.")
+                            print("[bold blue](PIN_SLAM)[/bold blue]: it's moving.\n")
 
                         if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
                             o3d_vis.stop()

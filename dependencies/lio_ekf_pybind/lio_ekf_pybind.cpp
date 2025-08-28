@@ -1,6 +1,6 @@
 #include "LIO_EKF/src/imuPropagation.hpp"
-#include "LIO_EKF/src/unscendent_transform.hpp"
 #include "LIO_EKF/src/lio_ekf.hpp"
+#include "LIO_EKF/src/unscendent_transform.hpp"
 #include "stl_vector_eigen.h"
 #include <kiss_icp/core/VoxelHashMap.hpp>
 #include <pybind11/eigen.h>
@@ -148,6 +148,7 @@ PYBIND11_MODULE(LIOEKF_pybind, m) {
       .def("_lidarUpdate", &lio_ekf::LIOEKF::lidarUpdate)
       .def("_isToUpdate", &lio_ekf::LIOEKF::isToUpdate)
       .def("_statePropagation", &lio_ekf::LIOEKF::statePropagation)
+      .def("_statefeedbackwithPose", &lio_ekf::LIOEKF::statefeedbackwithPose)
       //
       .def_readwrite("_imu_t_", &lio_ekf::LIOEKF::imu_t_)
       .def_readwrite("_last_update_t_", &lio_ekf::LIOEKF::last_update_t_)

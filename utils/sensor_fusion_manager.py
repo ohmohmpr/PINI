@@ -2,6 +2,8 @@ import numpy as np
 from tqdm import tqdm
 
 from utils.config import Config
+from scipy.spatial.transform import Rotation as R
+from rich import print
 
 class SensorFusionManager:
     """
@@ -106,6 +108,7 @@ class SensorFusionManager:
             self.start_ts = 0
             self.time_for_initStaticAlignment = 3 # sec
             self.is_initStaticAlignment = False # sec
+            self.stop = False #
             self.init_roll = 0 # rad
             self.init_pitch = 0 # rad
             self.init_gyro_mean = np.array([0, 0, 0], dtype='float64')
@@ -157,18 +160,9 @@ class SensorFusionManager:
             self.init_acc_mean += frame_data["imu"][1]
             self.idx = self.idx + 1
 
-            # if ((frame_data["timestamp"] - self.start_ts) > self.time_for_initStaticAlignment
-            #     and self.is_initStaticAlignment == False):
-            # if (self.is_initStaticAlignment == False):
-            #     self.init_gyro_mean = self.init_gyro_mean / self.idx
-            #     self.init_acc_mean = self.init_acc_mean / self.idx
-            #     self.initStaticAlignment()
-                # print("self.topic", self.topic)
-                # print("self.idx", self.idx)
-                # print("self.init_roll_degree", self.init_roll_degree)
-                # print("self.init_pitch_degree", self.init_pitch_degree)
-
         def initStaticAlignment(self):
+            self.init_gyro_mean = self.init_gyro_mean / self.idx
+            self.init_acc_mean = self.init_acc_mean / self.idx
 
             init_acc_mean_homo = np.hstack((self.init_acc_mean, np.array([1])))
             init_acc_mean = self.extrinsic_main_imu @ init_acc_mean_homo
@@ -179,4 +173,11 @@ class SensorFusionManager:
                                             init_acc_mean[2] * init_acc_mean[2]))
             self.init_roll_degree = np.degrees(self.init_roll)
             self.init_pitch_degree = np.degrees(self.init_pitch)
+            # set bias too --> self.init_gyro_mean
+  
+            print("\n StaticAlignment")
+            print("[bold magenta](IMUManager)[/bold magenta]: idx,", self.idx)
+            print("[bold magenta](IMUManager)[/bold magenta]: init_roll_degree,", self.init_roll_degree)
+            print("[bold magenta](IMUManager)[/bold magenta]: init_pitch_degree,", self.init_pitch_degree)
+            print("\n")
 

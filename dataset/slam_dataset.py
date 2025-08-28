@@ -9,6 +9,7 @@ import os
 import sys
 from pathlib import Path
 from typing import List
+from rich import print
 
 import datetime as dt
 import matplotlib.cm as cm
@@ -209,6 +210,9 @@ class SLAMDataset(Dataset):
         # EKF
         self.last_timestamp_frame = None
         self.current_timestamp_frame = None
+        self.pin_updated = False
+        self.init_roll_degree = None
+        self.init_pitch_degree = None
 
     def read_frame_ros(self, msg):
 
@@ -413,6 +417,7 @@ class SLAMDataset(Dataset):
         # T1 = get_time()
         # poses related
         frame_id = self.processed_frame
+        self.frame_id = frame_id
         cur_pose_init_guess = self.cur_pose_ref
         self.last_timestamp_frame = self.current_timestamp_frame
         self.current_timestamp_frame = self.loader.timestamp_head

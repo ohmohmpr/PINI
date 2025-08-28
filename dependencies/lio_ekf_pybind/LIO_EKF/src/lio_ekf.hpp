@@ -132,6 +132,14 @@ public:
     bodystate_cur_.pose = Sophus::SE3d(pose);
   }
 
+  inline void statefeedbackwithPose(Eigen::Matrix4d &pose) {
+    // ask yibin
+    bodystate_cur_.pose.so3() =
+        Sophus::SE3d(pose).so3() * bodystate_cur_.pose.so3();
+    bodystate_cur_.pose.translation() =
+        bodystate_cur_.pose.translation() - Sophus::SE3d(pose).translation();
+  }
+
   inline void setBodyStateCurrent(Eigen::Matrix4d &pose, Eigen::Vector3d &vel) {
 
     bodystate_cur_.pose = Sophus::SE3d(pose);

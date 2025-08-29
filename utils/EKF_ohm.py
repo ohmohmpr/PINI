@@ -3,6 +3,7 @@ import torch
 from scipy.spatial.transform import Rotation as R
 
 import copy
+import sophuspy as sp
 
 from rich import print
 
@@ -170,8 +171,8 @@ class EKF_ohm:
         pose_NED, vel_NED = self.LIOEKF._getBodyState(Bodystate)
         imu_tran_R = transfrom_to_homo(self.LIOPara.imu_tran_R)
         Trans_lidar_imu = self.LIOPara.Trans_lidar_imu
-        # pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
-        pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ np.linalg.inv(self.IMU_orientation) @ imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
+        pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
+        # pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ np.linalg.inv(self.IMU_orientation) @ imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
 
         return pose_NED_torch
 
@@ -205,12 +206,12 @@ class EKF_ohm:
             #  update
 
             if (self.LIOEKF._is_first_lidar_): 
-                pose_for_map = self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             else:
                 if myupdate == False:
                     self.LIOEKF._lidarUpdate()
                 else:
-                    pose_for_map = self.update_EKF()
+                    self.update_EKF()
 
             self.lidar_updated(True)
 
@@ -221,12 +222,12 @@ class EKF_ohm:
             self.LIOEKF._statePropagation(self.LIOEKF._imupre_, self.LIOEKF._imucur_)
 
             if self.LIOEKF._is_first_lidar_:
-                pose_for_map = self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             else:
                 if myupdate == False:
                     self.LIOEKF._lidarUpdate()
                 else:
-                    pose_for_map = self.update_EKF()
+                    self.update_EKF()
 
             self.lidar_updated(True)
         elif (lidarUpdateFlag == 3):
@@ -239,12 +240,12 @@ class EKF_ohm:
 
             # do lidar position update at the whole second and feedback system states
             if (self.LIOEKF._is_first_lidar_):
-                pose_for_map = self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             else:
                 if myupdate == False:
                     self.LIOEKF._lidarUpdate()
                 else:
-                    pose_for_map = self.update_EKF()
+                    self.update_EKF()
             self.lidar_updated(True)
 
             # propagate navigation state for the second half imudata
@@ -319,7 +320,7 @@ class EKF_ohm:
             self.LIOEKF._imupre_ = self.LIOEKF._imucur_
             self.LIOEKF._imu_t_ = self.LIOEKF._imucur_.timestamp
             self.LIOEKF._is_first_imu_ = False
-            o3d_vis.stop()
+            # o3d_vis.stop()
             return
 
         # set update time as the lidar time stamp
@@ -338,10 +339,6 @@ class EKF_ohm:
             #  lidardata is near to the previous imudata, we should firstly do lidar
             #  update
 
-            if (self.LIOEKF._is_first_lidar_):
-                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
-            else:
-                self.update_EKF()
             ###############################################################
 
             # print(f"\n lidarUpdateFlag : {lidarUpdateFlag}, IMU: {int_imu}")
@@ -349,9 +346,17 @@ class EKF_ohm:
             # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
             #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
             #       diff_of_imu[:3, 3])
+
+
+            # do lidar position update at the whole second and feedback system states
+            if (self.LIOEKF._is_first_lidar_):
+                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+            # else:
+            #     self.update_EKF()
             # print('\n')
-            last_odom_tran, self.cur_pose_torch = self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
-            self.LIOEKF._statefeedbackwithPose(last_odom_tran)
+            # diff_of_imu = np.eye(4)
+            last_odom_tran, self.cur_pose_torch, _, _ = self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
+            # self.LIOEKF._statefeedbackwithPose(last_odom_tran)
             # print('\n')
             ###############################################################
 
@@ -368,19 +373,21 @@ class EKF_ohm:
             # lidardata is near current imudata, we should firstly propagate navigation state
             self.LIOEKF._statePropagation(self.LIOEKF._imupre_, self.LIOEKF._imucur_)
 
-            if (self.LIOEKF._is_first_lidar_):
-                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
-            else:
-                self.update_EKF()
             ###############################################################
             diff_of_imu =  np.linalg.inv(self.prev_state) @ self.get_bodystate(self.LIOEKF._bodystate_cur_)
             # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
             #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
             #       diff_of_imu[:3, 3])
             
+            # do lidar position update at the whole second and feedback system states
+            if (self.LIOEKF._is_first_lidar_):
+                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+            # else:
+            #     self.update_EKF()
             # print('\n')
-            last_odom_tran, self.cur_pose_torch = self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
-            self.LIOEKF._statefeedbackwithPose(last_odom_tran)
+            # diff_of_imu = np.eye(4)
+            last_odom_tran, self.cur_pose_torch, _, _ = self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
+            # self.LIOEKF._statefeedbackwithPose(last_odom_tran)
             # print('\n')
             ###############################################################
 
@@ -398,11 +405,6 @@ class EKF_ohm:
             # propagate navigation state for the first half imudata
             self.LIOEKF._statePropagation(self.LIOEKF._imupre_, midimu)
 
-            # do lidar position update at the whole second and feedback system states
-            if (self.LIOEKF._is_first_lidar_):
-                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
-            else:
-                self.update_EKF()
             ###############################################################
 
             # print(f"\n lidarUpdateFlag : {lidarUpdateFlag}, IMU: {int_imu}")
@@ -412,12 +414,17 @@ class EKF_ohm:
             #       diff_of_imu[:3, 3])
             
             
+            # do lidar position update at the whole second and feedback system states
+            if (self.LIOEKF._is_first_lidar_):
+                self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
+            # else:
+            #     self.update_EKF()
             # print('\n')
-            last_odom_tran, self.cur_pose_torch = self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
-            self.LIOEKF._statefeedbackwithPose(last_odom_tran)
+            # diff_of_imu = np.eye(4)
+            last_odom_tran, self.cur_pose_torch, _, _ = self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
+            # self.LIOEKF._statefeedbackwithPose(last_odom_tran)
             # print('\n')
             ###############################################################
-
             self.lidar_updated(True)
 
             # propagate navigation state for the second half imudata
@@ -460,8 +467,12 @@ class EKF_ohm:
             deskew_points, device=self.config.device, dtype=self.config.dtype
         )
 
+        # dataset.cur_source_points, deskew_points_torch
         tracking_result = tracker.tracking(deskew_points_torch, initguess_torch, 
-                                self.dataset.cur_source_colors, dataset=self.dataset)
+                                self.dataset.cur_source_colors, dataset=self.dataset, 
+                                # o3d_vis=o3d_vis)
+                                EKF_update_EKF=self.update_EKF, o3d_vis=o3d_vis)
+                                # EKF=self.update_EKF_SDF, o3d_vis=o3d_vis)
         cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, _, _ = tracking_result
         # print("valid_flag", valid_flag)
 
@@ -587,6 +598,7 @@ class EKF_ohm:
 
             delta_x_torch = S_inv @ HTRz
             self.LIOEKF._delta_x_ = delta_x_torch.cpu().numpy()
+            # print("self.LIOEKF._delta_x_", self.LIOEKF._delta_x_)
             KH = S_inv @ HTRH
 
             self.LIOEKF._stateFeedback()
@@ -608,66 +620,66 @@ class EKF_ohm:
         self.LIOEKF._Imu_Prediction_Covariance_ = np.zeros((15, 15))
         self.LIOEKF._lio_map_._update(frame_downsample, pose_in_lidar_frame)
         self.LIOEKF._last_update_t_ = self.LIOEKF._lidar_t_
-        return pose_in_lidar_frame
+        return delta_x_torch, pose_in_lidar_frame
 
-    # def update_EKF_SDF(self, residual: torch.tensor, jacobian: torch.tensor):
-    #     last_dx = torch.zeros(1, 15, device=self.config.device, dtype=self.config.tran_dtype)
-    #     weight = 1000
-    #     j = 0
+    def update_EKF_SDF(self, residual: torch.tensor, jacobian: torch.tensor):
+        last_dx = torch.zeros(1, 15, device=self.config.device, dtype=self.config.tran_dtype)
+        weight = 1000
+        j = 1
 
-    #     # torch.Size([1531]) # residual
+        # torch.Size([1531]) # residual
         
-    #     # torch.Size([1531, 6]) # jacobian
+        # torch.Size([1531, 6]) # jacobian
 
-    #     max_num = self.LIOPara.max_iteration
-    #     for j in range(max_num):
+        max_num = self.LIOPara.max_iteration
+        for j in range(max_num):
 
-    #         residual_torch = torch.reshape(residual, (residual.shape[0], 1, 1)) # num, 3, 1
-    #         # print("residual_torch", residual_torch)
-    #         scale = 1
-    #         residual_torch = torch.tensor(residual_torch.clone().detach(), device=self.config.device, dtype=self.config.tran_dtype) * scale
-    #         jacobian_torch = torch.reshape(jacobian, (jacobian.shape[0], 1, jacobian.shape[1])) * scale # num, 3, 1
-    #         # print("residual_torch", residual_torch.shape)
-    #         # print("jacobian", jacobian_torch.shape)
+            residual_torch = torch.reshape(residual, (residual.shape[0], 1, 1)) # num, 3, 1
+            # print("residual_torch", residual_torch)
+            scale = 1
+            residual_torch = torch.tensor(residual_torch.clone().detach(), device=self.config.device, dtype=self.config.tran_dtype) * scale
+            jacobian_torch = torch.reshape(jacobian, (jacobian.shape[0], 1, jacobian.shape[1])) * scale # num, 3, 1
+            # print("residual_torch", residual_torch.shape)
+            # print("jacobian", jacobian_torch.shape)
 
-    #         # R_bG_p = src_numpy - cur_pose[:3, 3]
-    #         # R_bG_p_torch = torch.tensor(R_bG_p, device=self.config.device, dtype=self.config.tran_dtype)
+            # R_bG_p = src_numpy - cur_pose[:3, 3]
+            # R_bG_p_torch = torch.tensor(R_bG_p, device=self.config.device, dtype=self.config.tran_dtype)
 
-    #         H = torch.zeros((jacobian.shape[0], 1, 15), device=self.config.device, dtype=self.config.tran_dtype) # num, 3, 15
-    #         H[:, :, 0:3] = jacobian_torch[:, :, 3:6]
-    #         # H[:, :, 0:3] = torch.ones(1, 3)
-    #         # R_bG_p_torch_so3_hat = self.so3_hat(R_bG_p_torch)
-    #         H[:, :, 6:9] = jacobian_torch[:, :, 0:3]
+            H = torch.zeros((jacobian.shape[0], 1, 15), device=self.config.device, dtype=self.config.tran_dtype) # num, 3, 15
+            H[:, :, 0:3] = jacobian_torch[:, :, 3:6]
+            # H[:, :, 0:3] = torch.ones(1, 3)
+            # R_bG_p_torch_so3_hat = self.so3_hat(R_bG_p_torch)
+            H[:, :, 6:9] = jacobian_torch[:, :, 0:3]
 
-    #         R_inv = torch.ones([residual_torch.shape[0], 1, 1], device=self.config.device, dtype=self.config.tran_dtype) # num, 3, 3
-    #         R_inv = R_inv * weight
-    #         # R_inv[:, 0:3] = torch.ones(3) * weight
-    #         H_T = torch.transpose(H, 1, 2)
-    #         HTRH = torch.matmul(H_T, torch.matmul(R_inv, H))              # num,15,3 @ num,3,3 @ num,3,15
-    #         HTRz = torch.matmul(H_T, torch.matmul(R_inv, residual_torch)) # num,15,3 @ num,3,3 @ num,3,1
+            R_inv = torch.ones([residual_torch.shape[0], 1, 1], device=self.config.device, dtype=self.config.tran_dtype) # num, 3, 3
+            R_inv = R_inv * weight
+            # R_inv[:, 0:3] = torch.ones(3) * weight
+            H_T = torch.transpose(H, 1, 2)
+            HTRH = torch.matmul(H_T, torch.matmul(R_inv, H))              # num,15,3 @ num,3,3 @ num,3,15
+            HTRz = torch.matmul(H_T, torch.matmul(R_inv, residual_torch)) # num,15,3 @ num,3,3 @ num,3,1
 
-    #         HTRH = torch.sum(HTRH, 0) # 15,3 @ 3,3 @ 3,15
-    #         HTRz = torch.sum(HTRz, 0) # 15,3 @ 3,3 @ 3,1
+            HTRH = torch.sum(HTRH, 0) # 15,3 @ 3,3 @ 3,15
+            HTRz = torch.sum(HTRz, 0) # 15,3 @ 3,3 @ 3,1
 
-    #         state_cov_torch = torch.tensor(self.LIOEKF._Cov_, device=self.config.device, dtype=self.config.tran_dtype)
-    #         S_inv = torch.inverse(HTRH + torch.inverse(state_cov_torch))
+            state_cov_torch = torch.tensor(self.LIOEKF._Cov_, device=self.config.device, dtype=self.config.tran_dtype)
+            S_inv = torch.inverse(HTRH + torch.inverse(state_cov_torch))
 
-    #         delta_x_torch = S_inv @ HTRz
-    #         KH = S_inv @ HTRH
-    #         print(delta_x_torch)
+            delta_x_torch = S_inv @ HTRz
+            KH = S_inv @ HTRH
 
-    #         self.LIOEKF._delta_x_ = delta_x_torch.cpu().numpy()
-    #         print(self.LIOEKF._delta_x_)
-    #         self.LIOEKF._stateFeedback()
+            self.LIOEKF._delta_x_ = delta_x_torch.cpu().numpy()
+            # print(self.LIOEKF._delta_x_)
+            self.LIOEKF._stateFeedback()
 
-    #         # if ((delta_x_ - last_dx).norm() < 0.001) {
-    #         # break;
-    #         # }
-    #         # last_dx = delta_x_;
-    #         self.LIOEKF._delta_x_ = np.zeros(15)
+            # if ((delta_x_ - last_dx).norm() < 0.001) {
+            # break;
+            # }
+            # last_dx = delta_x_;
+            self.LIOEKF._delta_x_ = np.zeros(15)
 
 
-    #     state_cov_torch -= KH @ state_cov_torch
-    #     self.LIOEKF._Cov_ = state_cov_torch.cpu().numpy()
+        state_cov_torch -= KH @ state_cov_torch
+        self.LIOEKF._Cov_ = state_cov_torch.cpu().numpy()
 
-    #     self.LIOEKF._last_update_t_ = self.LIOEKF._lidar_t_
+        self.LIOEKF._last_update_t_ = self.LIOEKF._lidar_t_
+        return delta_x_torch

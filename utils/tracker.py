@@ -10,6 +10,9 @@ import open3d as o3d
 import torch
 from rich import print
 from tqdm import tqdm
+from scipy.spatial.transform import Rotation as R
+from utils.tools import transfrom_to_homo
+import sophuspy as sp
 
 from model.decoder import Decoder
 from model.neural_points import NeuralPoints
@@ -55,6 +58,9 @@ class Tracker:
         loop_reg: bool = False,
         vis_result: bool = False,
         dataset= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+        EKF_update_EKF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+        EKF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+        o3d_vis= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
     ):
 
         if init_pose is None:
@@ -101,7 +107,7 @@ class Tracker:
         if source_sdf is None:  # only use the surface samples (all zero)
             source_sdf = torch.zeros(source_point_count, device=self.device)
 
-        for i in tqdm(range(iter_n), disable=self.silence):
+        for i in tqdm(range(1), disable=self.silence):
 
             T01 = get_time()
 
@@ -136,6 +142,38 @@ class Tracker:
 
             T03 = get_time()
 
+            # print("\ni: ", i)
+            if ((EKF is not None or EKF_update_EKF ) and i == 0):
+                if (EKF is not None):
+                    delta_x_torch = EKF(sdf_residual, J_mat)
+                elif (EKF_update_EKF is not None):
+                    delta_x_torch, _ = EKF_update_EKF()
+
+                # print("(EKF) delta_x_torch:", delta_x_torch)
+                qx = delta_x_torch[6, 0].cpu().numpy()
+                qy = delta_x_torch[7, 0].cpu().numpy()
+                qz = delta_x_torch[8, 0].cpu().numpy()
+                r = sp.SO3.exp([qx, qy, qz])
+                x = delta_x_torch[0, 0].cpu().numpy()
+                y = delta_x_torch[1, 0].cpu().numpy()
+                z = delta_x_torch[2, 0].cpu().numpy()
+                
+                # print("(EKF) as_matrix", r.matrix())
+                delta_x_homo = np.hstack((r.matrix(), -np.array([[x], [y], [z]])))
+                delta_x_homo = np.vstack((delta_x_homo, np.array([[0, 0, 0, 1]])))
+                delta_x = torch.tensor(delta_x_homo, device=self.config.device, dtype=self.config.tran_dtype)
+                R_mtx = R.from_matrix(delta_x_homo[:3, :3])
+                delta_T = delta_x
+                # print("(EKF) as_euler", R_mtx.as_euler('xyz', degrees=True))
+                # print("(EKF) trans", -np.array([x, y, z]))
+                # print("(EKF) delta_x", delta_x)
+
+                # r = R.from_euler('xyz', [roll, 
+                #                          pitch, 
+                #                          yaw], degrees=True)
+                # # delta_T_homo = transfrom_to_homo(r.as_matrix())
+
+                # o3d_vis.stop()
             T = delta_T @ T
 
             # the sdf residual should not increase too much during the optimization
@@ -168,6 +206,14 @@ class Tracker:
             )
             tran_m = delta_T[:3, 3].norm()
 
+            # if (i == 1):
+                # print("[bold blue](PIN-SLAM)[/bold blue] delta_T:", delta_T)
+                # print("[bold blue](PIN-SLAM)[/bold blue] rot_angle_deg:", rot_angle_deg)
+                # print("[bold blue](PIN-SLAM)[/bold blue] tran_m:", tran_m)
+                # print("[bold blue](PIN-SLAM)[/bold blue] delta_T:\n" , 
+                #     R.from_matrix(delta_T[:3, :3].cpu().numpy()).as_euler('xyz', degrees=True),
+                #     delta_T[:3, 3].cpu().numpy())
+            
             if (
                 abs(rot_angle_deg) < term_thre_deg
                 and tran_m < term_thre_m

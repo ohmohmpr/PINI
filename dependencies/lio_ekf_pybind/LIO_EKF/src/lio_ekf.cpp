@@ -517,6 +517,12 @@ void LIOEKF::stateFeedback() {
   // position error feedback
   Eigen::Vector3d delta_translation = delta_x_.block(POS_ID, 0, 3, 1);
   Eigen::Vector3d delta_quat = delta_x_.block(ATT_ID, 0, 3, 1);
+  // std::cout << "(CPP) delta_translation: \n" << delta_translation << std::endl;
+  // std::cout << "(CPP) Sophus::SO3d::exp(delta_quat): \n"
+  //           << Sophus::SO3d::exp(delta_quat).matrix() << std::endl;
+  // std::cout << "(CPP) Euler delta_quat: \n"
+  //           << Rotation::matrix2euler(Sophus::SO3d::exp(delta_quat).matrix())
+  //           << std::endl;
   bodystate_cur_.pose.so3() =
       Sophus::SO3d::exp(delta_quat) * bodystate_cur_.pose.so3();
   bodystate_cur_.pose.translation() =

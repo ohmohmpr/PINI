@@ -4,6 +4,7 @@ from tqdm import tqdm
 from utils.config import Config
 from scipy.spatial.transform import Rotation as R
 from rich import print
+from utils.tools import transfrom_to_homo
 
 class SensorFusionManager:
     """
@@ -117,6 +118,7 @@ class SensorFusionManager:
             for i in range(len(self.config.imu_topic)):
                 if self.topic == self.config.imu_topic[i]["topic"]:
                     arr = np.array(self.config.imu_topic[i]["extrinsic_main_imu"])
+                    print(self.config.imu_topic[i])
                     if arr.size == 12:
                         extrinsic_main_self = arr.reshape(3, 4)
                         np.vstack((extrinsic_main_self, np.array([0, 0, 0, 1])))
@@ -126,6 +128,7 @@ class SensorFusionManager:
                         print("ERROR, calibration matrix is wrong.")
                         break
                     self.extrinsic_main_imu = extrinsic_main_self
+                    self.imu_tran_R = transfrom_to_homo(np.array(self.config.imu_topic[i]["imu_tran_R"]))
                     self.hz = 1 / self.config.imu_topic[i]["hz"]
 
             self.buffer = []

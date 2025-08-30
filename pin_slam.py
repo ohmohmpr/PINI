@@ -240,7 +240,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                             EKF.wrapper(dataset, tracker, topic, o3d_vis, int_imu)
                             if EKF.LIOEKF.lidar_updated_ == True:
                                 EKF.writeResults()
-                                cur_pose_torch = EKF.cur_pose_torch
+                                cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
                                 EKF.lidar_updated(False)
                                 dataset.pin_updated = False
                             ################################# debug #################################

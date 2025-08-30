@@ -97,6 +97,7 @@ class EKF_ohm:
         # if this thing work delete the belows.
         self.T_imu_NED = np.linalg.inv(transfrom_to_homo(LIOPara.imu_tran_R))
         self.T_imu_LiDAR = LIOPara.Trans_lidar_imu
+        self.Trans_lidar_imu = self.LIOPara.Trans_lidar_imu
         self.T_LiDAR_NED = np.linalg.inv(self.T_imu_LiDAR) @ self.T_imu_NED # please check
         self.prev_state = np.identity(4)
         self.diff = np.identity(4)
@@ -275,47 +276,47 @@ class EKF_ohm:
     def newImuProcess_wrapper(self, dataset, tracker, o3d_vis, int_imu):
         if (self.LIOEKF._is_first_imu_):
 
-            body_l = self.get_bodystate_fLiDAR_torch(self.LIOEKF._bodystate_cur_).cpu().numpy()
-            body_i = self.get_bodystate(self.LIOEKF._bodystate_cur_)
-            print("[bold green]FRAME ID: [/bold green]", dataset.frame_id)
-            print("[bold yellow](EKF_OHM)[/bold yellow](BEFORE assign): IMU in L frame,\n", 
-                R.from_matrix(body_l[:3, :3]).as_euler('xyz', degrees=True),
-                body_l[:3, 3])
-            print("[bold yellow](EKF_OHM)[/bold yellow](BEFORE assign): IMU in I frame,\n", 
-                R.from_matrix(body_i[:3, :3]).as_euler('xyz', degrees=True),
-                body_i[:3, 3])
+            # body_l = self.get_bodystate_fLiDAR_torch(self.LIOEKF._bodystate_cur_).cpu().numpy()
+            # body_i = self.get_bodystate(self.LIOEKF._bodystate_cur_)
+            # print("[bold green]FRAME ID: [/bold green]", dataset.frame_id)
+            # print("[bold yellow](EKF_OHM)[/bold yellow](BEFORE assign): IMU in L frame,\n", 
+            #     R.from_matrix(body_l[:3, :3]).as_euler('xyz', degrees=True),
+            #     body_l[:3, 3])
+            # print("[bold yellow](EKF_OHM)[/bold yellow](BEFORE assign): IMU in I frame,\n", 
+            #     R.from_matrix(body_i[:3, :3]).as_euler('xyz', degrees=True),
+            #     body_i[:3, 3])
 
-            print("\n[bold yellow](EKF_OHM)[/bold yellow](ASSIGN Orientation)", )
-            r = R.from_euler('xyz', [dataset.init_roll_degree, dataset.init_pitch_degree, 0], degrees=True)
-            print("[bold yellow](EKF_OHM)[/bold yellow](Orientation): as_matrix: \n", r.as_matrix())
-            print("[bold yellow](EKF_OHM)[/bold yellow](Orientation): as_euler(rpy): \n", r.as_euler('xyz', degrees=True))
-            self.IMU_orientation = transfrom_to_homo(r.as_matrix())
-            self.set_bodystate_LiDAR_to_IMU(body_l)
+            # print("\n[bold yellow](EKF_OHM)[/bold yellow](ASSIGN Orientation)", )
+            # r = R.from_euler('xyz', [dataset.init_roll_degree, dataset.init_pitch_degree, 0], degrees=True)
+            # print("[bold yellow](EKF_OHM)[/bold yellow](Orientation): as_matrix: \n", r.as_matrix())
+            # print("[bold yellow](EKF_OHM)[/bold yellow](Orientation): as_euler(rpy): \n", r.as_euler('xyz', degrees=True))
+            # self.IMU_orientation = transfrom_to_homo(r.as_matrix())
+            # self.set_bodystate_LiDAR_to_IMU(body_l)
 
-            body_l = self.get_bodystate_fLiDAR_torch(self.LIOEKF._bodystate_cur_).cpu().numpy()
-            body_i = self.get_bodystate(self.LIOEKF._bodystate_cur_)
+            # body_l = self.get_bodystate_fLiDAR_torch(self.LIOEKF._bodystate_cur_).cpu().numpy()
+            # body_i = self.get_bodystate(self.LIOEKF._bodystate_cur_)
 
-            print("[bold yellow](EKF_OHM)[/bold yellow](assign Orientation): IMU in L frame,\n", 
-                R.from_matrix(body_l[:3, :3]).as_euler('xyz', degrees=True),
-                body_l[:3, 3])
-            print("[bold yellow](EKF_OHM)[/bold yellow](assign Orientation): IMU in I frame,\n", 
-                R.from_matrix(body_i[:3, :3]).as_euler('xyz', degrees=True),
-                body_i[:3, 3])
-            print("[bold red]These two terms should be diff by IMU Orientation + imu_tran + ext params[/bold red], ",
-                R.from_matrix(body_l[:3, :3]).as_euler('xyz', degrees=True) - R.from_matrix(body_i[:3, :3]).as_euler('xyz', degrees=True),
-                body_l[:3, 3] - body_i[:3, 3])
-            self.prev_state = body_i
+            # print("[bold yellow](EKF_OHM)[/bold yellow](assign Orientation): IMU in L frame,\n", 
+            #     R.from_matrix(body_l[:3, :3]).as_euler('xyz', degrees=True),
+            #     body_l[:3, 3])
+            # print("[bold yellow](EKF_OHM)[/bold yellow](assign Orientation): IMU in I frame,\n", 
+            #     R.from_matrix(body_i[:3, :3]).as_euler('xyz', degrees=True),
+            #     body_i[:3, 3])
+            # print("[bold red]These two terms should be diff by IMU Orientation + imu_tran + ext params[/bold red], ",
+            #     R.from_matrix(body_l[:3, :3]).as_euler('xyz', degrees=True) - R.from_matrix(body_i[:3, :3]).as_euler('xyz', degrees=True),
+            #     body_l[:3, 3] - body_i[:3, 3])
+            # self.prev_state = body_i
 
 
 
-            print("\n [bold yellow]First IMU[/bold yellow]")
+            # print("\n [bold yellow]First IMU[/bold yellow]")
 
-            print("[bold blue](PIN_SLAM)[/bold blue] LiDAR state:\n", 
-                  R.from_matrix(dataset.last_pose_ref[:3, :3]).as_euler('xyz', degrees=True), 
-                  dataset.last_pose_ref[:3, 3])
-            print("[bold yellow](EKF_OHM)[/bold yellow] IMU drift :\n", 
-                  R.from_matrix(self.diff[:3, :3]).as_euler('xyz', degrees=True), 
-                  self.diff[:3, 3])
+            # print("[bold blue](PIN_SLAM)[/bold blue] LiDAR state:\n", 
+            #       R.from_matrix(dataset.last_pose_ref[:3, :3]).as_euler('xyz', degrees=True), 
+            #       dataset.last_pose_ref[:3, 3])
+            # print("[bold yellow](EKF_OHM)[/bold yellow] IMU drift :\n", 
+            #       R.from_matrix(self.diff[:3, :3]).as_euler('xyz', degrees=True), 
+            #       self.diff[:3, 3])
             self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
             self.LIOEKF._imupre_ = self.LIOEKF._imucur_
             self.LIOEKF._imu_t_ = self.LIOEKF._imucur_.timestamp
@@ -340,24 +341,21 @@ class EKF_ohm:
             #  update
 
             ###############################################################
-
-            # print(f"\n lidarUpdateFlag : {lidarUpdateFlag}, IMU: {int_imu}")
-            diff_of_imu =  np.linalg.inv(self.prev_state) @ self.get_bodystate(self.LIOEKF._bodystate_cur_)
-            # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
-            #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
-            #       diff_of_imu[:3, 3])
-
-
             # do lidar position update at the whole second and feedback system states
             if (self.LIOEKF._is_first_lidar_):
                 self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             # else:
             #     self.update_EKF()
-            # print('\n')
-            # diff_of_imu = np.eye(4)
-            last_odom_tran, self.cur_pose_torch, _, _ = self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
-            # self.LIOEKF._statefeedbackwithPose(last_odom_tran)
-            # print('\n')
+    
+            diff_of_imu =  np.linalg.inv(self.prev_state) @ self.get_bodystate(self.LIOEKF._bodystate_cur_)
+            # diff_of_imu = np.eye(4)        
+        
+            # print(f"\n lidarUpdateFlag : {lidarUpdateFlag}, IMU: {int_imu}")
+            # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
+            #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
+            #       diff_of_imu[:3, 3])
+
+            self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
             ###############################################################
 
             self.lidar_updated(True)
@@ -374,21 +372,21 @@ class EKF_ohm:
             self.LIOEKF._statePropagation(self.LIOEKF._imupre_, self.LIOEKF._imucur_)
 
             ###############################################################
-            diff_of_imu =  np.linalg.inv(self.prev_state) @ self.get_bodystate(self.LIOEKF._bodystate_cur_)
-            # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
-            #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
-            #       diff_of_imu[:3, 3])
             
             # do lidar position update at the whole second and feedback system states
             if (self.LIOEKF._is_first_lidar_):
                 self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             # else:
             #     self.update_EKF()
-            # print('\n')
-            # diff_of_imu = np.eye(4)
-            last_odom_tran, self.cur_pose_torch, _, _ = self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
-            # self.LIOEKF._statefeedbackwithPose(last_odom_tran)
-            # print('\n')
+
+            diff_of_imu =  np.linalg.inv(self.prev_state) @ self.get_bodystate(self.LIOEKF._bodystate_cur_)
+            # diff_of_imu = np.eye(4)        
+        
+            # print(f"\n lidarUpdateFlag : {lidarUpdateFlag}, IMU: {int_imu}")
+            # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
+            #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
+            #       diff_of_imu[:3, 3])
+            self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
             ###############################################################
 
             self.lidar_updated(True)
@@ -406,24 +404,20 @@ class EKF_ohm:
             self.LIOEKF._statePropagation(self.LIOEKF._imupre_, midimu)
 
             ###############################################################
-
-            # print(f"\n lidarUpdateFlag : {lidarUpdateFlag}, IMU: {int_imu}")
-            diff_of_imu =  np.linalg.inv(self.prev_state) @ self.get_bodystate(self.LIOEKF._bodystate_cur_)
-            # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
-            #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
-            #       diff_of_imu[:3, 3])
-            
-            
             # do lidar position update at the whole second and feedback system states
             if (self.LIOEKF._is_first_lidar_):
                 self.LIOEKF._initFirstLiDAR(lidarUpdateFlag)
             # else:
             #     self.update_EKF()
-            # print('\n')
-            # diff_of_imu = np.eye(4)
-            last_odom_tran, self.cur_pose_torch, _, _ = self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
-            # self.LIOEKF._statefeedbackwithPose(last_odom_tran)
-            # print('\n')
+    
+            diff_of_imu =  np.linalg.inv(self.prev_state) @ self.get_bodystate(self.LIOEKF._bodystate_cur_)
+            # diff_of_imu = np.eye(4)        
+        
+            # print(f"\n lidarUpdateFlag : {lidarUpdateFlag}, IMU: {int_imu}")
+            # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
+            #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
+            #       diff_of_imu[:3, 3])
+            self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
             ###############################################################
             self.lidar_updated(True)
 
@@ -451,15 +445,6 @@ class EKF_ohm:
         # print("[bold yellow](EKF_OHM)[/bold yellow][bold magenta](update_tracker)[/bold magenta] LiDAR state:\n", 
         #           R.from_matrix(dataset.last_pose_ref[:3, :3]).as_euler('xyz', degrees=True), 
         #           dataset.last_pose_ref[:3, 3] )
-        # print("[bold yellow](EKF_OHM)[/bold yellow][bold magenta](update_tracker)[/bold magenta] IMU trans :\n", 
-        #         R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
-        #         diff_of_imu[:3, 3])
-        # print("[bold yellow](EKF_OHM)[/bold yellow][bold magenta](update_tracker)[/bold magenta] initguess (L frame):\n", 
-        #           R.from_matrix(initguess[:3, :3]).as_euler('xyz', degrees=True), 
-        #           initguess[:3, 3])
-        # print("[bold yellow](EKF_OHM)[/bold yellow][bold magenta](update_tracker)[/bold magenta] PIN-initguess (L frame):\n", 
-        #           R.from_matrix(dataset.cur_pose_guess_torch[:3, :3].cpu().numpy()).as_euler('xyz', degrees=True), 
-        #           dataset.cur_pose_guess_torch[:3, 3].cpu().numpy())
         
         deskew_points = self.LIOEKF._processScanPin()
         deskew_points = np.asarray(deskew_points)
@@ -467,21 +452,23 @@ class EKF_ohm:
             deskew_points, device=self.config.device, dtype=self.config.dtype
         )
 
-        # dataset.cur_source_points, deskew_points_torch
+        # dataset.cur_source_points, dataset.cur_pose_guess_torch
+        # deskew_points_torch, initguess_torch
         tracking_result = tracker.tracking(deskew_points_torch, initguess_torch, 
                                 self.dataset.cur_source_colors, dataset=self.dataset, 
                                 # o3d_vis=o3d_vis)
+                                Trans_lidar_imu=self.Trans_lidar_imu,
+                                imu_tran_R=transfrom_to_homo(self.LIOPara.imu_tran_R),
                                 EKF_update_EKF=self.update_EKF, o3d_vis=o3d_vis)
                                 # EKF=self.update_EKF_SDF, o3d_vis=o3d_vis)
         cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, _, _ = tracking_result
-        # print("valid_flag", valid_flag)
 
-        last_odom_tran = np.linalg.inv(dataset.last_pose_ref) @ cur_pose_torch.cpu().numpy()  # T_last<-cur
+        # last_odom_tran = np.linalg.inv(dataset.last_pose_ref) @ cur_pose_torch.cpu().numpy()  # T_last<-cur
         # print("[bold yellow](EKF_OHM)[/bold yellow][bold magenta](update_tracker)[/bold magenta] LiDAR trans:\n", 
         #         R.from_matrix(last_odom_tran[:3, :3]).as_euler('xyz', degrees=True), 
         #         last_odom_tran[:3, 3])
 
-        return last_odom_tran, cur_pose_torch
+        return cur_pose_torch
 
 
     # def update(self, residual: torch.tensor, jacobian: torch.tensor):
@@ -626,7 +613,7 @@ class EKF_ohm:
         last_dx = torch.zeros(1, 15, device=self.config.device, dtype=self.config.tran_dtype)
         weight = 1000
         j = 1
-
+        print("update_EKF_SDF")
         # torch.Size([1531]) # residual
         
         # torch.Size([1531, 6]) # jacobian

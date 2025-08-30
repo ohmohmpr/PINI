@@ -61,6 +61,8 @@ class Tracker:
         EKF_update_EKF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
         EKF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
         o3d_vis= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+        Trans_lidar_imu= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+        imu_tran_R= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
     ):
 
         if init_pose is None:
@@ -107,7 +109,8 @@ class Tracker:
         if source_sdf is None:  # only use the surface samples (all zero)
             source_sdf = torch.zeros(source_point_count, device=self.device)
 
-        for i in tqdm(range(1), disable=self.silence):
+        for i in tqdm(range(iter_n), disable=self.silence):
+        # for i in tqdm(range(1), disable=self.silence):
 
             T01 = get_time()
 
@@ -143,9 +146,10 @@ class Tracker:
             T03 = get_time()
 
             # print("\ni: ", i)
-            if ((EKF is not None or EKF_update_EKF ) and i == 0):
+            if ((EKF is not None or EKF_update_EKF ) ):
                 if (EKF is not None):
                     delta_x_torch = EKF(sdf_residual, J_mat)
+                    print("Run")
                 elif (EKF_update_EKF is not None):
                     delta_x_torch, _ = EKF_update_EKF()
 
@@ -163,7 +167,10 @@ class Tracker:
                 delta_x_homo = np.vstack((delta_x_homo, np.array([[0, 0, 0, 1]])))
                 delta_x = torch.tensor(delta_x_homo, device=self.config.device, dtype=self.config.tran_dtype)
                 R_mtx = R.from_matrix(delta_x_homo[:3, :3])
+                Trans_lidar_imu_torch = torch.tensor(Trans_lidar_imu, device=self.config.device, dtype=self.config.tran_dtype)
+                imu_tran_R_torch = torch.tensor(imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
                 delta_T = delta_x
+                # delta_T =  imu_tran_R_torch @ delta_x @ torch.inverse(imu_tran_R_torch)
                 # print("(EKF) as_euler", R_mtx.as_euler('xyz', degrees=True))
                 # print("(EKF) trans", -np.array([x, y, z]))
                 # print("(EKF) delta_x", delta_x)

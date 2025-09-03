@@ -147,7 +147,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     dataset = SLAMDataset(config, imu)
 
     # odometry tracker
-    tracker = Tracker(config, neural_points, geo_mlp, sem_mlp, color_mlp)
+    tracker = Tracker(config, neural_points, geo_mlp, sem_mlp, color_mlp, o3d_vis)
 
     # mapper
     mapper = Mapper(config, dataset, neural_points, geo_mlp, sem_mlp, color_mlp)
@@ -246,7 +246,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                             ################################# debug #################################
 
                         ############################### I.I/2 ohm - work #################################
-                            # EKF.newImuProcess_ohm(int_imu)
+                            # EKF.newImuProcess_EKF()
+                            # # EKF.newImuProcess_ohm(int_imu)
                             # # EKF.newImuProcess_ohm(myupdate=True)
                             # if EKF.LIOEKF.lidar_updated_ == True:
                             #     EKF.writeResults()
@@ -269,7 +270,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     else:
                         # print("PIN-SLAM")
                         tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
-                                                        dataset.cur_source_colors, dataset=dataset)
+                                                        dataset.cur_source_colors, dataset=dataset, EKF_class=EKF)
                         cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, _, _ = tracking_result
 
                         dataset.lose_track = not valid_flag
@@ -309,7 +310,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
                 if config.track_on:
                     tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
-                                                    dataset.cur_source_colors, dataset=dataset)
+                                                    dataset.cur_source_colors, dataset=dataset, EKF_class=EKF)
                     cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, sdf_residual, J_mat = tracking_result
 
                     dataset.lose_track = not valid_flag

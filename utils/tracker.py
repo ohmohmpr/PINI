@@ -29,6 +29,7 @@ class Tracker:
         geo_decoder: Decoder,
         sem_decoder: Decoder,
         color_decoder: Decoder,
+        o3d_vis, 
     ):
 
         self.config = config
@@ -39,6 +40,7 @@ class Tracker:
         self.color_decoder = color_decoder
         self.device = config.device
         self.dtype = config.dtype
+        self.o3d_vis = o3d_vis
         # NOTE: use torch.float64 for all the transformations and poses
 
         self.sdf_scale = config.logistic_gaussian_ratio * config.sigma_sigmoid_m
@@ -59,8 +61,9 @@ class Tracker:
         vis_result: bool = False,
         dataset= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
         EKF_update_EKF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
-        EKF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
-        o3d_vis= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+        EKF_SDF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+        EKF_update_PIN= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+        EKF_class= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
         Trans_lidar_imu= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
         imu_tran_R= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
     ):
@@ -110,8 +113,8 @@ class Tracker:
             source_sdf = torch.zeros(source_point_count, device=self.device)
 
         for i in tqdm(range(iter_n), disable=self.silence):
+        # for i in tqdm(range(iter_n), disable=self.silence):
         # for i in tqdm(range(1), disable=self.silence):
-
             T01 = get_time()
 
             cur_points = transform_torch(source_points, T)  # apply transformation
@@ -140,27 +143,43 @@ class Tracker:
                 sdf_residual_cm,
                 photo_residual,
                 sdf_residual,
-                J_mat
+                J_mat,
+                N_mat,
+                g_vec,
+                w,
+                sdf_grad,
             ) = reg_result
 
             T03 = get_time()
 
+            delta_T_pin = delta_T
             # print("\ni: ", i)
-            if ((EKF is not None or EKF_update_EKF ) ):
-                if (EKF is not None):
-                    delta_x_torch = EKF(sdf_residual, J_mat)
-                    print("Run")
+            if ((EKF_SDF is not None or EKF_update_EKF or EKF_update_PIN) ):
+                if (EKF_SDF is not None):
+                    delta_x_torch = EKF_SDF(sdf_residual, J_mat)
                 elif (EKF_update_EKF is not None):
-                    delta_x_torch, _ = EKF_update_EKF()
+                    delta_x_torch, _ = EKF_update_EKF(delta_T_pin, N_mat, g_vec)
+                elif (EKF_update_PIN is not None):
+                    delta_x_torch, _ = EKF_update_PIN(valid_points_torch, sdf_grad, sdf_residual, w, delta_T_pin)
 
                 # print("(EKF) delta_x_torch:", delta_x_torch)
-                qx = delta_x_torch[6, 0].cpu().numpy()
-                qy = delta_x_torch[7, 0].cpu().numpy()
-                qz = delta_x_torch[8, 0].cpu().numpy()
+                ### PIN###
+                qx = delta_x_torch[6].cpu().numpy()
+                qy = delta_x_torch[7].cpu().numpy()
+                qz = delta_x_torch[8].cpu().numpy()
                 r = sp.SO3.exp([qx, qy, qz])
-                x = delta_x_torch[0, 0].cpu().numpy()
-                y = delta_x_torch[1, 0].cpu().numpy()
-                z = delta_x_torch[2, 0].cpu().numpy()
+                x = delta_x_torch[0].cpu().numpy()
+                y = delta_x_torch[1].cpu().numpy()
+                z = delta_x_torch[2].cpu().numpy()
+                ### PIN###
+
+                # qx = delta_x_torch[6, 0].cpu().numpy()
+                # qy = delta_x_torch[7, 0].cpu().numpy()
+                # qz = delta_x_torch[8, 0].cpu().numpy()
+                # r = sp.SO3.exp([qx, qy, qz])
+                # x = delta_x_torch[0, 0].cpu().numpy()
+                # y = delta_x_torch[1, 0].cpu().numpy()
+                # z = delta_x_torch[2, 0].cpu().numpy()
                 
                 # print("(EKF) as_matrix", r.matrix())
                 delta_x_homo = np.hstack((r.matrix(), -np.array([[x], [y], [z]])))
@@ -180,7 +199,6 @@ class Tracker:
                 #                          yaw], degrees=True)
                 # # delta_T_homo = transfrom_to_homo(r.as_matrix())
 
-                # o3d_vis.stop()
             T = delta_T @ T
 
             # the sdf residual should not increase too much during the optimization
@@ -595,7 +613,7 @@ class Tracker:
             cov_mat = None
             eigenvalues = None
         else:
-            T, cov_mat, eigenvalues, J_mat = implicit_reg(
+            T, cov_mat, eigenvalues, J_mat, N_mat, g_vec, weight = implicit_reg(
                 valid_points,
                 sdf_grad,
                 sdf_residual,
@@ -661,7 +679,11 @@ class Tracker:
             sdf_residual_mean_cm,
             color_residual_mean,
             sdf_residual,
-            J_mat
+            J_mat, # delete ohm
+            N_mat, # delete ohm
+            g_vec, # delete ohm
+            w,  # delete ohm
+            sdf_grad, # delete ohm
         )
 
 
@@ -704,8 +726,9 @@ def implicit_reg(
     """
 
     cross = torch.cross(points, sdf_grad, dim=-1)  # N,3 x N,3
+    # OHM change the matrix order here.
     J_mat = torch.cat(
-        [cross, sdf_grad], -1
+        [sdf_grad, cross], -1
     )  # The Jacobian matrix # first rotation, then translation # N, 6
     N_mat = J_mat.T @ (
         weight * J_mat
@@ -729,8 +752,11 @@ def implicit_reg(
     )  # 6dof tran parameters
 
     T_mat = torch.eye(4, device=points.device, dtype=torch.float64)
-    T_mat[:3, :3] = expmap(t_vec[:3])  # rotation part
-    T_mat[:3, 3] = t_vec[3:]  # translation part
+    # OHM change the matrix order here.
+    # T_mat[:3, :3] = expmap(t_vec[:3])  # rotation part
+    # T_mat[:3, 3] = t_vec[3:]  # translation part
+    T_mat[:3, :3] = expmap(t_vec[3:])  # rotation part
+    T_mat[:3, 3] = t_vec[:3]  # translation part
 
     eigenvalues = (
         None  # the weight are also included, we need to normalize the weight part
@@ -748,7 +774,7 @@ def implicit_reg(
         mse = torch.mean(weight * sdf_residual**2)
         cov_mat = torch.linalg.inv(N_mat_raw) * mse  # rotation , translation
 
-    return T_mat, cov_mat, eigenvalues, J_mat
+    return T_mat, cov_mat, eigenvalues, J_mat, N_mat, g_vec, weight
 
 
 # functions

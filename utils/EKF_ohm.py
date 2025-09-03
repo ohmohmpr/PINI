@@ -10,6 +10,7 @@ from rich import print
 import LIOEKF_pybind
 from utils.lio_para import LIO_Parameters
 from utils.tools import transfrom_to_homo
+from utils.tracker import expmap
 import open3d as o3d
 import os 
 
@@ -265,14 +266,6 @@ class EKF_ohm:
 
         self.newImuProcess_wrapper(dataset, tracker, o3d_vis, int_imu)
 
-        # if dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment == True:
-        #     pass
-        # else:
-        #     tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
-        #                                     dataset.cur_source_colors, dataset=dataset)
-        #     cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, _, _ = tracking_result
-        # return tracking_result
-
     def newImuProcess_wrapper(self, dataset, tracker, o3d_vis, int_imu):
         if (self.LIOEKF._is_first_imu_):
 
@@ -355,7 +348,7 @@ class EKF_ohm:
             #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
             #       diff_of_imu[:3, 3])
 
-            self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
+            self.update_tracker(dataset, tracker, diff_of_imu)
             ###############################################################
 
             self.lidar_updated(True)
@@ -386,7 +379,7 @@ class EKF_ohm:
             # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
             #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
             #       diff_of_imu[:3, 3])
-            self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
+            self.update_tracker(dataset, tracker, diff_of_imu)
             ###############################################################
 
             self.lidar_updated(True)
@@ -417,7 +410,7 @@ class EKF_ohm:
             # print("[bold yellow](EKF_OHM)[/bold yellow] IMU trans(before update PIN) :\n", 
             #       R.from_matrix(diff_of_imu[:3, :3]).as_euler('xyz', degrees=True), 
             #       diff_of_imu[:3, 3])
-            self.update_tracker(dataset, tracker, o3d_vis, diff_of_imu)
+            self.update_tracker(dataset, tracker, diff_of_imu)
             ###############################################################
             self.lidar_updated(True)
 
@@ -436,7 +429,7 @@ class EKF_ohm:
         self.LIOEKF._bodystate_pre_ = self.LIOEKF._bodystate_cur_
         self.LIOEKF._imupre_ = self.LIOEKF._imucur_
 
-    def update_tracker(self, dataset, tracker, o3d_vis, diff_of_imu):
+    def update_tracker(self, dataset, tracker, diff_of_imu):
         # ? 
         # initguess = diff_of_imu @ dataset.last_pose_ref
         initguess = dataset.last_pose_ref @ diff_of_imu
@@ -459,16 +452,16 @@ class EKF_ohm:
                                 # o3d_vis=o3d_vis)
                                 Trans_lidar_imu=self.Trans_lidar_imu,
                                 imu_tran_R=transfrom_to_homo(self.LIOPara.imu_tran_R),
-                                EKF_update_EKF=self.update_EKF, o3d_vis=o3d_vis)
-                                # EKF=self.update_EKF_SDF, o3d_vis=o3d_vis)
+                                EKF_class=self,
+                                # EKF_update_EKF=self.update_EKF)
+                                EKF_update_PIN=self.update_EKF_PIN)
+                                # EKF_SDF=self.update_EKF_SDF)
         cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag, _, _ = tracking_result
 
         # last_odom_tran = np.linalg.inv(dataset.last_pose_ref) @ cur_pose_torch.cpu().numpy()  # T_last<-cur
         # print("[bold yellow](EKF_OHM)[/bold yellow][bold magenta](update_tracker)[/bold magenta] LiDAR trans:\n", 
         #         R.from_matrix(last_odom_tran[:3, :3]).as_euler('xyz', degrees=True), 
         #         last_odom_tran[:3, 3])
-
-        return cur_pose_torch
 
 
     # def update(self, residual: torch.tensor, jacobian: torch.tensor):
@@ -529,7 +522,7 @@ class EKF_ohm:
         
         return hat
 
-    def update_EKF(self):
+    def update_EKF(self, delta_T_pin, N_mat, g_vec):
         source, frame_downsample = self.LIOEKF._processScan()
         imu_pose_covariance = np.identity(6)
         imu_pose_covariance[0:3, 0:3] = self.LIOEKF._Imu_Prediction_Covariance_[0:3, 0:3]
@@ -580,10 +573,59 @@ class EKF_ohm:
             HTRH = torch.sum(HTRH, 0)
             HTRz = torch.sum(HTRz, 0)
 
+            ######################################################################## testing # delete
+            # print("HTRH[0:3, 0:3]", HTRH[0:3, 0:3])
+            # print("N_mat", N_mat)
+            # print("N_mat[3:6, 3:6]", N_mat[3:6, 3:6])
+            # HTRH[0:3, 0:3] = N_mat[3:6, 3:6]
+            # HTRH[0:3, 6:9] = N_mat[3:6, 0:3]
+            # HTRH[6:9, 0:3] = N_mat[0:3, 3:6]
+            # HTRH[6:9, 6:9] = N_mat[0:3, 0:3]
+
+            # print("HTRz.shape", HTRz.shape)
+            # print("g_vec.shape", g_vec.shape)
+            # g_vec = -g_vec
+            # HTRz[0:3] = torch.reshape(g_vec[3:6], (g_vec[3:6].shape[0], 1))
+            # HTRz[6:9]= torch.reshape(g_vec[0:3], (g_vec[0:3].shape[0], 1))
+            # print("HTRH", HTRH)
+            # print("HTRH 1", HTRH[0:3, 0:3])
+            # print("HTRH 2", HTRH[0:3, 6:9])
+            # print("HTRH 3", HTRH[6:9, 0:3])
+            # print("HTRH 4", HTRH[6:9, 6:9])
+
+            # print("HTRz", HTRz)
+            # print("HTRH.shape", HTRH.shape)
+            # print("HTRz.shape", HTRz.shape)
+            ######################################################################## testing # delete
             state_cov_torch = torch.tensor(self.LIOEKF._Cov_, device=self.config.device, dtype=self.config.tran_dtype)
             S_inv = torch.inverse(HTRH + torch.inverse(state_cov_torch))
 
             delta_x_torch = S_inv @ HTRz
+            ######################################################################## testing # delete
+            # rot_skew = expmap(torch.tensor([delta_x_torch[6, 0], delta_x_torch[7, 0], delta_x_torch[8, 0]]))
+            # rot = R.from_matrix(rot_skew.cpu().numpy())
+            # quat = rot.as_quat()
+            # print("rot_skew", rot_skew)
+
+            # delta_x_torch[6, 0] = 
+            # delta_x_torch[7, 0] = 
+            # delta_x_torch[8, 0] = 
+            ######################################################################## testing # delete
+            # HERE PIN-SLAM is compatible with EKF-LIO delta_x
+            # delta_T_pin =  delta_T_pin.cpu().numpy()
+            # rot = R.from_matrix(delta_T_pin[:3, :3])
+            # quat = rot.as_quat()
+            # factor = -1
+            # delta_x_torch[0, 0] = factor * delta_x_torch[0, 0]
+            # delta_x_torch[1, 0] = factor * delta_x_torch[1, 0]
+            # delta_x_torch[2, 0] = factor * delta_x_torch[2, 0]
+            # delta_x_torch[0, 0] = factor * delta_T_pin[0, 3]
+            # delta_x_torch[1, 0] = factor * delta_T_pin[1, 3]
+            # delta_x_torch[2, 0] = factor * delta_T_pin[2, 3]
+            # delta_x_torch[6, 0] = torch.tensor(quat[0], device=self.config.device, dtype=self.config.tran_dtype)
+            # delta_x_torch[7, 0] = torch.tensor(quat[1], device=self.config.device, dtype=self.config.tran_dtype)
+            # delta_x_torch[8, 0] = torch.tensor(quat[2], device=self.config.device, dtype=self.config.tran_dtype)
+            ######################################################################## testing # delete
             self.LIOEKF._delta_x_ = delta_x_torch.cpu().numpy()
             # print("self.LIOEKF._delta_x_", self.LIOEKF._delta_x_)
             KH = S_inv @ HTRH
@@ -608,6 +650,118 @@ class EKF_ohm:
         self.LIOEKF._lio_map_._update(frame_downsample, pose_in_lidar_frame)
         self.LIOEKF._last_update_t_ = self.LIOEKF._lidar_t_
         return delta_x_torch, pose_in_lidar_frame
+
+    def update_EKF_PIN(self, 
+            points,
+            sdf_grad,
+            sdf_residual,
+            weight, delta_T_pin):
+
+        last_dx = torch.zeros(1, 15, device=self.config.device, dtype=self.config.tran_dtype)
+
+        for j in range(self.LIOPara.max_iteration):
+
+            cross = torch.cross(points, sdf_grad, dim=-1)  # N,3 x N,3
+            J_vel = torch.zeros_like(cross)
+            J_av = torch.zeros_like(cross)
+            J_av2 = torch.zeros_like(cross)
+            J_mat = torch.cat(
+                # [sdf_grad, cross], -1
+                [sdf_grad, J_vel, cross, J_av, J_av2], -1
+            )  # The Jacobian matrix # first rotation, then translation # N, 6
+            N_mat = J_mat.T @ (
+                weight * J_mat
+            )  # approximate Hessian matrix # first rot, then tran # 6, 6
+
+            lm_inv = 0.0001
+            N_mat[3, 3] = lm_inv
+            N_mat[4, 4] = lm_inv
+            N_mat[5, 5] = lm_inv
+            N_mat[9, 9] = lm_inv
+            N_mat[10, 10] = lm_inv
+            N_mat[11, 11] = lm_inv
+            N_mat[12, 12] = lm_inv
+            N_mat[13, 13] = lm_inv
+            N_mat[14, 14] = lm_inv
+            lm_lambda = 1e-4
+
+            ################ this also works
+            # N_mat[3, 3] = 1
+            # N_mat[4, 4] = 1
+            # N_mat[5, 5] = 1
+            # N_mat[9, 9] = 1
+            # N_mat[10, 10] = 1
+            # N_mat[11, 11] = 1
+            # N_mat[12, 12] = 1
+            # N_mat[13, 13] = 1
+            # N_mat[14, 14] = 1
+            # lm_lambda = 1e-2
+            ################
+            N_mat += lm_lambda * torch.diag(torch.diag(N_mat))
+            g_vec = -(J_mat * weight).T @ sdf_residual
+
+            t_vec = torch.linalg.inv(N_mat.to(dtype=torch.float64)) @ g_vec.to(
+                dtype=torch.float64
+            )  # 6dof tran parameters
+
+            state_cov_torch = torch.tensor(self.LIOEKF._Cov_, device=self.config.device, dtype=torch.float32)
+            S_inv = torch.inverse(N_mat + torch.inverse(state_cov_torch))
+
+            delta_x_torch = S_inv @ g_vec
+            print("PIN", delta_x_torch)
+            ########################################################################
+            rot_skew = expmap(torch.tensor([delta_x_torch[6], delta_x_torch[7], delta_x_torch[8]]))
+            rot = R.from_matrix(rot_skew.cpu().numpy())
+            quat = rot.as_quat()
+            ########################################################################
+            # HERE PIN-SLAM is compatible with EKF-LIO delta_x
+            T_mat = torch.eye(4, device=points.device, dtype=torch.float64)
+            # print("t_vec", t_vec)
+            # T_mat[:3, :3] = expmap(t_vec[:3])  # rotation part
+            # T_mat[:3, 3] = t_vec[3:]  # translation part
+            T_mat[:3, :3] = expmap(t_vec[6:9])  # rotation part
+            T_mat[:3, 3] = t_vec[:3]  # translation part
+
+            # delta_T_pin =  delta_T_pin.cpu().numpy()
+            rot = R.from_matrix(T_mat[:3, :3].cpu().numpy())
+            # quat = rot.as_quat()
+
+            factor = -1
+            # delta_x_torch[0] = factor * T_mat[0, 3]
+            # delta_x_torch[1] = factor * T_mat[1, 3]
+            # delta_x_torch[2] = factor * T_mat[2, 3]
+            delta_x_torch[0] = factor * delta_x_torch[0]
+            delta_x_torch[1] = factor * delta_x_torch[1]
+            delta_x_torch[2] = factor * delta_x_torch[2] 
+            delta_x_torch[3] = factor * delta_x_torch[3]
+            delta_x_torch[4] = factor * delta_x_torch[4]
+            delta_x_torch[5] = factor * delta_x_torch[5]
+            # delta_x_torch[0, 0] = factor * delta_T_pin[0, 3]
+            # delta_x_torch[1, 0] = factor * delta_T_pin[1, 3]
+            # delta_x_torch[2, 0] = factor * delta_T_pin[2, 3]
+            delta_x_torch[6] = torch.tensor(quat[0], device=self.config.device, dtype=self.config.tran_dtype)
+            delta_x_torch[7] = torch.tensor(quat[1], device=self.config.device, dtype=self.config.tran_dtype)
+            delta_x_torch[8] = torch.tensor(quat[2], device=self.config.device, dtype=self.config.tran_dtype)
+            ########################################################################
+            self.LIOEKF._delta_x_ = delta_x_torch.cpu().numpy()
+            # print("self.LIOEKF._delta_x_", self.LIOEKF._delta_x_)
+            KH = S_inv @ N_mat
+
+            self.LIOEKF._stateFeedback()
+
+            print("[bold yellow](EKF_OHM)[/bold yellow] cur velo: \n", 
+                  self.LIOEKF._getNavState().vel)
+
+            if ( torch.norm(delta_x_torch - last_dx) < 0.001):
+                continue
+            last_dx = delta_x_torch
+            self.LIOEKF._delta_x_ = np.zeros(15)
+
+        state_cov_torch -= KH @ state_cov_torch
+        self.LIOEKF._Cov_ = state_cov_torch.cpu().numpy()
+
+        self.LIOEKF._last_update_t_ = self.LIOEKF._lidar_t_
+        return delta_x_torch, None
 
     def update_EKF_SDF(self, residual: torch.tensor, jacobian: torch.tensor):
         last_dx = torch.zeros(1, 15, device=self.config.device, dtype=self.config.tran_dtype)

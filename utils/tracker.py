@@ -60,7 +60,6 @@ class Tracker:
         loop_reg: bool = False,
         vis_result: bool = False,
         dataset= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
-        EKF_update_EKF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
         EKF_SDF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
         EKF_update_PIN= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
         EKF_class= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
@@ -112,8 +111,9 @@ class Tracker:
         if source_sdf is None:  # only use the surface samples (all zero)
             source_sdf = torch.zeros(source_point_count, device=self.device)
 
+        if EKF_update_PIN is not None:
+            iter_n = 1
         for i in tqdm(range(iter_n), disable=self.silence):
-        # for i in tqdm(range(iter_n), disable=self.silence):
         # for i in tqdm(range(1), disable=self.silence):
             T01 = get_time()
 
@@ -152,17 +152,12 @@ class Tracker:
 
             T03 = get_time()
 
-            delta_T_pin = delta_T
-            # print("\ni: ", i)
-            if ((EKF_SDF is not None or EKF_update_EKF or EKF_update_PIN) ):
+            if ((EKF_SDF is not None or EKF_update_PIN) ):
                 if (EKF_SDF is not None):
                     delta_x_torch = EKF_SDF(sdf_residual, J_mat)
-                elif (EKF_update_EKF is not None):
-                    delta_x_torch, _ = EKF_update_EKF(delta_T_pin, N_mat, g_vec)
                 elif (EKF_update_PIN is not None):
-                    delta_x_torch, _ = EKF_update_PIN(valid_points_torch, sdf_grad, sdf_residual, w, delta_T_pin)
+                    delta_x_torch, _ = EKF_update_PIN(valid_points_torch, sdf_grad, sdf_residual, w)
 
-                # print("(EKF) delta_x_torch:", delta_x_torch)
                 ### PIN###
                 qx = delta_x_torch[6].cpu().numpy()
                 qy = delta_x_torch[7].cpu().numpy()
@@ -230,14 +225,6 @@ class Tracker:
                 rotation_matrix_to_axis_angle(delta_T[:3, :3]) * 180.0 / np.pi
             )
             tran_m = delta_T[:3, 3].norm()
-
-            # if (i == 1):
-                # print("[bold blue](PIN-SLAM)[/bold blue] delta_T:", delta_T)
-                # print("[bold blue](PIN-SLAM)[/bold blue] rot_angle_deg:", rot_angle_deg)
-                # print("[bold blue](PIN-SLAM)[/bold blue] tran_m:", tran_m)
-                # print("[bold blue](PIN-SLAM)[/bold blue] delta_T:\n" , 
-                #     R.from_matrix(delta_T[:3, :3].cpu().numpy()).as_euler('xyz', degrees=True),
-                #     delta_T[:3, 3].cpu().numpy())
             
             if (
                 abs(rot_angle_deg) < term_thre_deg

@@ -245,15 +245,13 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                                 dataset.pin_updated = False
                             ################################# debug #################################
 
-                        ############################### I.I/2 ohm - work #################################
-                            # EKF.newImuProcess_EKF()
-                            # # EKF.newImuProcess_ohm(int_imu)
-                            # # EKF.newImuProcess_ohm(myupdate=True)
+                            ############################### I.I/2 ohm - work #################################
+                            # EKF.newImuProcess_ohm(myupdate=True)
                             # if EKF.LIOEKF.lidar_updated_ == True:
                             #     EKF.writeResults()
                             #     cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
                             #     EKF.lidar_updated(False)
-                        ############################### I.I/2 ohm - work #################################
+                            ############################### I.I/2 ohm - work #################################
                             int_imu = int_imu + 1
                         valid_flag = True
                         ############################### I.I/2 ohm - imu #################################

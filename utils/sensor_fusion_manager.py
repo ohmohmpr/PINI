@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-
+import time
 from utils.config import Config
 from scipy.spatial.transform import Rotation as R
 from rich import print
@@ -83,7 +83,7 @@ class SensorFusionManager:
         self.file.write("\n")
 
     def get_latest_data(self, timestamp_head_main_sensor, frame_id):
-
+        start_time = time.time()
         for sensor_idx in range(len(self.imu_ROSIMU_list)):
             rosimu = self.imu_ROSIMU_list[sensor_idx]
             topic = rosimu.topic
@@ -93,9 +93,14 @@ class SensorFusionManager:
         skip = False
         while min_x != 0 or skip == True:
             min_x = self.get_min(timestamp_head_main_sensor)
+
+            curr = time.time()
             # self._write_ts(min_x)
             # data to the self
             skip = self._next(min_x)
+            if curr - start_time > 1:
+                print("break")
+                break
             # self._update_bars(min_x)
         # self._write_main_sensor(timestamp_head_main_sensor, frame_id)
         return None

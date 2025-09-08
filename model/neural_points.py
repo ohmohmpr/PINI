@@ -420,8 +420,11 @@ class NeuralPoints(nn.Module):
         dist_mask = (masked_dist2sensor < self.local_map_radius**2)
         time_mask_idx = torch.nonzero(time_mask).squeeze() # True index
         # ohm BUG here
-        local_mask_idx = time_mask_idx[dist_mask] # True index
-
+        try:
+            local_mask_idx = time_mask_idx[dist_mask] # True index
+        except:
+            print("dist_mask", dist_mask)
+            print("time_mask_idx", time_mask_idx)
         local_mask = torch.full((time_mask.shape), False, dtype=torch.bool, device=self.device)
 
         local_mask[local_mask_idx] = True 

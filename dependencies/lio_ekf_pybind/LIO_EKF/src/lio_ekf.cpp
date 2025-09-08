@@ -306,8 +306,8 @@ LIOEKF::DeSkewScan(const std::vector<Eigen::Vector3d> &frame,
 
 std::vector<Eigen::Vector3d> LIOEKF::processScanPin() {
   Sophus::SE3d lidar_to_imu = Sophus::SE3d(liopara_.Trans_lidar_imu);
-  Sophus::SE3d previous_pose_scan = bodystate_pre_.pose;
-  Sophus::SE3d current_pose_scan = bodystate_cur_.pose;
+  Sophus::SE3d previous_pose_scan = bodystate_pre_.pose * lidar_to_imu;
+  Sophus::SE3d current_pose_scan = bodystate_cur_.pose * lidar_to_imu;
   curpoints_w_ = DeSkewScan(curpoints_, timestamps_per_points_,
                             previous_pose_scan, current_pose_scan);
 
@@ -517,8 +517,8 @@ void LIOEKF::stateFeedback() {
   // position error feedback
   Eigen::Vector3d delta_translation = delta_x_.block(POS_ID, 0, 3, 1);
   Eigen::Vector3d delta_quat = delta_x_.block(ATT_ID, 0, 3, 1);
-  // std::cout << "(CPP) delta_translation: \n" << delta_translation << std::endl;
-  // std::cout << "(CPP) Sophus::SO3d::exp(delta_quat): \n"
+  // std::cout << "(CPP) delta_translation: \n" << delta_translation <<
+  // std::endl; std::cout << "(CPP) Sophus::SO3d::exp(delta_quat): \n"
   //           << Sophus::SO3d::exp(delta_quat).matrix() << std::endl;
   // std::cout << "(CPP) Euler delta_quat: \n"
   //           << Rotation::matrix2euler(Sophus::SO3d::exp(delta_quat).matrix())

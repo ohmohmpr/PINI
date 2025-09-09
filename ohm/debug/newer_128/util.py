@@ -30,9 +30,9 @@ def plot_state(pred_data_LIO_EKF, update_data_LIO_EKF, pred_data_PINI, update_da
   axis[1].plot(pred_data_LIO_EKF[0, start_time_idx:end_time_idx] - pred_data_LIO_EKF[0,0], pred_data_LIO_EKF[label_idx+1, start_time_idx:end_time_idx], 'g--', label='y_LIO_EKF') # y
   axis[2].plot(pred_data_LIO_EKF[0, start_time_idx:end_time_idx] - pred_data_LIO_EKF[0,0], pred_data_LIO_EKF[label_idx+2, start_time_idx:end_time_idx], 'b--', label='z_LIO_EKF') # z
 
-  # axis[0].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx  , start_time_idx:end_time_idx], 'r-', label='x_PINI') # x
-  # axis[1].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx+1, start_time_idx:end_time_idx], 'g-', label='y_PINI') # y
-  # axis[2].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx+2, start_time_idx:end_time_idx], 'b-', label='z_PINI') # z
+  axis[0].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx  , start_time_idx:end_time_idx], 'r-', label='x_PINI') # x
+  axis[1].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx+1, start_time_idx:end_time_idx], 'g-', label='y_PINI') # y
+  axis[2].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx+2, start_time_idx:end_time_idx], 'b-', label='z_PINI') # z
 
   axis[0].set_title("X")
   axis[1].set_title("Y")
@@ -65,9 +65,9 @@ def plot_delta_x(pred_data_LIO_EKF, update_data_LIO_EKF, pred_data_PINI, update_
   axis[1].plot(pred_data_LIO_EKF[0, start_time_idx:end_time_idx] - pred_data_LIO_EKF[0,0], pred_data_LIO_EKF[label_idx+1, start_time_idx:end_time_idx], 'g--', label='y_LIO_EKF') # y
   axis[2].plot(pred_data_LIO_EKF[0, start_time_idx:end_time_idx] - pred_data_LIO_EKF[0,0], pred_data_LIO_EKF[label_idx+2, start_time_idx:end_time_idx], 'b--', label='z_LIO_EKF') # z
 
-  # axis[0].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx  , start_time_idx:end_time_idx], 'r-', label='x_PINI') # x
-  # axis[1].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx+1, start_time_idx:end_time_idx], 'g-', label='y_PINI') # y
-  # axis[2].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx+2, start_time_idx:end_time_idx], 'b-', label='z_PINI') # z
+  axis[0].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx  , start_time_idx:end_time_idx], 'r-', label='x_PINI') # x
+  axis[1].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx+1, start_time_idx:end_time_idx], 'g-', label='y_PINI') # y
+  axis[2].plot(pred_data_PINI[0, start_time_idx:end_time_idx] - pred_data_PINI[0,0], pred_data_PINI[label_idx+2, start_time_idx:end_time_idx], 'b-', label='z_PINI') # z
 
   axis[0].set_title("X")
   axis[1].set_title("Y")

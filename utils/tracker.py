@@ -143,9 +143,6 @@ class Tracker:
                 sdf_residual_cm,
                 photo_residual,
                 sdf_residual,
-                J_mat,
-                N_mat,
-                g_vec,
                 w,
                 sdf_grad,
             ) = reg_result
@@ -154,45 +151,9 @@ class Tracker:
 
             if ((EKF_SDF is not None or EKF_update_PIN) ):
                 if (EKF_SDF is not None):
-                    delta_x_torch = EKF_SDF(sdf_residual, J_mat)
+                    EKF_SDF(sdf_residual)
                 elif (EKF_update_PIN is not None):
-                    delta_x_torch, _ = EKF_update_PIN(valid_points_torch, sdf_grad, sdf_residual, w)
-
-                ### PIN###
-                qx = delta_x_torch[6].cpu().numpy()
-                qy = delta_x_torch[7].cpu().numpy()
-                qz = delta_x_torch[8].cpu().numpy()
-                r = sp.SO3.exp([qx, qy, qz])
-                x = delta_x_torch[0].cpu().numpy()
-                y = delta_x_torch[1].cpu().numpy()
-                z = delta_x_torch[2].cpu().numpy()
-                ### PIN###
-
-                # qx = delta_x_torch[6, 0].cpu().numpy()
-                # qy = delta_x_torch[7, 0].cpu().numpy()
-                # qz = delta_x_torch[8, 0].cpu().numpy()
-                # r = sp.SO3.exp([qx, qy, qz])
-                # x = delta_x_torch[0, 0].cpu().numpy()
-                # y = delta_x_torch[1, 0].cpu().numpy()
-                # z = delta_x_torch[2, 0].cpu().numpy()
-                
-                # print("(EKF) as_matrix", r.matrix())
-                delta_x_homo = np.hstack((r.matrix(), -np.array([[x], [y], [z]])))
-                delta_x_homo = np.vstack((delta_x_homo, np.array([[0, 0, 0, 1]])))
-                delta_x = torch.tensor(delta_x_homo, device=self.config.device, dtype=self.config.tran_dtype)
-                R_mtx = R.from_matrix(delta_x_homo[:3, :3])
-                Trans_lidar_imu_torch = torch.tensor(Trans_lidar_imu, device=self.config.device, dtype=self.config.tran_dtype)
-                imu_tran_R_torch = torch.tensor(imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
-                delta_T = delta_x
-                # delta_T =  imu_tran_R_torch @ delta_x @ torch.inverse(imu_tran_R_torch)
-                # print("(EKF) as_euler", R_mtx.as_euler('xyz', degrees=True))
-                # print("(EKF) trans", -np.array([x, y, z]))
-                # print("(EKF) delta_x", delta_x)
-
-                # r = R.from_euler('xyz', [roll, 
-                #                          pitch, 
-                #                          yaw], degrees=True)
-                # # delta_T_homo = transfrom_to_homo(r.as_matrix())
+                    EKF_update_PIN(valid_points_torch, sdf_grad, sdf_residual, w)
 
             T = delta_T @ T
 
@@ -273,7 +234,7 @@ class Tracker:
             cov_mat = None
 
         # return T, cov_mat, weight_point_cloud, valid_flag
-        return T, cov_mat, weight_point_cloud, valid_flag, sdf_residual, J_mat
+        return T, cov_mat, weight_point_cloud, valid_flag
 
     def query_source_points(
         self,
@@ -600,7 +561,7 @@ class Tracker:
             cov_mat = None
             eigenvalues = None
         else:
-            T, cov_mat, eigenvalues, J_mat, N_mat, g_vec, weight = implicit_reg(
+            T, cov_mat, eigenvalues = implicit_reg(
                 valid_points,
                 sdf_grad,
                 sdf_residual,
@@ -666,9 +627,6 @@ class Tracker:
             sdf_residual_mean_cm,
             color_residual_mean,
             sdf_residual,
-            J_mat, # delete ohm
-            N_mat, # delete ohm
-            g_vec, # delete ohm
             w,  # delete ohm
             sdf_grad, # delete ohm
         )
@@ -761,7 +719,7 @@ def implicit_reg(
         mse = torch.mean(weight * sdf_residual**2)
         cov_mat = torch.linalg.inv(N_mat_raw) * mse  # rotation , translation
 
-    return T_mat, cov_mat, eigenvalues, J_mat, N_mat, g_vec, weight
+    return T_mat, cov_mat, eigenvalues
 
 
 # functions

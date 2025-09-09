@@ -406,15 +406,19 @@ class EKF_ohm:
     def update_tracker(self, dataset, tracker, diff_of_imu):
         # ? 
         # initguess = diff_of_imu @ dataset.last_pose_ref
-        initguess = dataset.last_pose_ref @ diff_of_imu
-        initguess_torch = torch.tensor(initguess, device=self.config.device, dtype=self.config.tran_dtype)
-        
-        deskew_points = self.LIOEKF._processScanPin()
-        deskew_points = np.asarray(deskew_points)
-        deskew_points_torch = torch.tensor(
-            deskew_points, device=self.config.device, dtype=self.config.dtype
-        )
+        # initguess = dataset.last_pose_ref @ diff_of_imu
+        # self.o3d_vis.vis.add_geometry(self.o3d_vis.keypoint_lio_ekf, self.o3d_vis.reset_bounding_box)
+        # initguess_torch = torch.tensor(initguess, device=self.config.device, dtype=self.config.tran_dtype)
+        initguess_torch = self.get_bodystate_fLiDAR_torch(self.LIOEKF._bodystate_cur_)
+        # print("initguess", initguess)
+        # print("_bodystate_cur_", initguess_torch)
 
+        deskew_points_torch = torch.tensor(
+            np.asarray(self.LIOEKF._processScanPin()), device=self.config.device, dtype=self.config.dtype
+        )
+        # self.o3d_vis.keypoint_lio_ekf.points = o3d.utility.Vector3dVector(dataset.cur_source_points.cpu().numpy())
+        # self.o3d_vis.keypoint_lio_ekf.paint_uniform_color(BLUE)
+        # self.o3d_vis.vis.add_geometry(self.o3d_vis.keypoint_lio_ekf, self.o3d_vis.reset_bounding_box)
         # dataset.cur_source_points, dataset.cur_pose_guess_torch
         # deskew_points_torch, initguess_torch
         # dataset.cur_point_cloud_torch = deskew_points_torch
@@ -531,6 +535,18 @@ class EKF_ohm:
 
         for j in range(self.LIOPara.max_iteration):
 
+
+            # flip into imu frame
+            Trans_lidar_imu = self.LIOPara.Trans_lidar_imu
+
+            points_np = np.hstack((points.cpu().numpy(), np.ones((points.shape[0], 1))))
+            points_np_t = (Trans_lidar_imu @ points_np.T).T
+            points = torch.tensor(points_np_t[:, :3], device=self.config.device, dtype=torch.float32)
+            
+            sdf_grad_np = np.hstack((sdf_grad.cpu().numpy(), np.ones((sdf_grad.shape[0], 1))))
+            sdf_grad_np_t = (Trans_lidar_imu @ sdf_grad_np.T).T
+            sdf_grad = torch.tensor(sdf_grad_np_t[:, :3], device=self.config.device, dtype=torch.float32)
+
             cross = torch.cross(points, sdf_grad, dim=-1)  # N,3 x N,3
             J_vel = torch.zeros_like(cross)
             J_av = torch.zeros_like(cross)
@@ -542,7 +558,7 @@ class EKF_ohm:
             weight = 400 * 1
             N_mat = J_mat.T @ (
                weight * J_mat
-            )  # approximate Hessian matrix # first rot, then tran # 6, 6
+            )  # approximate Hessian matrix # first tran, then rot # 6, 6
 
             g_vec = -(J_mat * weight).T @ sdf_residual
 
@@ -551,18 +567,28 @@ class EKF_ohm:
 
             delta_x_torch = S_inv @ g_vec
             ########################################################################
-            # rot_skew = expmap(torch.tensor([delta_x_torch[6], delta_x_torch[7], delta_x_torch[8]]))
-            # rot = R.from_matrix(rot_skew.cpu().numpy())
-            # quat = rot.as_quat()
+            delta_rot = torch.tensor([delta_x_torch[6], delta_x_torch[7], delta_x_torch[8]])
+            # delta_rot_ = sp.SO3.exp(delta_rot.cpu().numpy())
             ########################################################################
 
             factor = -1
+            # tran
             delta_x_torch[0] = factor * delta_x_torch[0]
             delta_x_torch[1] = factor * delta_x_torch[1]
-            delta_x_torch[2] = factor * delta_x_torch[2] 
+            delta_x_torch[2] = factor * delta_x_torch[2]
+            # vel
             delta_x_torch[3] = factor * delta_x_torch[3]
             delta_x_torch[4] = factor * delta_x_torch[4]
             delta_x_torch[5] = factor * delta_x_torch[5]
+            # # rot
+            # delta_x_torch[6] = factor * delta_x_torch[6]
+            # delta_x_torch[7] = factor * delta_x_torch[7]
+            # delta_x_torch[8] = factor * delta_x_torch[8]
+            # # gyro bias
+            # delta_x_torch[9] = factor * delta_x_torch[9]
+            # delta_x_torch[10] = factor * delta_x_torch[10]
+            # delta_x_torch[11] = factor * delta_x_torch[11]
+            # acc bias
             delta_x_torch[12] = factor * delta_x_torch[12]
             delta_x_torch[13] = factor * delta_x_torch[13]
             delta_x_torch[14] = factor * delta_x_torch[14]

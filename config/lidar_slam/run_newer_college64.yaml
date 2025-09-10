@@ -53,8 +53,8 @@ sensor_fusion:
   sensor_types: 
     imu:
       - topic: /os1_cloud_node/imu
-        extrinsic_main_imu: [-1.0,  0.0,  0.0,    0,
-                              0.0, -1.0,  0.0, 0.01,
+        extrinsic_main_imu: [ 1.0,  0.0,  0.0,    0,
+                              0.0,  1.0,  0.0, 0.01,
                               0.0,  0.0,  1.0, 0.03,
                               0.0,  0.0,  0.0,  1.0 ]
         # IMU noise parameters
@@ -66,8 +66,8 @@ sensor_fusion:
         init_pos_std: [ 0.05, 0.05, 0.05 ]
         init_vel_std: [ 0.05, 0.05, 0.05 ]
         init_att_std: [ 0.1, 0.1, 0.1 ]
-        imu_tran_R: [[-1,  0, 0],
-                     [ 0,  1, 0],
+        imu_tran_R: [[ 1,  0, 0],
+                     [ 0, -1, 0],
                      [ 0,  0,-1]]
         hz: 100
       # - topic: /camera/imu #both ts of result and incompatible with LIO-EKF are wrong, doesn't use [BUG] -> 05 and 06 [BUG]

@@ -181,11 +181,11 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/os1_cloud_node2/imu" #
 
     ### newer college 64 
-    topic = "/os1_cloud_node/imu" # use this
+    # topic = "/os1_cloud_node/imu" # use this
     # topic = "/camera/imu" #
 
     # newer college 128 
-    # topic = "/os_cloud_node/imu" # use this
+    topic = "/os_cloud_node/imu" # use this
     # topic = "/alphasense_driver_ros/imu" #
 
     ### urban NAV
@@ -237,20 +237,19 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                                                     LIOPara.imu_tran_R @ imu['imu'][1])
                             EKF.addImuData([IMU], False)
                             ################################# debug #################################
-                            # EKF.wrapper(dataset, tracker, topic, o3d_vis, int_imu)
-                            # if EKF.LIOEKF.lidar_updated_ == True:
-                            #     EKF.writeResults()
-                            #     cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
-                            #     EKF.lidar_updated(False)
-                            #     dataset.pin_updated = False
-                            ################################# debug #################################
-
-                            ############################### I.I/2 ohm - work #################################
-                            EKF.newImuProcess_ohm(myupdate=True)
+                            EKF.wrapper(dataset, tracker, topic, o3d_vis, int_imu)
                             if EKF.LIOEKF.lidar_updated_ == True:
                                 EKF.writeResults()
                                 cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
                                 EKF.lidar_updated(False)
+                            ################################# debug #################################
+
+                            ############################### I.I/2 ohm - work #################################
+                            # EKF.newImuProcess_ohm(myupdate=True)
+                            # if EKF.LIOEKF.lidar_updated_ == True:
+                            #     EKF.writeResults()
+                            #     cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
+                            #     EKF.lidar_updated(False)
                             ############################### I.I/2 ohm - work #################################
                             int_imu = int_imu + 1
                         valid_flag = True

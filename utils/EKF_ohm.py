@@ -173,7 +173,7 @@ class EKF_ohm:
         pose_NED, vel_NED = self.LIOEKF._getBodyState(Bodystate)
         imu_tran_R = transfrom_to_homo(self.LIOPara.imu_tran_R)
         Trans_lidar_imu = self.LIOPara.Trans_lidar_imu
-        pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
+        pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ Trans_lidar_imu, device=self.config.device, dtype=self.config.tran_dtype)
         # pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ np.linalg.inv(self.IMU_orientation) @ imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
 
         return pose_NED_torch

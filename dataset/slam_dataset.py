@@ -210,7 +210,6 @@ class SLAMDataset(Dataset):
         # EKF
         self.last_timestamp_frame = None
         self.current_timestamp_frame = None
-        self.pin_updated = False
         self.init_roll_degree = None
         self.init_pitch_degree = None
 

@@ -100,6 +100,7 @@ class EKF_ohm:
         self.T_LiDAR_NED = np.linalg.inv(self.T_imu_LiDAR) @ self.T_imu_NED # please check
         self.prev_state = np.identity(4)
         self.diff = np.identity(4)
+        self.point_diff = np.identity(4)
 
         # files
         self.config = config
@@ -454,6 +455,7 @@ class EKF_ohm:
 
             src, tgt = self.LIOEKF._lio_map_._get_correspondences(points_w, max_correspondence_distance)
             src_numpy = np.asarray(src)
+            self.point_diff = np.asarray(points_w).shape[0] - src_numpy.shape[0]
             tgt_numpy = np.asarray(tgt)
 
             residual = src_numpy - tgt_numpy
@@ -484,6 +486,11 @@ class EKF_ohm:
             KH = S_inv @ HTRH
 
             ##########################################################################################
+            point_diff = np.hstack((self.LIOEKF._imu_t_, self.dataset.frame_id, 11,
+                               self.point_diff, np.zeros((14,))))
+            point_diff = np.reshape(point_diff, (1, -1))
+            np.savetxt(self.state_file, point_diff, delimiter=',', fmt='%10.5f')
+
             n_mat = np.hstack((self.LIOEKF._imu_t_, self.dataset.frame_id, 15,
                                torch.diagonal(HTRH).cpu().numpy()))
             n_mat = np.reshape(n_mat, (1, n_mat.shape[0]))

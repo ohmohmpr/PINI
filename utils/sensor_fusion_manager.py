@@ -112,9 +112,7 @@ class SensorFusionManager:
             self.topic = topic.topic
 
             self.start_ts = 0
-            self.time_for_initStaticAlignment = 3 # sec
             self.is_initStaticAlignment = False # sec
-            self.stop = False #
             self.init_roll = 0 # rad
             self.init_pitch = 0 # rad
             self.init_gyro_mean = np.array([0, 0, 0], dtype='float64')
@@ -123,7 +121,6 @@ class SensorFusionManager:
             for i in range(len(self.config.imu_topic)):
                 if self.topic == self.config.imu_topic[i]["topic"]:
                     arr = np.array(self.config.imu_topic[i]["extrinsic_main_imu"])
-                    print(self.config.imu_topic[i])
                     if arr.size == 12:
                         extrinsic_main_self = arr.reshape(3, 4)
                         np.vstack((extrinsic_main_self, np.array([0, 0, 0, 1])))

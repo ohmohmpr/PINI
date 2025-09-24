@@ -147,7 +147,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     dataset = SLAMDataset(config, imu)
 
     # odometry tracker
-    tracker = Tracker(config, neural_points, geo_mlp, sem_mlp, color_mlp, o3d_vis)
+    tracker = Tracker(config, neural_points, geo_mlp, sem_mlp, color_mlp)
+    # tracker = Tracker(config, neural_points, geo_mlp, sem_mlp, color_mlp, o3d_vis)
 
     # mapper
     mapper = Mapper(config, dataset, neural_points, geo_mlp, sem_mlp, color_mlp)
@@ -177,7 +178,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
     ### NTU VIRAL
     # topic = "/imu/imu" #
-    # topic = "/os1_cloud_node1/imu" # use this
+    topic = "/os1_cloud_node1/imu" # use this
     # topic = "/os1_cloud_node2/imu" #
 
     ### newer college 64 
@@ -185,17 +186,24 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/camera/imu" #
 
     # newer college 128 
-    topic = "/os_cloud_node/imu" # use this
+    # topic = "/os_cloud_node/imu" # use this
     # topic = "/alphasense_driver_ros/imu" #
 
     ### urban NAV
     # topic = "/imu/data" #
 
+    ### oxford spires
+    # topic = "/alphasense_driver_ros/imu" # use this
+
     EKF_TEST = True
     # EKF_TEST = False
+    PINI = True
+    # PINI = False
     LIOPara = LIO_Parameters(config, topic).init()
-    o3d_vis.imu_topic = topic 
-    EKF = EKF_ohm(config, LIOPara, o3d_vis, tracker, dataset)
+    # o3d_vis.imu_topic = topic 
+    # EKF = EKF_ohm(config, LIOPara, o3d_vis, tracker, dataset)
+    EKF = EKF_ohm(config, LIOPara, tracker, dataset, o3d_vis=None)
+    dataset.poses_ts = []
 
     # for each frame
     for frame_id in tqdm(range(dataset.total_pc_count)): # frame id as the processed frame, possible skipping done in data loader
@@ -227,7 +235,6 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     if len(dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer) > 0 and \
                         dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment == True:
 
-                        ############################### I.I/2 ohm - imu #################################
                         EKF.addLidarData(dataset.points, dataset.timestamp, dataset.point_ts)
                         int_imu = 0
                         for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
@@ -236,45 +243,35 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                                                     LIOPara.imu_tran_R @ imu['imu'][0], 
                                                     LIOPara.imu_tran_R @ imu['imu'][1])
                             EKF.addImuData([IMU], False)
-                            ################################# debug #################################
-                            EKF.wrapper(dataset, tracker, topic, o3d_vis, int_imu)
+                            if PINI == True:
+                                # EKF.wrapper(dataset, tracker, topic, o3d_vis, int_imu)
+                                EKF.wrapper(dataset, tracker)
+                            else:
+                                EKF.newImuProcess_ohm(myupdate=True)
                             if EKF.LIOEKF.lidar_updated_ == True:
+                                pose_ts = np.array(EKF.LIOEKF._getImutimestamp())
+                                dataset.poses_ts.append(pose_ts)
                                 EKF.writeResults()
                                 cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
                                 EKF.lidar_updated(False)
-                            ################################# debug #################################
-
-                            ############################### I.I/2 ohm - work #################################
-                            # EKF.newImuProcess_ohm(myupdate=True)
-                            # if EKF.LIOEKF.lidar_updated_ == True:
-                            #     EKF.writeResults()
-                            #     cur_pose_torch = EKF.get_bodystate_fLiDAR_torch(EKF.LIOEKF._bodystate_cur_)
-                            #     EKF.lidar_updated(False)
-                            ############################### I.I/2 ohm - work #################################
                             int_imu = int_imu + 1
                         valid_flag = True
-                        ############################### I.I/2 ohm - imu #################################
                         dataset.lose_track = not valid_flag
                         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
-                        # print("[bold blue](PIN_SLAM)[/bold blue] LiDAR trans:\n", 
-                        #         R.from_matrix(dataset.last_odom_tran[:3, :3]).as_euler('xyz', degrees=True), 
-                        #         dataset.last_odom_tran[:3, 3])
-                        
-                        # o3d_vis.stop()
+
                         if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
                             o3d_vis.stop()
 
                     else:
-                        # print("PIN-SLAM")
                         tracking_result = tracker.tracking(dataset.cur_source_points, dataset.cur_pose_guess_torch, 
                                                         dataset.cur_source_colors, dataset=dataset, EKF_class=EKF)
                         cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag = tracking_result
 
                         dataset.lose_track = not valid_flag
+                        pose_ts = np.array(dataset.loader.timestamp_head)
+                        dataset.poses_ts.append(pose_ts)
                         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
-                        # print("[bold blue](PIN_SLAM)[/bold blue] LiDAR state:\n", 
-                        #         R.from_matrix(dataset.last_pose_ref[:3, :3]).as_euler('xyz', degrees=True), 
-                        #         dataset.last_pose_ref[:3, 3])
+
                         norm = np.linalg.norm(dataset.last_odom_tran[:3, 3])
                         if norm > 0.03:
                             dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment = True
@@ -283,7 +280,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                             dataset.init_roll_degree = dataset.sensor_fusion_manager.imu_manager_dict[topic].init_roll_degree
                             dataset.init_pitch_degree = dataset.sensor_fusion_manager.imu_manager_dict[topic].init_pitch_degree
 
-                            o3d_vis._add_geometries_EKF(dataset.init_roll_degree, dataset.init_pitch_degree, 0)
+                            # o3d_vis._add_geometries_EKF(dataset.init_roll_degree, dataset.init_pitch_degree, 0)
                             print(f"[bold blue](PIN_SLAM)[/bold blue]: norm, {norm} m.")
                             print("[bold blue](PIN_SLAM)[/bold blue]: it's moving.\n")
 
@@ -311,6 +308,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     cur_pose_torch, cur_odom_cov, weight_pc_o3d, valid_flag = tracking_result
 
                     dataset.lose_track = not valid_flag
+                    pose_ts = np.array(dataset.loader.timestamp_head)
+                    dataset.poses_ts.append(pose_ts)
                     dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
                     
                     if not valid_flag and config.o3d_vis_on and o3d_vis.debug_mode > 0:
@@ -379,7 +378,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     pose_init_torch = torch.tensor((dataset.pgo_poses[loop_id] @ loop_transform), device=config.device, dtype=torch.float64) # T_w<-c = T_w<-l @ T_l<-c 
                     neural_points.recreate_hash(pose_init_torch[:3,3], None, True, True, loop_id) # recreate hash and local map at the loop candidate frame for registration, this is the reason why we'd better to keep the duplicated neural points until the end
                     loop_reg_source_point = dataset.cur_source_points.clone()
-                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag, _ , _ = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)
+                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)
                     
                     if reg_valid_flag: # refine succeed
                         pose_refine_np = pose_refine_torch.detach().cpu().numpy()
@@ -451,7 +450,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     pose_init_torch = torch.tensor((dataset.pgo_poses[loop_id] @ loop_transform), device=config.device, dtype=torch.float64) # T_w<-c = T_w<-l @ T_l<-c 
                     neural_points.recreate_hash(pose_init_torch[:3,3], None, True, True, loop_id) # recreate hash and local map at the loop candidate frame for registration, this is the reason why we'd better to keep the duplicated neural points until the end
                     loop_reg_source_point = dataset.cur_source_points.clone()
-                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag, _, _ = tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)    
+                    pose_refine_torch, loop_cov_mat, weight_pcd, reg_valid_flag= tracker.tracking(loop_reg_source_point, pose_init_torch, loop_reg=True)    
                     # only conduct pgo when the loop and loop constraint is correct
                     if reg_valid_flag: # refine succeed
                         pose_refine_np = pose_refine_torch.detach().cpu().numpy()

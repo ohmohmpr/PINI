@@ -818,7 +818,14 @@ class SLAMDataset(Dataset):
         odom_poses = self.odom_poses[:self.processed_frame+1]
         odom_poses_out = apply_kitti_format_calib(odom_poses, self.calib["Tr"])
         write_kitti_format_poses(os.path.join(self.run_path, "odom_poses"), odom_poses_out)
+
+        while (len(self.poses_ts) <= len(odom_poses_out)):
+            self.poses_ts.append(self.current_timestamp_frame)
+        self.poses_ts = np.array(self.poses_ts)
+
         write_tum_format_poses(os.path.join(self.run_path, "odom_poses"), odom_poses_out, self.poses_ts, 0.1*self.config.step_frame)
+        write_ntu_format_poses(os.path.join(self.run_path, "odom_poses"), odom_poses_out, 
+                               self.poses_ts, 0.1*self.config.step_frame)
         write_traj_as_o3d(odom_poses, os.path.join(self.run_path, "odom_poses.ply"))
 
         if self.config.pgo_on:
@@ -828,6 +835,9 @@ class SLAMDataset(Dataset):
                 os.path.join(self.run_path, "slam_poses"), slam_poses_out
             )
             write_tum_format_poses(
+                os.path.join(self.run_path, "slam_poses"), slam_poses_out, self.poses_ts, 0.1*self.config.step_frame
+            )
+            write_ntu_format_poses(
                 os.path.join(self.run_path, "slam_poses"), slam_poses_out, self.poses_ts, 0.1*self.config.step_frame
             )
             write_traj_as_o3d(pgo_poses, os.path.join(self.run_path, "slam_poses.ply"))
@@ -1346,6 +1356,34 @@ def write_tum_format_poses(filename: str, poses_np: np.ndarray, timestamps=None,
         fname = f"{filename}_tum.txt"
 
     np.savetxt(fname=fname, X=tum_out, fmt="%.4f", header=header)
+
+def write_ntu_format_poses(filename: str, poses_np: np.ndarray, timestamps=None, frame_s = 0.1, 
+                           with_header = False, direct_use_filename = False):
+    from pyquaternion import Quaternion
+
+
+    frame_count = poses_np.shape[0]
+    ntu_out = np.empty((frame_count,10))
+    for i in range(frame_count):
+        tx, ty, tz = poses_np[i, :3, -1].flatten()
+        qw, qx, qy, qz = Quaternion(matrix=poses_np[i], atol=0.01).elements
+        if timestamps is None:
+            ts = i * frame_s
+        else:
+            ts = float(timestamps[i] * 1e9) 
+        ntu_out[i] = np.array([ts, 0, 0, tx, ty, tz, qx, qy, qz, qw])
+
+    # if with_header:
+    header = "timestamp, 0, 0, tx, ty, tz, qx, qy, qz, qw"
+    # else:
+    #     header = ''
+        
+    if direct_use_filename:
+        fname = filename
+    else:
+        fname = f"{filename}_ntu.csv"
+
+    np.savetxt(fname=fname, X=ntu_out, fmt="%.10f", header=header, delimiter=',')
 
 def apply_kitti_format_calib(poses_np: np.ndarray, calib_T_cl: np.ndarray):
     """Converts from Velodyne to Camera Frame (# T_camera<-lidar)"""

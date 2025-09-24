@@ -29,7 +29,7 @@ class Tracker:
         geo_decoder: Decoder,
         sem_decoder: Decoder,
         color_decoder: Decoder,
-        o3d_vis, 
+        # o3d_vis, 
     ):
 
         self.config = config
@@ -40,7 +40,7 @@ class Tracker:
         self.color_decoder = color_decoder
         self.device = config.device
         self.dtype = config.dtype
-        self.o3d_vis = o3d_vis
+        # self.o3d_vis = o3d_vis
         # NOTE: use torch.float64 for all the transformations and poses
 
         self.sdf_scale = config.logistic_gaussian_ratio * config.sigma_sigmoid_m
@@ -114,7 +114,6 @@ class Tracker:
         if EKF_update_PIN is not None:
             iter_n = 1
         for i in tqdm(range(iter_n), disable=self.silence):
-        # for i in tqdm(range(1), disable=self.silence):
             T01 = get_time()
 
             cur_points = transform_torch(source_points, T)  # apply transformation

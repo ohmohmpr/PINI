@@ -97,6 +97,13 @@ python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_ohm /os_cl
 python3 pin_slam.py ./config/lidar_slam/run_urbanNav.yaml rosbag_ohm /velodyne_points -i ~/data/urbanNav/ -dv
 ```
 
+### 5. Oxford spires
+
+```bash
+### belmheim_01
+python3 pin_slam.py ./config/lidar_slam/run_oxford_spires.yaml rosbag_ohm /hesai/pandar -i ~/data/oxford_spires/blenheim_01/1710406700_2024-03-14-08-58-21_0.bag -dv
+```
+
 ## Cloning LIO_EKF, HOW TO DO
 
 ```bash

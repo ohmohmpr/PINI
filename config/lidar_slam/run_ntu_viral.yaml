@@ -36,6 +36,9 @@ eval:
   mesh_freq_frame: 50 # reconstruct the mesh every x frames
   mesh_min_nn: 15
 sensor_fusion:
+  ground:
+    add_ground: False
+    radius: 5
   main_sensor: # from *.txt
     # imu:
     #   topic: /imu/imu

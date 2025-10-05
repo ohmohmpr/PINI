@@ -89,6 +89,8 @@ class NeuralPoints(nn.Module):
         )
 
         self.neural_points = torch.empty((0, 3), dtype=self.dtype, device=self.device)
+        self.neural_points_res = torch.empty((0), device=self.device, dtype=self.dtype)
+        self.neural_points_res_idx = torch.empty((0), device=self.device, dtype=torch.int)
         self.point_orientations = torch.empty(
             (0, 4), dtype=self.dtype, device=self.device
         )  # as quaternion
@@ -280,6 +282,34 @@ class NeuralPoints(nn.Module):
             )
             neural_pc_o3d.colors = o3d.utility.Vector3dVector(random_color)
 
+        
+        elif color_mode == 5:  # "random" # random residual
+            # if query_global:
+            # neural_res = self.neural_points_res[:-1:random_down_ratio].detach()
+
+            if query_global:
+                np_res = self.neural_points_res[:-1:random_down_ratio].detach()
+            else:
+                np_res = self.neural_points_res[self.local_mask[:-1]]
+
+            ratio = np_res.cpu().numpy()
+
+            RED = np.array([255, 0, 0]) / 255.0
+            BLUE = np.array([0, 0, 128]) / 255.0
+
+            np_color = np.full_like(neural_pc_o3d.points, 0) #blue
+
+            condition = (~np.isnan(ratio))  & (ratio < 0.08)
+            if np_color.shape[0] == condition.shape[0]:
+                np_color[condition] = BLUE
+                np_color[~condition] = RED
+            else:
+                np_color[:-1][condition] = BLUE
+                np_color[:-1][~condition] = RED
+
+            neural_pc_o3d.colors = o3d.utility.Vector3dVector(np_color)
+
+
         return neural_pc_o3d
 
     def update(
@@ -353,8 +383,14 @@ class NeuralPoints(nn.Module):
         new_points_ts = (
             torch.ones(new_point_count, device=self.device, dtype=torch.int) * cur_ts
         )
+
+        new_res = (
+            torch.zeros(new_point_count, device=self.device, dtype=torch.int)
+        )
+        
         self.point_ts_create = torch.cat((self.point_ts_create, new_points_ts), 0)
         self.point_ts_update = torch.cat((self.point_ts_update, new_points_ts), 0)
+        self.neural_points_res = torch.cat((self.neural_points_res, new_res), 0)
 
         # with padding in the end
         new_fts = self.geo_feature_std * torch.randn(
@@ -527,7 +563,7 @@ class NeuralPoints(nn.Module):
         # T2 = get_time()
 
         valid_mask = idx >= 0  # [N, K]
-
+        self.neural_points_res_idx = idx
         if query_geo_feature:
             geo_features = torch.zeros(
                 batch_size,
@@ -699,6 +735,7 @@ class NeuralPoints(nn.Module):
             self.point_ts_create = self.point_ts_create[~prune_mask]
             self.point_ts_update = self.point_ts_update[~prune_mask]
             self.point_certainties = self.point_certainties[~prune_mask]
+            self.neural_points_res = self.neural_points_res[~prune_mask]
 
             # with padding
             prune_mask = torch.cat(
@@ -791,6 +828,7 @@ class NeuralPoints(nn.Module):
             self.point_ts_create = self.point_ts_create[sample_idx]
             self.point_ts_update = self.point_ts_update[sample_idx]
             self.point_certainties = self.point_certainties[sample_idx]
+            self.neural_points_res = self.neural_points_res[sample_idx]
 
             sample_idx_pad = torch.cat((sample_idx, torch.tensor([-1]).to(sample_idx)))
             self.geo_features = self.geo_features[

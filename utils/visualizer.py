@@ -121,7 +121,7 @@ class MapVisualizer:
 
         self.debug_mode: int = 0
 
-        self.neural_points_vis_mode: int = 0
+        self.neural_points_vis_mode: int = 5 # ohm
 
         self.global_viewpoint: bool = False
         self.view_control = self.vis.get_view_control()

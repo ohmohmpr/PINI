@@ -118,6 +118,11 @@ class SensorFusionManager:
             self.init_gyro_mean = np.array([0, 0, 0], dtype='float64')
             self.init_acc_mean = np.array([0, 0, 0], dtype='float64')
             self.idx = 0
+
+            self.init_roll_degree = None
+            self.init_pitch_degree = None
+            self.init_gyro_bias_degree = None
+            
             for i in range(len(self.config.imu_topic)):
                 if self.topic == self.config.imu_topic[i]["topic"]:
                     arr = np.array(self.config.imu_topic[i]["extrinsic_main_imu"])
@@ -164,25 +169,23 @@ class SensorFusionManager:
             self.init_gyro_mean += frame_data["imu"][0]
             self.init_acc_mean += frame_data["imu"][1]
             self.idx = self.idx + 1
+            self.initStaticAlignment()
 
         def initStaticAlignment(self):
-            self.init_gyro_mean = self.init_gyro_mean / self.idx
-            self.init_acc_mean = self.init_acc_mean / self.idx
+            if self.is_initStaticAlignment == False:
+                self.init_gyro_mean = self.init_gyro_mean / self.idx
+                self.init_acc_mean = self.init_acc_mean / self.idx
 
-            init_acc_mean_homo = np.hstack((self.init_acc_mean, np.array([1])))
-            init_acc_mean = self.extrinsic_main_imu @ init_acc_mean_homo
+                init_acc_mean_homo = np.hstack((self.init_acc_mean, np.array([1])))
+                init_acc_mean = init_acc_mean_homo
 
-            self.init_roll = np.arctan2(-init_acc_mean[1], -init_acc_mean[2])
-            self.init_pitch = np.arctan2(init_acc_mean[0], 
-                                    np.sqrt(init_acc_mean[1] * init_acc_mean[1] +
-                                            init_acc_mean[2] * init_acc_mean[2]))
-            self.init_roll_degree = np.degrees(self.init_roll)
-            self.init_pitch_degree = np.degrees(self.init_pitch)
-            # set bias too --> self.init_gyro_mean
-  
-            print("\n StaticAlignment")
-            print("[bold magenta](IMUManager)[/bold magenta]: idx,", self.idx)
-            print("[bold magenta](IMUManager)[/bold magenta]: init_roll_degree,", self.init_roll_degree)
-            print("[bold magenta](IMUManager)[/bold magenta]: init_pitch_degree,", self.init_pitch_degree)
-            print("\n")
+                self.init_roll = np.arctan2(-init_acc_mean[1], -init_acc_mean[2])
+                self.init_pitch = np.arctan2(init_acc_mean[0], 
+                                        np.sqrt(init_acc_mean[1] * init_acc_mean[1] +
+                                                init_acc_mean[2] * init_acc_mean[2]))
+                
+                self.init_roll_degree = np.degrees(self.init_roll)
+                self.init_pitch_degree = np.degrees(self.init_pitch)
+                self.init_gyro_bias_degree = np.degrees(self.init_gyro_mean)
+                self.init_gyro_bias = self.init_gyro_mean
 

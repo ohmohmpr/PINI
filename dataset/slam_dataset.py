@@ -21,6 +21,8 @@ from numpy.linalg import inv
 from rich import print
 from torch.utils.data import Dataset
 from tqdm import tqdm
+from sklearn.decomposition import PCA
+from scipy.spatial.transform import Rotation as R
 
 from dataset.dataloaders import dataset_factory
 from eval.eval_traj_utils import absolute_error, plot_trajectories, relative_error
@@ -49,6 +51,7 @@ class SLAMDataset(Dataset):
         self.device = config.device
         self.run_path = config.run_path
 
+        self.add_Z = False
         self.imu = imu # the imu manager
 
         max_frame_number: int = 100000 # about 3 hours of operation
@@ -278,6 +281,47 @@ class SLAMDataset(Dataset):
                 print("Available data source:", dict_keys)
             if "points" in dict_keys: # TODO: support multiple LiDAR
                 self.points = data["points"] # may also contain intensity or color
+                try: 
+                    self.config.sensor_fusion["ground"]["add_ground"]
+                    add_ground = True
+                except:
+                    add_ground = False
+                if add_ground == True and \
+                    self.init_roll_degree and self.init_pitch_degree and self.is_initStaticAlignment == False:
+
+
+                    radius = self.config.sensor_fusion["ground"]["radius"]
+                    mask = (self.points[:, 2] > 0) & (np.linalg.norm(self.points[:, 0:2], axis=1) < radius)
+
+                    point_num = 1000
+                    rnd_x = (np.random.rand(point_num, 1) - 0.5 ) * radius
+                    rnd_y = (np.random.rand(point_num, 1) - 0.5 ) * radius
+                    rnd_xy = np.hstack((rnd_x, rnd_y))
+
+                    X = self.points[mask]
+                    # print(np.mean(X[:, 2]))
+
+                    rnd_z = np.random.rand(point_num, 1) * 0.1 + np.mean(X[:, 2])
+                    rnd = np.hstack((rnd_xy, rnd_z))
+                    mask = (np.linalg.norm(rnd[:, 0:2], axis=1) < radius)
+                    rnd = rnd[mask]
+
+                    r = R.from_euler('xyz', [self.init_roll_degree, self.init_pitch_degree, 0], degrees=True)
+                    r_mtx = r.as_matrix()
+                    rnd = (np.linalg.inv(r_mtx) @ rnd.T).T
+                    self.points = np.vstack((rnd,  self.points))
+
+                    # mask = (np.abs(self.points[:, 1]) < 0.20) & (self.points[:, 0] < 0) 
+                    # self.points = self.points[~mask]
+                    # pca = PCA(n_components=3)
+                    # pca.fit(X)
+                    # print(pca.mean_)
+
+                    # print(self.points.shape)
+                    # print(X.shape)
+                    # print(pca.explained_variance_ratio_)
+                    # print(pca.singular_values_)
+
             if "point_ts" in dict_keys:
                 self.point_ts = data["point_ts"]
             if "timestamp" in dict_keys:

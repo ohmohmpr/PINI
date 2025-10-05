@@ -144,15 +144,18 @@ class Tracker:
                 sdf_residual,
                 w,
                 sdf_grad,
+                sdf_total_res,
             ) = reg_result
 
             T03 = get_time()
 
+            if sdf_total_res == None:
+                return
             if ((EKF_SDF is not None or EKF_update_PIN) ):
                 if (EKF_SDF is not None):
                     EKF_SDF(sdf_residual)
                 elif (EKF_update_PIN is not None):
-                    EKF_update_PIN(valid_points_torch, sdf_grad, sdf_residual, w)
+                    EKF_update_PIN(valid_points_torch, sdf_grad, sdf_residual, w, sdf_total_res)
 
             T = delta_T @ T
 
@@ -364,6 +367,26 @@ class Tracker:
             if query_certainty:
                 certainty[head:tail] = batch_certainty.detach()
 
+        snp = self.neural_points
+        sdf = torch.abs(sdf_pred)
+        np_res = snp.neural_points_res
+        res_idx = snp.neural_points_res_idx
+
+        sdf_total_res = torch.zeros_like(sdf)
+
+        #
+        np_res[res_idx[:, 0]] =  torch.abs(np_res[res_idx[:, 0]] - sdf)
+        np_res[res_idx[:, 1]] =  torch.abs(np_res[res_idx[:, 1]] - sdf)
+        np_res[res_idx[:, 2]] =  torch.abs(np_res[res_idx[:, 2]] - sdf)
+        np_res[res_idx[:, 3]] =  torch.abs(np_res[res_idx[:, 3]] - sdf)
+        np_res[res_idx[:, 4]] =  torch.abs(np_res[res_idx[:, 4]] - sdf)
+        np_res[res_idx[:, 5]] =  torch.abs(np_res[res_idx[:, 5]] - sdf)
+
+        summ = torch.sum(np_res[res_idx], 1) / 6
+
+        dist  = torch.norm(coord, dim=1)
+        sdf_total_res = (summ * dist) / dist
+        sdf_total_res = summ
         return (
             sdf_pred,
             sdf_grad,
@@ -373,6 +396,7 @@ class Tracker:
             mc_mask,
             certainty,
             sdf_std,
+            sdf_total_res,
         )
 
     def registration_step(
@@ -402,6 +426,7 @@ class Tracker:
             mask,
             certainty,
             sdf_std,
+            sdf_total_res
         ) = self.query_source_points(
             points,
             self.config.infer_bs,
@@ -432,6 +457,7 @@ class Tracker:
             & (grad_norm < max_grad_norm)
             & (grad_norm > min_grad_norm)
             & (sdf_std < max_sdf_std)
+            # & (sdf_total_res < 0.5)
             # & (sdf_pred_abs < max_sdf)
         )
 
@@ -451,6 +477,7 @@ class Tracker:
         sdf_pred = sdf_pred[valid_idx]
         sdf_grad = sdf_grad[valid_idx]
         sdf_labels = sdf_labels[valid_idx]
+        sdf_total_res = sdf_total_res[valid_idx]
 
         # certainty not used here
         # certainty = certainty[valid_idx]
@@ -539,7 +566,8 @@ class Tracker:
         w = w_res * w_grad * w_normal * w_color * w_certainty * w_std
         if not isinstance(w, (float)):
             w /= 2.0 * torch.mean(w)  # normalize weight for visualization
-
+        # w_res = 1/torch.sqrt(sdf_total_res)
+        # w = w_res.reshape(-1, 1)
         T2 = get_time()
 
         color_residual_mean = None
@@ -628,6 +656,7 @@ class Tracker:
             sdf_residual,
             w,  # delete ohm
             sdf_grad, # delete ohm
+            sdf_total_res, # delete ohm
         )
 
 

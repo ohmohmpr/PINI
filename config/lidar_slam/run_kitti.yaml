@@ -1,9 +1,9 @@
 setting:
   name: "test_kitti"
   output_root: "./experiments"
-  pc_path: "./data/kitti/sequences/00/velodyne"
-  pose_path: "./data/kitti/poses/00.txt"
-  calib_path: "./data/kitti/sequences/00/calib.txt"
+  pc_path: "/home/ohmpr/data/KITTI/sequences/00/velodyne"
+  pose_path: "/home/ohmpr/data/KITTI/poses/00.txt"
+  calib_path: "/home/ohmpr/data/KITTI/sequences/00/calib.txt"
   kitti_correct: True
   correct_deg: 0.195
 process:
@@ -12,14 +12,14 @@ process:
   vox_down_m: 0.08
   min_z_m: -3.5
 sampler:
-  surface_sample_range_m: 0.25 
+  surface_sample_range_m: 0.25
   surface_sample_n: 4
   free_sample_begin_ratio: 0.3
   free_sample_end_dist_m: 1.0
   free_front_sample_n: 2
 neuralpoints:
   voxel_size_m: 0.4
-  feature_dim: 8 
+  feature_dim: 8
   query_nn_k: 6
   search_alpha: 0.2
   weighted_first: False
@@ -51,3 +51,42 @@ eval:
   sensor_cad_path: ./cad/kitti_car.ply
   mesh_freq_frame: 50 # reconstruct the mesh every x frames
   mesh_min_nn: 9
+sensor_fusion:
+  ground:
+    add_ground: False
+    radius: 5
+  main_sensor: # from *.txt
+    lidar:
+      topic: /velodyne_points
+      extrinsic_main_main: [ 1.0,   0.0,  0.0, -0.050,
+                              0.0,  -1.0,  0.0,  0.000,
+                              0.0,  0.0,  -1.0,  0.055,
+                              0.0,  0.0,  0.0,  1.000 ] # for visual?
+      deskew: true
+      preprocess: true
+      max_range: 100.0 
+      min_range: 5.0
+      max_points_per_voxel: 20
+      voxel_size: 1
+      max_iteration: 1
+  sensor_types: 
+    imu:
+      - topic: /imu/imu
+        extrinsic_main_imu: [ 1.0,  0.0,  0.0,  0.0,
+                              0.0, -1.0,  0.0,  0.0,
+                              0.0,  0.0, -1.0,  0.0,
+                              0.0,  0.0,  0.0,  1.0 ]
+        # IMU noise parameters
+        arw: [2, 2, 2]                # [deg/sqrt(hr)]
+        vrw: [40, 40, 40]             # [m/s/sqrt(hr)]
+        gbstd: [200.0, 200.0, 200.0]  # [deg/hr]
+        abstd: [500.0, 500.0, 500.0]  # [mGal]
+        corrtime: 1.0                 # [hr]
+
+        init_pos_std: [ 0.01, 0.01, 0.01 ]
+        init_vel_std: [ 0.05, 0.05, 0.05 ]
+        init_att_std: [ 0.1, 0.1, 0.1 ]
+        imu_tran_R: [ [ 1, 0, 0],
+                      [ 0, 1, 0],
+                      [ 0, 0, 1]]
+        hz: 385

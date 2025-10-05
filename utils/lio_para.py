@@ -42,6 +42,7 @@ class LIO_Parameters:
         # depends on the topic
         for i in range(len(self.config['sensor_types']['imu'])):
             if self.topic == self.config['sensor_types']['imu'][i]["topic"]:
+                # self.lidar = np.reshape(self.config['main_sensor']['lidar']['extrinsic_main_main'], (4, 4))
                 self.imu_tran_R = np.reshape(self.config['sensor_types']['imu'][i]['imu_tran_R'], (3, 3))
 
                 extrinsic_main_imu = np.reshape(

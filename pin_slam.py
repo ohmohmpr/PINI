@@ -195,6 +195,9 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     ### oxford spires
     # topic = "/alphasense_driver_ros/imu" # use this
 
+    # m2dgr
+    # topic = "/alphasense/imu" # use this
+
     EKF_TEST = True
     # EKF_TEST = False
     PINI = True
@@ -202,7 +205,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     LIOPara = LIO_Parameters(config, topic).init()
     # o3d_vis.imu_topic = topic 
     # EKF = EKF_ohm(config, LIOPara, o3d_vis, tracker, dataset)
-    EKF = EKF_ohm(config, LIOPara, tracker, dataset, o3d_vis=None)
+    EKF = EKF_ohm(config, LIOPara, tracker, dataset, neural_points, o3d_vis=o3d_vis)
     dataset.poses_ts = []
 
     # for each frame
@@ -234,7 +237,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                 if config.track_on:
                     if len(dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer) > 0 and \
                         dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment == True:
-
+                        # dataset.add_Z = False
+                        
                         EKF.addLidarData(dataset.points, dataset.timestamp, dataset.point_ts)
                         int_imu = 0
                         for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
@@ -272,13 +276,35 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                         dataset.poses_ts.append(pose_ts)
                         dataset.update_odom_pose(cur_pose_torch) # update dataset.cur_pose_torch
 
+
+                        # print("\n StaticAlignment")
+                        imu = dataset.sensor_fusion_manager.imu_manager_dict[topic]
+                        dataset.is_initStaticAlignment = False
+                        dataset.init_roll_degree = imu.init_roll_degree
+                        dataset.init_pitch_degree =imu.init_pitch_degree
+                        # print("[bold magenta](IMUManager)[/bold magenta]: idx,", imu.idx)
+                        # print("[bold magenta](IMUManager)[/bold magenta]: init_roll_degree,", imu.init_roll_degree)
+                        # print("[bold magenta](IMUManager)[/bold magenta]: init_pitch_degree,", imu.init_pitch_degree)
+                        # print("[bold magenta](IMUManager)[/bold magenta]: init_gyro_bias_degree,", imu.init_gyro_bias_degree)
+                        # print("\n")
+
                         norm = np.linalg.norm(dataset.last_odom_tran[:3, 3])
                         if norm > 0.03:
-                            dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment = True
-                            dataset.sensor_fusion_manager.imu_manager_dict[topic].initStaticAlignment()
+                            imu = dataset.sensor_fusion_manager.imu_manager_dict[topic]
+                            imu.is_initStaticAlignment = True
+                            dataset.is_initStaticAlignment = True
+                            imu.initStaticAlignment()
 
-                            dataset.init_roll_degree = dataset.sensor_fusion_manager.imu_manager_dict[topic].init_roll_degree
-                            dataset.init_pitch_degree = dataset.sensor_fusion_manager.imu_manager_dict[topic].init_pitch_degree
+                            dataset.init_roll_degree = imu.init_roll_degree
+                            dataset.init_pitch_degree = imu.init_pitch_degree
+                            dataset.init_gyro_bias_degree = imu.init_gyro_bias_degree
+
+                            print("\n StaticAlignment")
+                            print("[bold magenta](IMUManager)[/bold magenta]: idx,", imu.idx)
+                            print("[bold magenta](IMUManager)[/bold magenta]: init_roll_degree,", imu.init_roll_degree)
+                            print("[bold magenta](IMUManager)[/bold magenta]: init_pitch_degree,", imu.init_pitch_degree)
+                            print("[bold magenta](IMUManager)[/bold magenta]: init_gyro_bias_degree,", imu.init_gyro_bias_degree)
+                            print("\n")
 
                             # o3d_vis._add_geometries_EKF(dataset.init_roll_degree, dataset.init_pitch_degree, 0)
                             print(f"[bold blue](PIN_SLAM)[/bold blue]: norm, {norm} m.")
@@ -554,7 +580,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
             neural_pcd = None
             if o3d_vis.render_neural_points or (frame_id == last_frame): # last frame also vis
-                neural_pcd = neural_points.get_neural_points_o3d(query_global=o3d_vis.vis_global, color_mode=o3d_vis.neural_points_vis_mode, random_down_ratio=1) # select from geo_feature, ts and certainty
+                #ohm
+                neural_pcd = neural_points.get_neural_points_o3d(query_global=o3d_vis.vis_global, color_mode=5, random_down_ratio=1) # select from geo_feature, ts and certainty
 
             # reconstruction by marching cubes
             if config.mesh_freq_frame > 0:
@@ -634,7 +661,8 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
     neural_points.recreate_hash(None, None, False, False) # merge the final neural point map
     neural_points.prune_map(config.max_prune_certainty, 0) # prune uncertain points for the final output     
-    neural_pcd = neural_points.get_neural_points_o3d(query_global=True, color_mode = 0)
+    #ohm
+    neural_pcd = neural_points.get_neural_points_o3d(query_global=True, color_mode = 5)
     if config.save_map:
         o3d.io.write_point_cloud(os.path.join(run_path, "map", "neural_points.ply"), neural_pcd) # write the neural point cloud
     if config.save_mesh and cur_mesh is None:

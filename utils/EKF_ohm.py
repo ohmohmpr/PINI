@@ -69,7 +69,7 @@ class BodyState:
 
 class EKF_ohm:
     def __init__(self, config, LIOPara, tracker,
-                 dataset, o3d_vis=None): #debug
+                 dataset, neural_points, o3d_vis=None): #debug
 
         self.LIOEKF = LIOEKF_pybind._LIOEKF(LIOPara)
         self.LIOEKF._openResults()
@@ -79,10 +79,11 @@ class EKF_ohm:
         self.config.sensor_fusion = self.config.sensor_fusion
 
         self.dataset = dataset # debug
+        self.neural_points = neural_points
         self.tracker = tracker
 
         # Visual
-        # self.o3d_vis = o3d_vis
+        self.o3d_vis = o3d_vis
         self.imu = o3d.geometry.TriangleMesh()
 
         #
@@ -174,8 +175,8 @@ class EKF_ohm:
         pose_NED, vel_NED = self.LIOEKF._getBodyState(Bodystate)
         imu_tran_R = transfrom_to_homo(self.LIOPara.imu_tran_R)
         Trans_lidar_imu = self.LIOPara.Trans_lidar_imu
-        # pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ Trans_lidar_imu, device=self.config.device, dtype=self.config.tran_dtype)
-        pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ np.linalg.inv(self.IMU_orientation) @ imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
+        pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ Trans_lidar_imu, device=self.config.device, dtype=self.config.tran_dtype)
+        # pose_NED_torch = torch.tensor(np.linalg.inv(Trans_lidar_imu) @ pose_NED @ np.linalg.inv(self.IMU_orientation) @ imu_tran_R, device=self.config.device, dtype=self.config.tran_dtype)
 
         return pose_NED_torch
 
@@ -279,8 +280,8 @@ class EKF_ohm:
     def newImuProcess_wrapper(self, dataset, tracker):
         if (self.LIOEKF._is_first_imu_):
 
-            body_l = self.get_bodystate_fLiDAR_torch(self.LIOEKF._bodystate_cur_).cpu().numpy()
-            body_i = self.get_bodystate(self.LIOEKF._bodystate_cur_)
+            # body_l = self.get_bodystate_fLiDAR_torch(self.LIOEKF._bodystate_cur_).cpu().numpy()
+            # body_i = self.get_bodystate(self.LIOEKF._bodystate_cur_)
             # print("[bold green]FRAME ID: [/bold green]", dataset.frame_id)
             # print("[bold yellow](EKF_OHM)[/bold yellow](BEFORE assign): IMU in L frame,\n", 
             #     R.from_matrix(body_l[:3, :3]).as_euler('xyz', degrees=True),
@@ -290,14 +291,16 @@ class EKF_ohm:
             #     body_i[:3, 3])
 
             # print("\n[bold yellow](EKF_OHM)[/bold yellow](ASSIGN Orientation)", )
-            r = R.from_euler('xyz', [dataset.init_roll_degree, dataset.init_pitch_degree, 0], degrees=True)
+            # r = R.from_euler('xyz', [dataset.init_roll_degree, dataset.init_pitch_degree, 0], degrees=True)
             # print("[bold yellow](EKF_OHM)[/bold yellow](Orientation): as_matrix: \n", r.as_matrix())
             # print("[bold yellow](EKF_OHM)[/bold yellow](Orientation): as_euler(rpy): \n", r.as_euler('xyz', degrees=True))
-            self.IMU_orientation = transfrom_to_homo(r.as_matrix())
-            self.set_bodystate_LiDAR_to_IMU(body_l)
+            # self.IMU_orientation = transfrom_to_homo(r.as_matrix())
+            # self.set_bodystate_LiDAR_to_IMU(body_l)
 
-            body_l = self.get_bodystate_fLiDAR_torch(self.LIOEKF._bodystate_cur_).cpu().numpy()
-            body_i = self.get_bodystate(self.LIOEKF._bodystate_cur_)
+            # body_l = self.get_bodystate_fLiDAR_torch(self.LIOEKF._bodystate_cur_).cpu().numpy()
+            # body_i = self.get_bodystate(self.LIOEKF._bodystate_cur_)
+
+            # self.LIOPara.imunoise.gyrbias_std = np.deg2rad(dataset.init_gyro_bias_degree)
 
             # print("[bold yellow](EKF_OHM)[/bold yellow](assign Orientation): IMU in L frame,\n", 
             #     R.from_matrix(body_l[:3, :3]).as_euler('xyz', degrees=True),
@@ -308,7 +311,7 @@ class EKF_ohm:
             # print("[bold red]These two terms should be diff by IMU Orientation + imu_tran + ext params[/bold red], ",
             #     R.from_matrix(body_l[:3, :3]).as_euler('xyz', degrees=True) - R.from_matrix(body_i[:3, :3]).as_euler('xyz', degrees=True),
             #     body_l[:3, 3] - body_i[:3, 3])
-            self.prev_state = body_i
+            # self.prev_state = body_i
 
 
 
@@ -538,12 +541,12 @@ class EKF_ohm:
             points,
             sdf_grad,
             sdf_residual,
-            weight):
+            weight,
+            sdf_total_res):
 
         last_dx = torch.zeros(1, 15, device=self.config.device, dtype=self.config.tran_dtype)
 
         for j in range(self.LIOPara.max_iteration):
-
 
             # flip into imu frame
             Trans_lidar_imu = self.LIOPara.Trans_lidar_imu
@@ -556,15 +559,20 @@ class EKF_ohm:
             sdf_grad_np_t = (Trans_lidar_imu @ sdf_grad_np.T).T
             sdf_grad = torch.tensor(sdf_grad_np_t[:, :3], device=self.config.device, dtype=torch.float32)
 
-            cross = torch.cross(points, sdf_grad, dim=-1)  # N,3 x N,3
+            sdf_grad_r = R.from_rotvec(sdf_grad_np_t[:, :3])
+            sdf_grad_rotation = torch.tensor(sdf_grad_r.as_quat()[:, :3], device=self.config.device, dtype=torch.float32)
+
+            cross = torch.cross(points, sdf_grad_rotation, dim=-1)  # N,3 x N,3
             J_vel = torch.zeros_like(cross)
-            J_av = torch.zeros_like(cross)
-            J_av2 = torch.zeros_like(cross)
+            J_gyro_bias = torch.zeros_like(cross)
+            J_acc_bias = torch.zeros_like(cross)
             J_mat = torch.cat(
-                # [sdf_grad, cross], -1
-                [sdf_grad, J_vel, cross, J_av, J_av2], -1
+                [sdf_grad, J_vel, cross, J_gyro_bias, J_acc_bias], -1
             )  # The Jacobian matrix # first rotation, then translation # N, 6
-            weight = 30000 * weight
+
+            sdf_total_res = sdf_total_res.reshape(-1, 1)
+
+            weight = 400 * 1/torch.sqrt(sdf_total_res) * weight
             N_mat = J_mat.T @ (
                weight * J_mat
             )  # approximate Hessian matrix # first tran, then rot # 6, 6
@@ -575,29 +583,18 @@ class EKF_ohm:
             S_inv = torch.inverse(N_mat + torch.inverse(state_cov_torch))
 
             delta_x_torch = S_inv @ g_vec
-            ########################################################################
-            delta_rot = torch.tensor([delta_x_torch[6], delta_x_torch[7], delta_x_torch[8]])
-            # delta_rot_ = sp.SO3.exp(delta_rot.cpu().numpy())
-            ########################################################################
 
+            # Add factor, so that is compatible to LIO_EKF
             factor = -1
-            # tran
+            # translation
             delta_x_torch[0] = factor * delta_x_torch[0]
             delta_x_torch[1] = factor * delta_x_torch[1]
             delta_x_torch[2] = factor * delta_x_torch[2]
-            # vel
+            # velocity
             delta_x_torch[3] = factor * delta_x_torch[3]
             delta_x_torch[4] = factor * delta_x_torch[4]
             delta_x_torch[5] = factor * delta_x_torch[5]
-            # # rot
-            # delta_x_torch[6] = factor * delta_x_torch[6]
-            # delta_x_torch[7] = factor * delta_x_torch[7]
-            # delta_x_torch[8] = factor * delta_x_torch[8]
-            # # gyro bias
-            # delta_x_torch[9] = factor * delta_x_torch[9]
-            # delta_x_torch[10] = factor * delta_x_torch[10]
-            # delta_x_torch[11] = factor * delta_x_torch[11]
-            # acc bias
+            # acceleration bias
             delta_x_torch[12] = factor * delta_x_torch[12]
             delta_x_torch[13] = factor * delta_x_torch[13]
             delta_x_torch[14] = factor * delta_x_torch[14]

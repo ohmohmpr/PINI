@@ -49,7 +49,7 @@ Implicit Neural Representation</h1>
   <div align="center"></div>
 </p>
 
-![](https://github.com/ohmohmpr/PINI/blob/main/video/math-easy.mp4)
+![video math-easy](https://github.com/ohmohmpr/PINI/blob/main/video/math-easy.mp4)
 
 <!-- **TL;DR: PIN-SLAM is a full-fledged implicit neural LiDAR SLAM system including odometry, loop closure detection, and globally consistent mapping**
 

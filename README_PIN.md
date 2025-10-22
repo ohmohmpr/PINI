@@ -25,31 +25,35 @@ python pin_slam.py ./config/lidar_slam/run.yaml rosbag_with_imu /os1_cloud_node1
 
 <p align="center">
 
-  <h1 align="center">📍PINI-SLAM: LIDAR-Inertial SLAM with
-Implicit Neural Representation</h1>
+  <h1 align="center">📍PIN-SLAM: LiDAR SLAM Using a Point-Based Implicit Neural Representation for Achieving Global Map Consistency</h1>
 
   <p align="center">
-    <!-- <a href="https://github.com/PRBonn/PIN_SLAM/releases"><img src="https://img.shields.io/github/v/release/PRBonn/PIN_SLAM?label=version" /></a> -->
-    <!-- <a href="https://github.com/PRBonn/PIN_SLAM#run-pin-slam"><img src="https://img.shields.io/badge/python-3670A0?style=flat-square&logo=python&logoColor=ffdd54" /></a> -->
-    <!-- <a href="https://github.com/PRBonn/PIN_SLAM#installation"><img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" /></a> -->
-    <!-- <a href="https://www.ipb.uni-bonn.de/wp-content/papercite-data/pdf/pan2024tro.pdf"><img src="https://img.shields.io/badge/Paper-pdf-<COLOR>.svg?style=flat-square" /></a> -->
-    <!-- <a href="https://github.com/PRBonn/PIN_SLAM/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a> -->
+    <a href="https://github.com/PRBonn/PIN_SLAM/releases"><img src="https://img.shields.io/github/v/release/PRBonn/PIN_SLAM?label=version" /></a>
+    <a href="https://github.com/PRBonn/PIN_SLAM#run-pin-slam"><img src="https://img.shields.io/badge/python-3670A0?style=flat-square&logo=python&logoColor=ffdd54" /></a>
+    <a href="https://github.com/PRBonn/PIN_SLAM#installation"><img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" /></a>
+    <a href="https://www.ipb.uni-bonn.de/wp-content/papercite-data/pdf/pan2024tro.pdf"><img src="https://img.shields.io/badge/Paper-pdf-<COLOR>.svg?style=flat-square" /></a>
+    <a href="https://github.com/PRBonn/PIN_SLAM/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a>
   </p>
   
   <p align="center">
-    <a href="https://www.ipb.uni-bonn.de/people/yue-pan/"><strong>Panyawat Ohm Rattana</strong></a>
-    .
     <a href="https://www.ipb.uni-bonn.de/people/yue-pan/"><strong>Yue Pan</strong></a>
-    <!-- <a href=""><strong>Thorbjörn Posewsky</strong></a> -->
-    <!-- <a href="https://www.ipb.uni-bonn.de/people/jens-behley/"><strong>Jens Behley</strong></a> -->
-    <!-- <a href="https://www.ipb.uni-bonn.de/people/cyrill-stachniss/"><strong>Cyrill Stachniss</strong></a> -->
+    ·
+    <a href="https://www.ipb.uni-bonn.de/people/xingguang-zhong/"><strong>Xingguang Zhong</strong></a>
+    ·
+    <a href="https://www.ipb.uni-bonn.de/people/louis-wiesmann/"><strong>Louis Wiesmann</strong></a>
+    .
+    <a href=""><strong>Thorbjörn Posewsky</strong></a>
+    .
+    <a href="https://www.ipb.uni-bonn.de/people/jens-behley/"><strong>Jens Behley</strong></a>
+    ·
+    <a href="https://www.ipb.uni-bonn.de/people/cyrill-stachniss/"><strong>Cyrill Stachniss</strong></a>
   </p>
   <p align="center"><a href="https://www.ipb.uni-bonn.de"><strong>University of Bonn</strong></a>
-  <!-- <h3 align="center"><a href="https://www.ipb.uni-bonn.de/wp-content/papercite-data/pdf/pan2024tro.pdf">Paper</a> | Video</a></h3> -->
+  <h3 align="center"><a href="https://www.ipb.uni-bonn.de/wp-content/papercite-data/pdf/pan2024tro.pdf">Paper</a> | Video</a></h3>
   <div align="center"></div>
 </p>
 
-<!-- **TL;DR: PIN-SLAM is a full-fledged implicit neural LiDAR SLAM system including odometry, loop closure detection, and globally consistent mapping**
+**TL;DR: PIN-SLAM is a full-fledged implicit neural LiDAR SLAM system including odometry, loop closure detection, and globally consistent mapping**
 
 
 ![pin_slam_teaser](https://github.com/PRBonn/PIN_SLAM/assets/34207278/b5ab4c89-cdbe-464e-afbe-eb432b42fccc)
@@ -72,7 +76,7 @@ Implicit Neural Representation</h1>
 
 
 <!-- TABLE OF CONTENTS -->
-<!-- <details open="open" style='padding: 10px; border-radius:5px 30px 30px 5px; border-style: solid; border-width: 1px;'>
+<details open="open" style='padding: 10px; border-radius:5px 30px 30px 5px; border-style: solid; border-width: 1px;'>
   <summary>Table of Contents</summary>
   <ol>
     <li>
@@ -406,4 +410,4 @@ If you have any questions, please contact:
 
 [KISS-ICP (RAL 23)](https://github.com/PRBonn/kiss-icp): A LiDAR odometry pipeline that just works
 
-[4DNDF (CVPR 24)](https://github.com/PRBonn/4dNDF): 3D LiDAR Mapping in Dynamic Environments using a 4D Implicit Neural Representation --> 
+[4DNDF (CVPR 24)](https://github.com/PRBonn/4dNDF): 3D LiDAR Mapping in Dynamic Environments using a 4D Implicit Neural Representation

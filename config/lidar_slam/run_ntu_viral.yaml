@@ -3,7 +3,7 @@ setting:
   output_root: "./experiments"
   deskew: True
 process:
-  min_range_m: 3.0
+  min_range_m: 1.0
   max_range_m: 80.0
 sampler:
   surface_sample_range_m: 0.25
@@ -37,8 +37,8 @@ eval:
   mesh_min_nn: 15
 sensor_fusion:
   ground:
-    add_ground: True
-    radius: 15
+    add_ground: False
+    radius: 0
   main_sensor: # from *.txt
     # imu:
     #   topic: /imu/imu

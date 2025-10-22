@@ -402,7 +402,7 @@ We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/
 |tnp_01(easy)  |   0.174           |    **0.144**|       |
 |tnp_02(easy)  |   0.729           |    **0.127**|       |
 |tnp_03(easy)  |   **0.161**       |    0.189    |       |
-|eee_01(medium)|     x             |    **0.235**|       |
+|eee_01(medium)|     x             |    **0.235**|[video eee_01_14x](https://github.com/ohmohmpr/PINI/blob/main/video/eee_01_14x.gif)|
 |eee_02(medium)|   0.611           |    **0.168**|       |
 |eee_03(medium)|   0.564           |    **0.229**|       |
 |sbs_01(medium)|     x             |    **0.182**|       |

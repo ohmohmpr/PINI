@@ -37,8 +37,8 @@ eval:
   mesh_min_nn: 15
 sensor_fusion:
   ground:
-    add_ground: False
-    radius: 5
+    add_ground: True
+    radius: 15
   main_sensor: # from *.txt
     # imu:
     #   topic: /imu/imu

@@ -186,7 +186,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # topic = "/camera/imu" #
 
     # newer college 128 
-    topic = "/os_cloud_node/imu" # use this
+    # topic = "/os_cloud_node/imu" # use this
     # topic = "/alphasense_driver_ros/imu" #
 
     ### urban NAV

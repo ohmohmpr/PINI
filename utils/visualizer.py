@@ -187,7 +187,7 @@ class MapVisualizer:
                 break
 
     def _initialize_visualizer(self):
-        w_name = "📍 PIN-SLAM Visualizer"
+        w_name = "📍 PINI-SLAM Visualizer"
         self.vis.create_window(
             window_name=w_name, width=2560, height=1600
         )  # 1920, 1080

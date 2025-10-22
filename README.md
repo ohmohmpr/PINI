@@ -51,8 +51,8 @@ Implicit Neural Representation</h1>
   <div align="center"></div>
 </p>
 
-![video math-easy](https://github.com/ohmohmpr/PINI/blob/main/video/math-easy.mp4)
-![video math-easy](https://github.com/ohmohmpr/PINI/blob/main/video/sbs_02_10x.gif)
+![video math_easy_10x](https://github.com/ohmohmpr/PINI/blob/main/video/math_easy_10x.mp4)
+![video sbs_02_10x](https://github.com/ohmohmpr/PINI/blob/main/video/sbs_02_10x.gif)
 
 **TL;DR: PINI-SLAM is PIN-SLAM with IMU**
 

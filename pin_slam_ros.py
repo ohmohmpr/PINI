@@ -491,7 +491,3 @@ if __name__ == "__main__":
 
     slamer = PINSLAMer(config_path, point_cloud_topic)
     slamer.check_exit()
-
-
-
-

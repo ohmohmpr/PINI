@@ -57,9 +57,9 @@ Implicit Neural Representation</h1>
 
 **TL;DR: PINI-SLAM is PIN-SLAM with IMU**
 
-<!-- 
 
-![pin_slam_teaser](https://github.com/PRBonn/PIN_SLAM/assets/34207278/b5ab4c89-cdbe-464e-afbe-eb432b42fccc)
+
+<!-- ![pin_slam_teaser](https://github.com/PRBonn/PIN_SLAM/assets/34207278/b5ab4c89-cdbe-464e-afbe-eb432b42fccc)
 
 *Globally consistent point-based implicit neural (PIN) map built with PIN-SLAM in Bonn. The high-fidelity mesh can be reconstructed from the neural point map.*
 
@@ -75,14 +75,14 @@ Implicit Neural Representation</h1>
 
 | Globally Consistent Mapping | Various Scenarios | RGB-D SLAM Extension |
 | :-: | :-: | :-: |
-| <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/b157f24c-0220-4ac4-8cf3-2247aeedfc2e'> | <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/0906f7cd-aebe-4fb7-9ad4-514d089329bd'> | <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/4519f4a8-3f62-42a1-897e-d9feb66bfcd0'> |
+| <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/b157f24c-0220-4ac4-8cf3-2247aeedfc2e'> | <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/0906f7cd-aebe-4fb7-9ad4-514d089329bd'> | <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/4519f4a8-3f62-42a1-897e-d9feb66bfcd0'> | -->
 
 
 <!-- TABLE OF CONTENTS -->
-<!-- <details open="open" style='padding: 10px; border-radius:5px 30px 30px 5px; border-style: solid; border-width: 1px;'>
+<details open="open" style='padding: 10px; border-radius:5px 30px 30px 5px; border-style: solid; border-width: 1px;'>
   <summary>Table of Contents</summary>
   <ol>
-    <li>
+    <!-- <li>
       <a href="#abstract">Abstract</a>
     </li>
     <li>
@@ -93,10 +93,13 @@ Implicit Neural Representation</h1>
     </li>
     <li>
       <a href="#visualizer-instructions">Visualizer instructions</a>
-    </li>
+    </li> -->
     <li>
-      <a href="#citation">Citation</a>
+      <a href="#results">Results</a>
     </li>
+    <!-- <li>
+      <a href="#citation">Citation</a>
+    </li> -->
     <li>
       <a href="#contact">Contact</a>
     </li>
@@ -107,7 +110,7 @@ Implicit Neural Representation</h1>
 </details>
 
 
-## Abstract
+<!-- ## Abstract
 
 <details>
   <summary>[Details (click to expand)]</summary>
@@ -381,9 +384,40 @@ We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/
 |  ↑/↓   |  move up/down the horizontal SDF slice                                                     |
 |  +/-   |                  increase/decrease point size                                              |
 
+</details> -->
+
+## Results
+
+We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/PRBonn/lidar-visualizer) to monitor the SLAM process. You can use `-v` flag to turn on it.
+
+<details>
+  <summary>[click to expand]</summary>
+
+| Method       |      PIN-SLAM     |  PINI(Ours) | Video |
+|:------------:|:-----------------:|:-----------:|------:|
+| type         | neural point [m]  | neural point [m]| |
+|nya_01(easy)  |   **0.117**       |    0.154    |       |
+|nya_02(easy)  |   **0.151**       |    0.221    |       |
+|nya_03(easy)  |   0.305           |    **0.271**|       |
+|tnp_01(easy)  |   0.174           |    **0.144**|       |
+|tnp_02(easy)  |   0.729           |    **0.127**|       |
+|tnp_03(easy)  |   **0.161**       |    0.189    |       |
+|eee_01(medium)|     x             |    **0.235**|       |
+|eee_02(medium)|   0.611           |    **0.168**|       |
+|eee_03(medium)|   0.564           |    **0.229**|       |
+|sbs_01(medium)|     x             |    **0.182**|       |
+|sbs_02(medium)|   1.017           |    **0.241**|[video sbs_02_10x](https://github.com/ohmohmpr/PINI/blob/main/video/sbs_02_10x.gif)|
+|sbs_03(medium)|     x             |    **0.185**|       |
+|rtp_01(medium)|     x             |       x     |       |
+|rtp_02(medium)|     x             |    **0.322**|       |
+|rtp_03(medium)|   0.319           |    **0.497**|[video rtp_03_16x](https://github.com/ohmohmpr/PINI/blob/main/video/rtp_03_16x.gif)|
+|spms_01(hard) |     x             |       x     |       |
+|spms_02(hard) |     x             |       x     |       |
+|spms_03(hard) |     x             |       x     |       |
+
 </details>
 
-## Citation
+<!-- ## Citation
 
 If you use PIN-SLAM for any academic work, please cite our original [paper](https://ieeexplore.ieee.org/document/10582536).
 
@@ -395,17 +429,21 @@ journal = IEEE Transactions on Robotics (TRO),
 year = {2024},
 codeurl = {https://github.com/PRBonn/PIN_SLAM},
 }
-```
+``` -->
 
 
 
 ## Contact
 If you have any questions, please contact:
 
-- Yue Pan {[yue.pan@igg.uni-bonn.de]()}
+- Panyawat Rattana {[panyawat.rattana@hotmail.com]()}
 
 
 ## Related Projects
+
+[PIN-SLAM](https://github.com/PRBonn/PIN_SLAM): LiDAR SLAM Using a Point-Based Implicit Neural Representation for Achieving Global Map Consistency
+
+[LIO-EKF](https://github.com/YibinWu/LIO-EKF): LIO-EKF: High Frequency LiDAR-Inertial Odometry using Extended Kalman Filters
 
 [SHINE-Mapping (ICRA 23)](https://github.com/PRBonn/SHINE_mapping): Large-Scale 3D Mapping Using Sparse Hierarchical Implicit Neural Representations
 
@@ -413,4 +451,4 @@ If you have any questions, please contact:
 
 [KISS-ICP (RAL 23)](https://github.com/PRBonn/kiss-icp): A LiDAR odometry pipeline that just works
 
-[4DNDF (CVPR 24)](https://github.com/PRBonn/4dNDF): 3D LiDAR Mapping in Dynamic Environments using a 4D Implicit Neural Representation --> 
+[4DNDF (CVPR 24)](https://github.com/PRBonn/4dNDF): 3D LiDAR Mapping in Dynamic Environments using a 4D Implicit Neural Representation

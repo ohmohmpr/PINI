@@ -39,6 +39,8 @@ Implicit Neural Representation</h1>
   <p align="center">
     <a href="https://www.ipb.uni-bonn.de/people/yue-pan/"><strong>Panyawat Ohm Rattana</strong></a>
     .
+    <a href="https://www.ipb.uni-bonn.de/people/yue-pan/"><strong>Yibin Wu</strong></a>
+    .
     <a href="https://www.ipb.uni-bonn.de/people/yue-pan/"><strong>Yue Pan</strong></a>
     <!-- <a href=""><strong>Thorbjörn Posewsky</strong></a> -->
     <!-- <a href="https://www.ipb.uni-bonn.de/people/jens-behley/"><strong>Jens Behley</strong></a> -->
@@ -51,9 +53,9 @@ Implicit Neural Representation</h1>
 
 ![video math-easy](https://github.com/ohmohmpr/PINI/blob/main/video/math-easy.mp4)
 
-<!-- **TL;DR: PIN-SLAM is a full-fledged implicit neural LiDAR SLAM system including odometry, loop closure detection, and globally consistent mapping**
+**TL;DR: PINI-SLAM is PIN-SLAM with IMU**
 
-
+<!-- 
 
 ![pin_slam_teaser](https://github.com/PRBonn/PIN_SLAM/assets/34207278/b5ab4c89-cdbe-464e-afbe-eb432b42fccc)
 

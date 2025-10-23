@@ -424,7 +424,7 @@ We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/
 |:------------:|:-----------------:|:-----------:|:-----:|:------:|
 | type         | neural point [m]  | neural point [m]|   |        |
 | 3_math_easy  |                   |             |       |        |
-| 3_math_medium|                   |             |[video quad_mid_pini_weight_6x](https://github.com/ohmohmpr/PINI/blob/main/video/spms_03_vert_quad_mid_pini_weight_6x.gif)|[video quad_mid_pin_6x](https://github.com/ohmohmpr/PINI/blob/main/video/quad_mid_pin_6x.gif)|
+| 3_math_medium|                   |             |[video quad_mid_pini_weight_6x](https://github.com/ohmohmpr/PINI/blob/main/video/quad_mid_pini_weight_6x.gif)|[video quad_mid_pin_6x](https://github.com/ohmohmpr/PINI/blob/main/video/quad_mid_pin_6x.gif)|
 | 3_math_hard  |                   |             |       |        |
 
 </details>

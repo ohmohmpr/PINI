@@ -391,7 +391,7 @@ We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/
 We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/PRBonn/lidar-visualizer) to monitor the SLAM process. You can use `-v` flag to turn on it.
 
 <details>
-  <summary>[click to expand]</summary>
+  <summary>NTU VIRAL [click to expand]</summary>
 
 | Method       |      PIN-SLAM     |  PINI(Ours) | Video | PIN(add ground)| Vertical LiDAR|
 |:------------:|:-----------------:|:-----------:|:-----:|:------:|:------:|
@@ -415,6 +415,17 @@ We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/
 |spms_02(hard) |     x             |       x     |       |        |        |
 |spms_03(hard) |     x             |       x     |[video spms_03_hort_4x](https://github.com/ohmohmpr/PINI/blob/main/video/spms_03_hort_4x.gif)|        |[video spms_03_vert_2x](https://github.com/ohmohmpr/PINI/blob/main/video/spms_03_vert_2x.gif)|
 
+</details>
+
+<details>
+  <summary>Newer College 128beams [click to expand]</summary>
+
+| Method       |      PIN-SLAM     |  PINI(Ours) | Video | PIN(add ground)| Vertical LiDAR|
+|:------------:|:-----------------:|:-----------:|:-----:|:------:|:------:|
+| type         | neural point [m]  | neural point [m]|   |        |        |
+| 3_math_easy  |                   |             |       |        |        |
+| 3_math_medium|                   |             |[video quad_mid_pini_weight_6x](https://github.com/ohmohmpr/PINI/blob/main/video/spms_03_vert_quad_mid_pini_weight_6x2x.gif)|[video quad_mid_pin_6x](https://github.com/ohmohmpr/PINI/blob/main/video/quad_mid_pin_6x.gif)|        |
+| 3_math_hard  |                   |             |       |        |        |
 
 </details>
 

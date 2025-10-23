@@ -207,6 +207,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
     # EKF = EKF_ohm(config, LIOPara, o3d_vis, tracker, dataset)
     EKF = EKF_ohm(config, LIOPara, tracker, dataset, neural_points, o3d_vis=o3d_vis)
     dataset.poses_ts = []
+    dataset.is_initStaticAlignment = False
 
     # for each frame
     for frame_id in tqdm(range(dataset.total_pc_count)): # frame id as the processed frame, possible skipping done in data loader
@@ -238,7 +239,7 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
                     if len(dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer) > 0 and \
                         dataset.sensor_fusion_manager.imu_manager_dict[topic].is_initStaticAlignment == True:
                         # dataset.add_Z = False
-                        
+
                         EKF.addLidarData(dataset.points, dataset.timestamp, dataset.point_ts)
                         int_imu = 0
                         for imu in dataset.sensor_fusion_manager.imu_manager_dict[topic].buffer:
@@ -279,7 +280,6 @@ def run_pin_slam(config_path=None, dataset_name=None, sequence_name=None, seed=N
 
                         # print("\n StaticAlignment")
                         imu = dataset.sensor_fusion_manager.imu_manager_dict[topic]
-                        dataset.is_initStaticAlignment = False
                         dataset.init_roll_degree = imu.init_roll_degree
                         dataset.init_pitch_degree =imu.init_pitch_degree
                         # print("[bold magenta](IMUManager)[/bold magenta]: idx,", imu.idx)

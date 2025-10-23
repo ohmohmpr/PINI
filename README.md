@@ -393,27 +393,27 @@ We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/
 <details>
   <summary>[click to expand]</summary>
 
-| Method       |      PIN-SLAM     |  PINI(Ours) | Video |
-|:------------:|:-----------------:|:-----------:|------:|
-| type         | neural point [m]  | neural point [m]| |
-|nya_01(easy)  |   **0.117**       |    0.154    |       |
-|nya_02(easy)  |   **0.151**       |    0.221    |       |
-|nya_03(easy)  |   0.305           |    **0.271**|       |
-|tnp_01(easy)  |   0.174           |    **0.144**|       |
-|tnp_02(easy)  |   0.729           |    **0.127**|       |
-|tnp_03(easy)  |   **0.161**       |    0.189    |       |
-|eee_01(medium)|     x             |    **0.235**|[video eee_01_14x](https://github.com/ohmohmpr/PINI/blob/main/video/eee_01_14x.gif)|
-|eee_02(medium)|   0.611           |    **0.168**|       |
-|eee_03(medium)|   0.564           |    **0.229**|       |
-|sbs_01(medium)|     x             |    **0.182**|       |
-|sbs_02(medium)|   1.017           |    **0.241**|[video sbs_02_10x](https://github.com/ohmohmpr/PINI/blob/main/video/sbs_02_10x.gif)|
-|sbs_03(medium)|     x             |    **0.185**|       |
-|rtp_01(medium)|     x             |       x     |       |
-|rtp_02(medium)|     x             |    **0.322**|       |
-|rtp_03(medium)|   0.319           |    **0.497**|[video rtp_03_16x](https://github.com/ohmohmpr/PINI/blob/main/video/rtp_03_16x.gif)|
-|spms_01(hard) |     x             |       x     |       |
-|spms_02(hard) |     x             |       x     |       |
-|spms_03(hard) |     x             |       x     |       |
+| Method       |      PIN-SLAM     |  PINI(Ours) | Video | PIN(add ground)|
+|:------------:|:-----------------:|:-----------:|------:|:------:|
+| type         | neural point [m]  | neural point [m]|   |        |
+|nya_01(easy)  |   **0.117**       |    0.154    |[video nya_01_10x](https://github.com/ohmohmpr/PINI/blob/main/video/nya_01_10x.gif)|        |
+|nya_02(easy)  |   **0.151**       |    0.221    |       |        |
+|nya_03(easy)  |   0.305           |    **0.271**|       |        |
+|tnp_01(easy)  |   0.174           |    **0.144**|       |        |
+|tnp_02(easy)  |   0.729           |    **0.127**|       |        |
+|tnp_03(easy)  |   **0.161**       |    0.189    |       |        |
+|eee_01(medium)|     x             |    **0.235**|[video eee_01_14x](https://github.com/ohmohmpr/PINI/blob/main/video/eee_01_14x.gif)|        |
+|eee_02(medium)|   0.611           |    **0.168**|       |        |
+|eee_03(medium)|   0.564           |    **0.229**|       |        |
+|sbs_01(medium)|     x             |    **0.182**|       |        |
+|sbs_02(medium)|   1.017           |    **0.241**|[video sbs_02_10x](https://github.com/ohmohmpr/PINI/blob/main/video/sbs_02_10x.gif)|[video sbs_02_pin](https://github.com/ohmohmpr/PINI/blob/main/video/sbs_02_pin.gif)|
+|sbs_03(medium)|     x             |    **0.185**|       |        |
+|rtp_01(medium)|     x             |       x     |       |        |
+|rtp_02(medium)|     x             |    **0.322**|       |        |
+|rtp_03(medium)|   **0.319**       |    0.497    |[video rtp_03_16x](https://github.com/ohmohmpr/PINI/blob/main/video/rtp_03_16x.gif)|        |
+|spms_01(hard) |     x             |       x     |       |        |
+|spms_02(hard) |     x             |       x     |       |        |
+|spms_03(hard) |     x             |       x     |       |        |
 
 </details>
 

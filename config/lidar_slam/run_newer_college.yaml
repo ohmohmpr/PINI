@@ -4,7 +4,7 @@ setting:
   deskew: True
 process:
   # min_range_m: 0.5 # 3,4
-  min_range_m: 3 # 1
+  min_range_m: 1 # 1
   max_range_m: 80.0
 sampler:
   surface_sample_range_m: 0.25
@@ -53,7 +53,7 @@ sensor_fusion:
         deskew: true
         preprocess: true
         max_range: 100.0 
-        min_range: 3
+        min_range: 1
         max_points_per_voxel: 20
         voxel_size: 1
         max_iteration: 1

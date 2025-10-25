@@ -1446,12 +1446,14 @@ def crop_frame(
     min_range=2.75,
     max_range=100.0,
 ):
+    max_x_th=10.0
     dist = torch.norm(points[:, :3], dim=1)
     filtered_idx = (
         (dist > min_range)
         & (dist < max_range)
         & (points[:, 2] > min_z_th)
         & (points[:, 2] < max_z_th)
+        # & (points[:, 0] < max_x_th)
     )
     points = points[filtered_idx]
     if ts is not None:

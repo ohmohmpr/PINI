@@ -435,7 +435,7 @@ We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/
 | Method       |      PIN-SLAM     |  PINI(Ours) | LIO-EKF | fail|
 |:------------:|:-----------------:|:-----------:|:-----:|:------:|
 | type         | neural point [m]  | neural point [m]|   |        |
-| cloister_128s|[video video/cloister_128s_pin_5x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_128s_pin_5x.gif)|[video video/cloister_128s_pini_4x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_128s_pini_4x.gif)|[video video/cloister_128s_lio_ekf_5x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_128s_lio_ekf_5x.gif)|[video video/cloister_pini_full_1_5x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_pini_full_1_5x.gif)|
+| cloister_128s|[cloister_128s_pin_5x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_128s_pin_5x.gif)|[cloister_128s_pini_4x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_128s_pini_4x.gif)|[cloister_128s_lio_ekf_5x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_128s_lio_ekf_5x.gif)|[cloister_pini_full_1_5x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_pini_full_1_5x.gif)|
 
 </details>
 

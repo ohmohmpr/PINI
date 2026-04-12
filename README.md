@@ -1,60 +1,60 @@
 <p align="center">
 
-  <h1 align="center">📍PIN-SLAM: LiDAR SLAM Using a Point-Based Implicit Neural Representation for Achieving Global Map Consistency</h1>
+  <h1 align="center">📍PINI-SLAM: LIDAR-Inertial SLAM with
+Implicit Neural Representation (Rewrite version)</h1>
 
   <p align="center">
-    <a href="https://github.com/PRBonn/PIN_SLAM/releases"><img src="https://img.shields.io/github/v/release/PRBonn/PIN_SLAM?label=version" /></a>
-    <a href="https://github.com/PRBonn/PIN_SLAM#run-pin-slam"><img src="https://img.shields.io/badge/python-3670A0?style=flat-square&logo=python&logoColor=ffdd54" /></a>
+    <!-- <a href="https://github.com/PRBonn/PIN_SLAM/releases"><img src="https://img.shields.io/github/v/release/PRBonn/PIN_SLAM?label=version" /></a> -->
+    <!-- <a href="https://github.com/PRBonn/PIN_SLAM#run-pin-slam"><img src="https://img.shields.io/badge/python-3670A0?style=flat-square&logo=python&logoColor=ffdd54" /></a>
     <a href="https://github.com/PRBonn/PIN_SLAM#installation"><img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" /></a>
     <a href="https://www.ipb.uni-bonn.de/wp-content/papercite-data/pdf/pan2024tro.pdf"><img src="https://img.shields.io/badge/Paper-pdf-<COLOR>.svg?style=flat-square" /></a>
-    <a href="https://github.com/PRBonn/PIN_SLAM/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a>
+    <a href="https://github.com/PRBonn/PIN_SLAM/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a> -->
   </p>
   
   <p align="center">
+    <a href=""><strong>Panyawat Ohm Rattana</strong></a>
+    .
+    <a href=""><strong>Yibin Wu</strong></a>
+    .
     <a href="https://www.ipb.uni-bonn.de/people/yue-pan/"><strong>Yue Pan</strong></a>
-    ·
-    <a href="https://www.ipb.uni-bonn.de/people/xingguang-zhong/"><strong>Xingguang Zhong</strong></a>
-    ·
-    <a href="https://www.ipb.uni-bonn.de/people/louis-wiesmann/"><strong>Louis Wiesmann</strong></a>
-    .
-    <a href=""><strong>Thorbjörn Posewsky</strong></a>
-    .
-    <a href="https://www.ipb.uni-bonn.de/people/jens-behley/"><strong>Jens Behley</strong></a>
-    ·
-    <a href="https://www.ipb.uni-bonn.de/people/cyrill-stachniss/"><strong>Cyrill Stachniss</strong></a>
   </p>
   <p align="center"><a href="https://www.ipb.uni-bonn.de"><strong>University of Bonn</strong></a>
-  <h3 align="center"><a href="https://www.ipb.uni-bonn.de/wp-content/papercite-data/pdf/pan2024tro.pdf">Paper</a> | <a href="https://www.youtube.com/watch?v=jwuAkIwb2X8">Video</a></h3>
+    
+  <h3 align="center">
+    <a href="https://drive.google.com/file/d/1gY25pfbnZ_KeUwcbUAccAKJr72j1Wias/view?usp=sharing">Paper</a> |
+    <a href="https://docs.google.com/presentation/d/1rFiMRartneJGU4c9A1rqQXVVotHU9rTvLhfQCqjQ6PQ/edit?usp=sharing">Presentation</a>
+  </h3>
+
   <div align="center"></div>
 </p>
 
-**TL;DR: PIN-SLAM is a full-fledged implicit neural LiDAR SLAM system including odometry, loop closure detection, and globally consistent mapping**
+**TL;DR: PINI-SLAM is PIN-SLAM with IMU**
 
 
-![pin_slam_teaser](https://github.com/PRBonn/PIN_SLAM/assets/34207278/b5ab4c89-cdbe-464e-afbe-eb432b42fccc)
+<!-- ![pin_slam_teaser](https://github.com/PRBonn/PIN_SLAM/assets/34207278/b5ab4c89-cdbe-464e-afbe-eb432b42fccc)
 
-*Globally consistent point-based implicit neural (PIN) map built with PIN-SLAM in Bonn. The high-fidelity mesh can be reconstructed from the neural point map.*
-
-----
-
-![pin_slam_loop_compare](https://github.com/PRBonn/PIN_SLAM/assets/34207278/7dadd438-5a46-451a-9add-c9c08dcae277)
-
-*Comparison of (a) the inconsistent mesh with duplicated structures reconstructed by PIN LiDAR odometry, and (b) the globally consistent mesh reconstructed by PIN-SLAM.*
-
+*Globally consistent point-based implicit neural (PIN) map built with PIN-SLAM in Bonn. The high-fidelity mesh can be reconstructed from the neural point map.* -->
 
 ----
 
+<!-- ![pin_slam_loop_compare](https://github.com/PRBonn/PIN_SLAM/assets/34207278/7dadd438-5a46-451a-9add-c9c08dcae277)
 
-| Globally Consistent Mapping | Various Scenarios | RGB-D SLAM Extension |
+*Comparison of (a) the inconsistent mesh with duplicated structures reconstructed by PIN LiDAR odometry, and (b) the globally consistent mesh reconstructed by PIN-SLAM.* -->
+
+
+----
+
+
+<!-- | Globally Consistent Mapping | Various Scenarios | RGB-D SLAM Extension |
 | :-: | :-: | :-: |
-| <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/b157f24c-0220-4ac4-8cf3-2247aeedfc2e'> | <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/0906f7cd-aebe-4fb7-9ad4-514d089329bd'> | <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/4519f4a8-3f62-42a1-897e-d9feb66bfcd0'> |
+| <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/b157f24c-0220-4ac4-8cf3-2247aeedfc2e'> | <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/0906f7cd-aebe-4fb7-9ad4-514d089329bd'> | <video src='https://github.com/PRBonn/PIN_SLAM/assets/34207278/4519f4a8-3f62-42a1-897e-d9feb66bfcd0'> | -->
 
 ----
-**Update: New GUI**
+<!-- **Update: New GUI**
 
 ![coloseum_pin_gui_fast](https://github.com/user-attachments/assets/490b3652-25d3-4a8a-97ef-50a64f3a00d5)
 
-![demo_new_gui_ipb_car](https://github.com/user-attachments/assets/0f426606-c680-42f8-a6ab-f047d5291788)
+![demo_new_gui_ipb_car](https://github.com/user-attachments/assets/0f426606-c680-42f8-a6ab-f047d5291788) -->
 
 
 
@@ -64,22 +64,28 @@
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#abstract">Abstract</a>
+      <!-- <a href="#abstract">Abstract</a> -->
     </li>
     <li>
       <a href="#installation">Installation</a>
     </li>
     <li>
-      <a href="#run-pin-slam">How to run PIN-SLAM</a>
+      <a href="#run-pini-slam">How to run PINI-SLAM</a>
     </li>
     <li>
-      <a href="#docker">Docker</a>
+      <a href="#sensor-configuration">Sensor configuration</a>
     </li>
     <li>
-      <a href="#citation">Citation</a>
+      <a href="#development">For development</a>
     </li>
     <li>
-      <a href="#contact">Contact</a>
+      <!-- <a href="#docker">Docker</a> -->
+    </li>
+    <li>
+      <!-- <a href="#citation">Citation</a> -->
+    </li>
+    <li>
+      <!-- <a href="#contact">Contact</a> -->
     </li>
     <li>
       <a href="#related-projects">Related projects</a>
@@ -88,7 +94,7 @@
 </details>
 
 
-## Abstract
+<!-- ## Abstract
 
 <details>
   <summary>[Details (click to expand)]</summary>
@@ -112,14 +118,14 @@ reconstructed as accurate and complete meshes. Finally, thanks to
 the voxel hashing for efficient neural points indexing and the fast
 implicit map-based registration without closest point association,
 PIN-SLAM can run at the sensor frame rate on a moderate GPU.
-</details>
+</details> -->
 
 
 
 ## Installation
 
 ### Platform requirement
-* Ubuntu OS (tested on 20.04)
+* Ubuntu OS (tested on 22.04)
 
 * With GPU (recommended) or CPU only (run much slower)
 
@@ -129,22 +135,22 @@ PIN-SLAM can run at the sensor frame rate on a moderate GPU.
 
 ### 0. Clone the repository
 
+<!-- git clone git@github.com:PRBonn/PIN_SLAM.git -->
 ```
-git clone git@github.com:PRBonn/PIN_SLAM.git
-cd PIN_SLAM
+cd PINI_SLAM
 ```
 
 ### 1. Set up conda environment
 
 ```
-conda create --name pin python=3.10
-conda activate pin
+conda create --name pini python=3.10
+conda activate pini
 ```
 
 ### 2. Install the key requirement PyTorch
 
 ```
-conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1  pytorch-cuda=11.8 -c pytorch -c nvidia
+conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1  pytorch-cuda=12.4 -c pytorch -c nvidia
 ```
 
 The commands depend on your CUDA version (check it by `nvcc --version`). You may check the instructions [here](https://pytorch.org/get-started/previous-versions/).
@@ -153,14 +159,15 @@ The commands depend on your CUDA version (check it by `nvcc --version`). You may
 
 ```
 pip3 install -r requirements.txt
+# pip3 install pybind also
 ```
 
 ----
 
-## Run PIN-SLAM
+## Run PINI-SLAM
 
 
-### Sanity test
+<!-- ### Sanity test
 
 For a sanity test, do the following to download an example part (first 100 frames) of the KITTI dataset (seq 00):
 
@@ -172,9 +179,9 @@ And then run:
 
 ```
 python3 pin_slam.py ./config/lidar_slam/run_demo.yaml -vsm
-```
+``` -->
 
-<details>
+<!-- <details>
   <summary>[Details (click to expand)]</summary>
   
 You can visualize the SLAM process in PIN-SLAM viewer GUI and check the results in the `./experiments` folder.
@@ -199,7 +206,7 @@ If you don't have a Nvidia GPU on your device, then you can turn on the CPU-only
 python3 pin_slam.py ./config/lidar_slam/run_demo.yaml -vsmc
 ```
 
-</details>
+</details> -->
 
 
 ### Run on your datasets
@@ -217,7 +224,7 @@ python3 pin_slam.py -i /path/to/your/point/cloud/folder -vsm
 <details>
   <summary>[More Usage (click to expand)]</summary>
 
-To run PIN-SLAM with a specific config file, you can run:
+<!-- To run PIN-SLAM with a specific config file, you can run:
 ```
 python3 pin_slam.py path_to_your_config_file.yaml -vsm
 ```
@@ -241,25 +248,30 @@ python3 pin_slam.py ./config/lidar_slam/run_ncd.yaml ncd 01 -vsm
 
 # Replica dataset sequence room0
 python3 pin_slam.py ./config/rgbd_slam/run_replica.yaml replica room0 -vsm
-```
+``` -->
 
 **Use specific data loaders with the -d flag**
 
 We also support loading data from rosbag, mcap or pcap (ros2) using specific data loaders (originally from [KISS-ICP](https://github.com/PRBonn/kiss-icp)). You need to set the flag `-d` to use such data loaders. For example:
 ```
+python3 pin_slam.py [CONFIG] [DATALOADER] [TOPIC] -i [DATA_PATH] -dv
+python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_03/ -dv
+```
+
+<!-- ```
 # Run on a rosbag or a folder of rosbags with certain point cloud topic, the same applies for mcap bags
 python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag point_cloud_topic_name -i /path/to/the/rosbag -vsmd
 
 # If there's only one topic for point cloud in the rosbag, you can omit it
 python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag -i /path/to/the/rosbag -vsmd
-```
+``` -->
 
 The data loaders for [some specific datasets](https://github.com/PRBonn/PIN_SLAM/tree/main/dataset/dataloaders) are also available. You need to set the flag `-d` to use such data loaders.
 ```
 Available dataloaders: ['apollo', 'boreas', 'generic', 'helipr', 'kitti', 'kitti360', 'kitti_mot', 'kitti_raw', 'mcap', 'mulran', 'ncd', 'nclt', 'neuralrgbd', 'nuscenes', 'ouster', 'replica', 'rosbag', 'tum']
 ```
 
-For example, you can run on Replica RGB-D dataset without preprocessing the data by:
+<!-- For example, you can run on Replica RGB-D dataset without preprocessing the data by:
 ```
 # Download data
 sh scripts/download_replica.sh
@@ -295,11 +307,11 @@ The SLAM results and logs will be output in the `output_root` folder set in the 
 
 For evaluation, you may check [here](https://github.com/PRBonn/PIN_SLAM/blob/main/eval/README.md) for the results that can be obtained with this repository on a couple of popular datasets. 
 
-The training logs can be monitored via Weights & Bias online if you set the flag `-w`. If it's your first time using [Weights & Bias](https://wandb.ai/site), you will be requested to register and log in to your wandb account. You can also set the flag `-l` to turn on the log printing in the terminal. If you want to get the dense merged point cloud map using the estimated poses of PIN-SLAM, you can set the flag `-p`.
+The training logs can be monitored via Weights & Bias online if you set the flag `-w`. If it's your first time using [Weights & Bias](https://wandb.ai/site), you will be requested to register and log in to your wandb account. You can also set the flag `-l` to turn on the log printing in the terminal. If you want to get the dense merged point cloud map using the estimated poses of PIN-SLAM, you can set the flag `-p`. -->
 
 </details>
 
-### ROS 1 Support
+<!-- ### ROS 1 Support
 
 If you are not using PIN-SLAM as a part of a ROS package, you can avoid the catkin stuff and simply run:
 
@@ -339,10 +351,10 @@ You can also put `pin_slam_ros.py` into a ROS package for `rosrun` or `roslaunch
 
 We will add support for ROS2 in the near future.
 
-</details>
+</details> -->
 
 
-### Inspect the results after SLAM
+<!-- ### Inspect the results after SLAM
 
 After the SLAM process, you can reconstruct mesh from the PIN map within an arbitrary bounding box with an arbitrary resolution by running:
 
@@ -361,9 +373,44 @@ For example, for the case of the sanity test described above, run:
 python3 vis_pin_map.py ./experiments/sanity_test_*  -m 0.2 -c neural_points.ply -o mesh_20cm.ply -n 8
 ```
 
+</details> -->
+
+## Sensor configuration
+
+<details>
+  <summary>[Details (click to expand)]</summary>
+
+If you run another datasets that I don't have any configuration for you.
+Here is a documentation.
+
+<!-- ## How to install
+
+```bash
+## you must install conda with pini enviroment first.
+pip3 install scikit-build-core pyproject_metadata pathspec pybind11 ninja cmake jupyterlab
+## for development, took it from kiss-icp
+pip3 uninstall LIOEKF_pybind -y && CMAKE_POLICY_VERSION_MINIMUM=3.15 pip3 install --no-build-isolation -ve dependencies
+``` -->
+
 </details>
 
-## Docker
+## Development
+
+<details>
+  <summary>[Details (click to expand)]</summary>
+
+## How to install
+
+```bash
+## you must install conda with pini enviroment first.
+pip3 install scikit-build-core pyproject_metadata pathspec pybind11 ninja cmake jupyterlab
+## for development, took it from kiss-icp
+pip3 uninstall LIOEKF_pybind -y && CMAKE_POLICY_VERSION_MINIMUM=3.15 pip3 install --no-build-isolation -ve dependencies
+```
+
+</details>
+
+<!-- ## Docker
 
 <details>
   <summary>[Details (click to expand)]</summary>
@@ -383,9 +430,9 @@ After building the container, configure the storage path in `start_docker.sh` an
 sudo chmod +x ./start_docker.sh
 ./start_docker.sh
 ```
-</details>
+</details> -->
 
-## Citation
+<!-- ## Citation
 
 <details>
   <summary>[Details (click to expand)]</summary>
@@ -405,15 +452,18 @@ If you use PIN-SLAM for any academic work, please cite our original [paper](http
   url = {https://www.ipb.uni-bonn.de/wp-content/papercite-data/pdf/pan2024tro.pdf}
 }
 ```
-</details>
+</details> -->
 
 ## Contact
 If you have any questions, please contact:
 
-- Yue Pan {[yue.pan@igg.uni-bonn.de]()}
-
+- Panyawat Rattana {[panyawat.rattana@gmail.com](panyawat.rattana@hotmail.com)}
 
 ## Related Projects
+
+[PIN-SLAM](https://github.com/PRBonn/PIN_SLAM): LiDAR SLAM Using a Point-Based Implicit Neural Representation for Achieving Global Map Consistency
+
+[LIO-EKF](https://github.com/YibinWu/LIO-EKF): LIO-EKF: High Frequency LiDAR-Inertial Odometry using Extended Kalman Filters
 
 [SHINE-Mapping (ICRA 23)](https://github.com/PRBonn/SHINE_mapping): Large-Scale 3D Mapping Using Sparse Hierarchical Implicit Neural Representations
 

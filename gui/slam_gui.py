@@ -119,11 +119,11 @@ class SLAM_GUI:
 
     # has some issue here
     def init_widget(self):
-        self.window_w, self.window_h = 1600, 900
-        # self.window_w, self.window_h = 2560, 1600
+        # self.window_w, self.window_h = 1600, 900
+        self.window_w, self.window_h = 2560, 1600 # PINI
 
         self.window = gui.Application.instance.create_window(
-           "📍 PIN-SLAM Viewer", self.window_w, self.window_h
+           "📍 PINI-SLAM Viewer", self.window_w, self.window_h # PINI
         ) 
         self.window.set_on_layout(self._on_layout)
         self.window.set_on_close(self._on_close)

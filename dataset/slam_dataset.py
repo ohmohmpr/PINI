@@ -20,10 +20,12 @@ from numpy.linalg import inv
 from rich import print
 from torch.utils.data import Dataset
 from tqdm import tqdm
+from scipy.spatial.transform import Rotation as R # PINI
 
 from dataset.dataloaders import dataset_factory
 from eval.eval_traj_utils import absolute_error, plot_trajectories, relative_error
 from utils.config import Config
+from utils.sensor_fusion_manager import SensorFusionManager # PINI
 from utils.semantic_kitti_utils import sem_kitti_color_map, sem_map_function
 from utils.tools import (
     deskewing,
@@ -59,6 +61,7 @@ class SLAMDataset(Dataset):
                 sequence=config.data_loader_seq,
                 topic=config.data_loader_seq,
                 cam_name=config.data_loader_seq,
+                imu_topic=config.imu_topic, # PINI
             )
             config.end_frame = min(len(self.loader), config.end_frame)
             used_frame_count = int((config.end_frame - config.begin_frame) / config.step_frame)
@@ -71,6 +74,10 @@ class SLAMDataset(Dataset):
                 self.gt_pose_provided = False
             if hasattr(self.loader, 'calibration'):
                 self.calib["Tr"][:3, :4] = self.loader.calibration["Tr"].reshape(3, 4)
+####################################################  PINI-start ####################################################
+            if hasattr(self.config, 'sensor_fusion'):
+                self.sensor_fusion_manager = SensorFusionManager(self.config, self.loader)
+####################################################  PINI-end   ####################################################
             if hasattr(self.loader, "K_mats"): # as dictionary
                 self.K_mats = self.loader.K_mats
                 self.cam_names = list(self.K_mats.keys())
@@ -178,6 +185,13 @@ class SLAMDataset(Dataset):
         self.cur_source_normals = None
         self.cur_source_colors = None
 
+####################################################  PINI-start ####################################################
+        # EKF
+        self.last_timestamp_frame = None
+        self.current_timestamp_frame = None
+        self.init_roll_degree = None
+        self.init_pitch_degree = None
+####################################################  PINI-end ####################################################
     def read_frame_ros(self, msg):
 
         from utils import point_cloud2
@@ -230,6 +244,38 @@ class SLAMDataset(Dataset):
                 print("Available data source:", dict_keys)
             if "points" in dict_keys: # TODO: support multiple LiDAR
                 points = frame_data["points"] # may also contain intensity or color
+####################################################  PINI-start ####################################################
+                try: 
+                    self.config.sensor_fusion["ground"]["add_ground"]
+                    add_ground = True
+                except:
+                    add_ground = False
+                if add_ground == True and \
+                    self.init_roll_degree and self.init_pitch_degree and self.is_initStaticAlignment == False:
+
+
+                    radius = self.config.sensor_fusion["ground"]["radius"]
+                    mask = (points[:, 2] > 0) & (np.linalg.norm(points[:, 0:2], axis=1) < radius)
+
+                    point_num = 1000
+                    rnd_x = (np.random.rand(point_num, 1) - 0.5 ) * radius
+                    rnd_y = (np.random.rand(point_num, 1) - 0.5 ) * radius
+                    rnd_xy = np.hstack((rnd_x, rnd_y))
+
+                    X = points[mask]
+                    # print(np.mean(X[:, 2]))
+
+                    rnd_z = np.random.rand(point_num, 1) * 0.1 + np.mean(X[:, 2])
+                    rnd = np.hstack((rnd_xy, rnd_z))
+                    mask = (np.linalg.norm(rnd[:, 0:2], axis=1) < radius)
+                    rnd = rnd[mask]
+
+                    r = R.from_euler('xyz', [self.init_roll_degree, self.init_pitch_degree, 0], degrees=True)
+                    r_mtx = r.as_matrix()
+                    rnd = (np.linalg.inv(r_mtx) @ rnd.T).T
+                    points = np.vstack((rnd,  points))
+                    self.points = points
+####################################################  PINI-end   ####################################################
             if "point_ts" in dict_keys:
                 point_ts = frame_data["point_ts"]
             if "img" in dict_keys: # support multiple cameras
@@ -240,6 +286,10 @@ class SLAMDataset(Dataset):
             if "imus" in dict_keys:
                 self.cur_frame_imus = frame_data["imus"]
                 # TO ADD
+####################################################  PINI-start ####################################################
+            if "timestamp" in dict_keys:
+                self.timestamp = frame_data["timestamp"]
+####################################################  PINI-end   ####################################################
         else: # no data found, for example None
             return
          
@@ -360,6 +410,7 @@ class SLAMDataset(Dataset):
         # T1 = get_time()
         # poses related
         frame_id = self.processed_frame
+        self.frame_id = frame_id # PINI
         cur_pose_init_guess = self.cur_pose_ref
         if frame_id == 0:  # initialize the first frame, no tracking yet
             if self.config.track_on:

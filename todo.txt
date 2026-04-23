@@ -1,0 +1,8 @@
+1. implement n3 in this code.
+2. run evaluation again.
+3. add doc for sensor configuration
+4. Sanity test
+5. try polyscope(faster)
+6. occlusion of mesh issues when run in underground
+fixed:
+1. imu topic needed to be manually specified in code 

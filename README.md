@@ -1,7 +1,7 @@
 <p align="center">
 
   <h1 align="center">📍PINI-SLAM: LIDAR-Inertial SLAM with
-Implicit Neural Representation (Rewrite version)</h1>
+Implicit Neural Representation</h1>
 
   <p align="center">
     <!-- <a href="https://github.com/PRBonn/PIN_SLAM/releases"><img src="https://img.shields.io/github/v/release/PRBonn/PIN_SLAM?label=version" /></a> -->
@@ -27,6 +27,15 @@ Implicit Neural Representation (Rewrite version)</h1>
 
   <div align="center"></div>
 </p>
+
+Examples
+
+Newer College Dataset - Math easy with 10x speed.
+![video math_easy_10x ](https://github.com/ohmohmpr/PINI/blob/main/video/math_easy_10x.gif)
+NTU Viral Dataset - SBS with 10x speed.
+![video sbs_02_10x](https://github.com/ohmohmpr/PINI/blob/main/video/sbs_02_10x.gif)
+NTU Viral Dataset - RTP with 16x speed.
+![video rtp_03_16x](https://github.com/ohmohmpr/PINI/blob/main/video/rtp_03_16x.gif)
 
 **TL;DR: PINI-SLAM is PIN-SLAM with IMU**
 
@@ -85,7 +94,10 @@ Implicit Neural Representation (Rewrite version)</h1>
       <!-- <a href="#citation">Citation</a> -->
     </li>
     <li>
-      <!-- <a href="#contact">Contact</a> -->
+      <a href="#results">Results</a>
+    </li>
+    <li>
+      <a href="#contact">Contact</a>
     </li>
     <li>
       <a href="#related-projects">Related projects</a>
@@ -159,7 +171,7 @@ The commands depend on your CUDA version (check it by `nvcc --version`). You may
 
 ```
 pip3 install -r requirements.txt
-# pip3 install pybind also
+CMAKE_POLICY_VERSION_MINIMUM=3.15 pip3 install --no-build-isolation -ve dependencies
 ```
 
 ----
@@ -211,16 +223,21 @@ python3 pin_slam.py ./config/lidar_slam/run_demo.yaml -vsmc
 
 ### Run on your datasets
 
-Follow the instructions on how to run PIN-SLAM by typing:
-```
+Follow the instructions on how to run PINI-SLAM by typing:
+<!-- ```
 python3 pin_slam.py -h
-```
+``` -->
 
-For an arbitrary data sequence with point clouds in the format of `*.ply`, `*.pcd`, `*.las` or `*.bin`, you can run with the default config file by:
+<!-- For an arbitrary data sequence with point clouds in the format of `*.ply`, `*.pcd`, `*.las` or `*.bin`, you can run with the default config file by:
 ```
 python3 pin_slam.py -i /path/to/your/point/cloud/folder -vsm
-```
+``` -->
 
+It is tested in these datasets, NTU_VIRAL and Newer College 128
+```
+python3 pin_slam.py [CONFIG] [DATALOADER] [TOPIC] -i [DATA_PATH] -dv
+python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_pini /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_03/ -dv
+```
 <details>
   <summary>[More Usage (click to expand)]</summary>
 
@@ -255,7 +272,9 @@ python3 pin_slam.py ./config/rgbd_slam/run_replica.yaml replica room0 -vsm
 We also support loading data from rosbag, mcap or pcap (ros2) using specific data loaders (originally from [KISS-ICP](https://github.com/PRBonn/kiss-icp)). You need to set the flag `-d` to use such data loaders. For example:
 ```
 python3 pin_slam.py [CONFIG] [DATALOADER] [TOPIC] -i [DATA_PATH] -dv
-python3 pin_slam.py ./config/lidar_slam/run.yaml rosbag /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_03/ -dv
+python3 pin_slam.py ./config/lidar_slam/run_ntu_viral.yaml rosbag_pini /os1_cloud_node1/points -i ~/data/NTU_VIRAL/eee_03/ -dv
+python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_pini /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_3_maths_institute/math_easy -dv
+python3 pin_slam.py ./config/lidar_slam/run_newer_college.yaml rosbag_pini /os_cloud_node/points -i ~/data/newer_college_dataset/2021-ouster-os0-128-alphasense/collection_4_underground_mine/2021-04-12-11-06-47-easy.bag -dv
 ```
 
 <!-- ```
@@ -453,6 +472,78 @@ If you use PIN-SLAM for any academic work, please cite our original [paper](http
 }
 ```
 </details> -->
+
+## Results
+
+We provide a PIN-SLAM visualizer based on [lidar-visualizer](https://github.com/PRBonn/lidar-visualizer) to monitor the SLAM process. You can use `-v` flag to turn on it.
+
+
+<details>
+  <summary>New Version tested on [click to expand]</summary>
+
+| Method       |      PIN-SLAM     | 
+|:------------:|:-----------------:|
+|eee_03(easy)  |     checked       |
+|nya_03(easy)  |     checked       |
+|rtp_01(medium)|     checked(it dies when it is supposed to die)|
+|rtp_02(medium)|     checked       |
+|rtp_03(medium)|     checked       |
+|sbs_03(medium)|     checked       |
+|tnp_01(easy)  |     checked       |
+|tnp_02(easy)  |     checked       |
+|tnp_03(easy)  |     checked       |
+|3_math_easy   |     waiting       |
+|3_math_hard   |     waiting       |
+</details>
+
+<details>
+  <summary>NTU VIRAL [click to expand]</summary>
+
+| Method       |      PIN-SLAM     |  PINI(Ours) | Video | PIN(add ground)| Vertical LiDAR|
+|:------------:|:-----------------:|:-----------:|:-----:|:------:|:------:|
+| type         | neural point [m]  | neural point [m]|   |        |        |
+|nya_01(easy)  |   **0.117**       |    0.154    |[video nya_01_10x](https://github.com/ohmohmpr/PINI/blob/main/video/nya_01_10x.gif)|        |        |
+|nya_02(easy)  |   **0.151**       |    0.221    |       |        |        |
+|nya_03(easy)  |   0.305           |    **0.271**|       |        |        |
+|tnp_01(easy)  |   0.174           |    **0.144**|       |        |        |
+|tnp_02(easy)  |   0.729           |    **0.127**|[video tnp_02_13x](https://github.com/ohmohmpr/PINI/blob/main/video/tnp_02_13x.gif)|        |        |
+|tnp_03(easy)  |   **0.161**       |    0.189    |       |        |        |
+|eee_01(medium)|     x             |    **0.235**|[video eee_01_14x](https://github.com/ohmohmpr/PINI/blob/main/video/eee_01_14x.gif)|        |        |
+|eee_02(medium)|   0.611           |    **0.168**|       |        |        |
+|eee_03(medium)|   0.564           |    **0.229**|       |        |        |
+|sbs_01(medium)|     x             |    **0.182**|       |        |        |
+|sbs_02(medium)|   1.017           |    **0.241**|[video sbs_02_10x](https://github.com/ohmohmpr/PINI/blob/main/video/sbs_02_10x.gif)|[video sbs_02_pin](https://github.com/ohmohmpr/PINI/blob/main/video/sbs_02_pin.gif)|        |
+|sbs_03(medium)|     x             |    **0.185**|       |        |        |
+|rtp_01(medium)|     x             |       x     |       |        |        |
+|rtp_02(medium)|     x             |    **0.322**|       |        |        |
+|rtp_03(medium)|   **0.319**       |    0.497    |[video rtp_03_16x](https://github.com/ohmohmpr/PINI/blob/main/video/rtp_03_16x.gif)|        |        |
+|spms_01(hard) |     x             |       x     |       |        |        |
+|spms_02(hard) |     x             |       x     |       |        |        |
+|spms_03(hard) |     x             |       x     |[video spms_03_hort_4x](https://github.com/ohmohmpr/PINI/blob/main/video/spms_03_hort_4x.gif)|        |[video spms_03_vert_2x](https://github.com/ohmohmpr/PINI/blob/main/video/spms_03_vert_2x.gif)|
+
+</details>
+
+<details>
+  <summary>Newer College 128beams [click to expand]</summary>
+
+| Method       |      PIN-SLAM     |  PINI(Ours) | Video | PIN|
+|:------------:|:-----------------:|:-----------:|:-----:|:------:|
+| type         | neural point [m]  | neural point [m]|   |        |
+| 3_math_easy  |                   |             |       |        |
+| 3_math_medium|                   |             |[video quad_mid_pini_weight_6x](https://github.com/ohmohmpr/PINI/blob/main/video/quad_mid_pini_weight_6x.gif)|[video quad_mid_pin_6x](https://github.com/ohmohmpr/PINI/blob/main/video/quad_mid_pin_6x.gif)|
+| 3_math_hard  |                   |             |       |        |
+
+</details>
+
+<details>
+  <summary>Bias [click to expand]</summary>
+
+| Method       |      PIN-SLAM     |  PINI(Ours) | LIO-EKF | fail|
+|:------------:|:-----------------:|:-----------:|:-----:|:------:|
+| type         | neural point [m]  | neural point [m]|   |        |
+| cloister_128s|[cloister_128s_pin_5x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_128s_pin_5x.gif)|[cloister_128s_pini_4x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_128s_pini_4x.gif)|[cloister_128s_lio_ekf_5x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_128s_lio_ekf_5x.gif)|[cloister_pini_full_1_5x.gif](https://github.com/ohmohmpr/PINI/blob/main/video/cloister_pini_full_1_5x.gif)|
+
+</details>
 
 ## Contact
 If you have any questions, please contact:

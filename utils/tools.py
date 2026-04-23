@@ -529,8 +529,15 @@ def o3d2torch(o3d, device="cpu", dtype=torch.float32):
     Convert a batch of points from o3d to torch
     """
     return torch.tensor(np.asarray(o3d.points), dtype=dtype, device=device)
+####################################################  PINI-start ####################################################
+def transfrom_to_homo(matrix3by3: np.array):
 
+    matrix_homo = np.hstack((matrix3by3, np.array([[0], [0], [0]])))
+    matrix_homo = np.vstack((matrix_homo, np.array([[0, 0, 0, 1]])))
 
+    return matrix_homo
+
+####################################################  PINI-end   ####################################################
 def transform_torch(points: torch.tensor, transformation: torch.tensor):
     """
     Transform a batch of points by a transformation matrix

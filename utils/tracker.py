@@ -51,6 +51,11 @@ class Tracker:
         cur_ts=None,
         loop_reg: bool = False,
         vis_result: bool = False,
+####################################################  PINI-start ####################################################
+        # TODO: rewrite
+        EKF_SDF= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+        EKF_update_PIN= None, # debug EKF REMOVE THIS AFTER FINISHED #ohm
+####################################################  PINI-end   ####################################################
     ):
         """
         Perform tracking
@@ -140,9 +145,24 @@ class Tracker:
                 valid_points_torch,
                 sdf_residual_cm,
                 photo_residual,
+####################################################  PINI-start ####################################################
+                sdf_residual,
+                w,
+                sdf_grad,
+                sdf_total_res,
+####################################################  PINI-end   ####################################################
             ) = reg_result
 
             T03 = get_time()
+
+####################################################  PINI-start ####################################################
+            # TODO: rewrite
+            if ((EKF_SDF is not None or EKF_update_PIN) ):
+                if (EKF_SDF is not None):
+                    EKF_SDF(sdf_residual)
+                elif (EKF_update_PIN is not None):
+                    EKF_update_PIN(valid_points_torch, sdf_grad, sdf_residual, w, sdf_total_res)
+####################################################  PINI-end   ####################################################
 
             T = delta_T @ T
 
@@ -353,6 +373,28 @@ class Tracker:
             if query_certainty:
                 certainty[head:tail] = batch_certainty.detach()
 
+####################################################  PINI-start ####################################################
+        snp = self.neural_points
+        sdf = torch.abs(sdf_pred)
+        np_res = snp.neural_points_res
+        res_idx = snp.neural_points_res_idx
+
+        sdf_total_res = torch.zeros_like(sdf)
+
+        #
+        np_res[res_idx[:, 0]] =  torch.abs(np_res[res_idx[:, 0]] - sdf)
+        np_res[res_idx[:, 1]] =  torch.abs(np_res[res_idx[:, 1]] - sdf)
+        np_res[res_idx[:, 2]] =  torch.abs(np_res[res_idx[:, 2]] - sdf)
+        np_res[res_idx[:, 3]] =  torch.abs(np_res[res_idx[:, 3]] - sdf)
+        np_res[res_idx[:, 4]] =  torch.abs(np_res[res_idx[:, 4]] - sdf)
+        np_res[res_idx[:, 5]] =  torch.abs(np_res[res_idx[:, 5]] - sdf)
+
+        summ = torch.sum(np_res[res_idx], 1) / 6
+
+        dist  = torch.norm(coord, dim=1)
+        sdf_total_res = (summ * dist) / dist
+        sdf_total_res = summ
+####################################################  PINI-end   ####################################################
         return (
             sdf_pred,
             sdf_grad,
@@ -362,6 +404,7 @@ class Tracker:
             mc_mask,
             certainty,
             sdf_std,
+            sdf_total_res, # PINI
         )
 
     def registration_step(
@@ -393,6 +436,7 @@ class Tracker:
             mask,
             certainty,
             sdf_std,
+            sdf_total_res # PINI
         ) = self.query_source_points(
             points,
             self.config.infer_bs,
@@ -437,6 +481,7 @@ class Tracker:
         sdf_pred = sdf_pred[valid_idx]
         sdf_grad = sdf_grad[valid_idx]
         sdf_labels = sdf_labels[valid_idx]
+        sdf_total_res = sdf_total_res[valid_idx] # PINI
 
         # certainty not used here
         # certainty = certainty[valid_idx]
@@ -608,6 +653,10 @@ class Tracker:
             valid_points,
             sdf_residual_mean_cm,
             color_residual_mean,
+            sdf_residual, # PINI
+            w,  # PINI
+            sdf_grad, # PINI
+            sdf_total_res, # PINI
         )
 
 

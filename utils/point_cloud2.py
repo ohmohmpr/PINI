@@ -39,6 +39,7 @@ import numpy as np
 try:
     from rosbags.typesys.types import sensor_msgs__msg__PointCloud2 as PointCloud2
     from rosbags.typesys.types import sensor_msgs__msg__PointField as PointField
+    from rosbags.typesys.types import sensor_msgs__msg__Imu as Imu # PINI
 except ImportError as e:
     raise ImportError('rosbags library not installed, run "pip install -U rosbags"') from e
 
@@ -92,6 +93,49 @@ def read_point_cloud(msg: PointCloud2) -> Tuple[np.ndarray, np.ndarray]:
         timestamps = None
     return points.astype(np.float64), timestamps
 
+####################################################  PINI-start ####################################################
+def read_point_cloud_pini(msg: PointCloud2) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Extract poitns and timestamps from a PointCloud2 message.
+
+    :return: Tuple of [points, timestamps]
+        points: array of x, y z points, shape: (N, 3)
+        timestamps: array of per-pixel timestamps, shape: (N,)
+    """
+    field_names = ["x", "y", "z"]
+    t_field = None
+    for field in msg.fields:
+        if field.name in ["t", "timestamp", "time", "ts", "timestamps"]:
+            t_field = field.name
+            field_names.append(t_field)
+            break
+
+    points_structured = read_points(msg, field_names=field_names)
+    points = np.column_stack(
+        [points_structured["x"], points_structured["y"], points_structured["z"]]
+    )
+
+    # Remove nan if any
+    points = points[~np.any(np.isnan(points), axis=1)]
+
+    if t_field:
+        timestamps = points_structured[t_field].astype(np.float64)
+        # min_timestamp = np.min(timestamps)
+        # max_timestamp = np.max(timestamps)
+        # if min_timestamp == max_timestamp:
+        #     timestamps = None
+        # # else:
+        # #     # try to not do the normalization here
+        # #     timestamps = (timestamps - min_timestamp) / (max_timestamp - min_timestamp) # normalized to 0-1
+    else:
+        timestamps = None
+
+    ts_sec = msg.header.stamp.sec
+    ts_nanosec = msg.header.stamp.nanosec
+    point_cloud_timestamp = ts_sec + ts_nanosec/1e9
+
+    return points.astype(np.float64), timestamps, point_cloud_timestamp
+####################################################  PINI-end   ####################################################
 
 def read_points(
     cloud: PointCloud2,
@@ -184,3 +228,37 @@ def dtype_from_fields(fields: Iterable[PointField], point_step: Optional[int] = 
     if point_step is not None:
         dtype_dict["itemsize"] = point_step
     return np.dtype(dtype_dict)
+
+####################################################  PINI-start ####################################################
+def read_imu(msg: Imu) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    header: std_msgs__msg__Header
+    orientation: geometry_msgs__msg__Quaternion
+    orientation_covariance: np.ndarray[None, np.dtype[np.float64]]
+    angular_velocity: geometry_msgs__msg__Vector3
+    angular_velocity_covariance: np.ndarray[None, np.dtype[np.float64]]
+    linear_acceleration: geometry_msgs__msg__Vector3
+    linear_acceleration_covariance: np.ndarray[None, np.dtype[np.float64]]
+    """
+
+    ts_sec = msg.header.stamp.sec
+    ts_nanosec = msg.header.stamp.nanosec
+    timestamp = ts_sec + ts_nanosec/1e9
+
+    x = msg.orientation.x
+    y = msg.orientation.y
+    z = msg.orientation.z
+    w = msg.orientation.w
+
+    angular_velocity_x = msg.angular_velocity.x
+    angular_velocity_y = msg.angular_velocity.y
+    angular_velocity_z = msg.angular_velocity.z
+    av = np.array([angular_velocity_x, angular_velocity_y, angular_velocity_z])
+
+    linear_acceleration_x = msg.linear_acceleration.x
+    linear_acceleration_y = msg.linear_acceleration.y
+    linear_acceleration_z = msg.linear_acceleration.z
+    la = np.array([linear_acceleration_x, linear_acceleration_y, linear_acceleration_z])
+
+    return [av, la], timestamp
+####################################################  PINI-end   ####################################################

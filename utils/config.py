@@ -269,7 +269,7 @@ class Config:
         self.o3d_vis_on: bool = False # visualize the mesh in-the-fly using o3d visualzier or not [press space to pasue/resume]
         self.o3d_vis_raw: bool = False # visualize the raw point cloud or the weight source point cloud
         self.log_freq_frame: int = 2000 # save the result log per x frames
-        self.mesh_default_on: bool = False
+        self.mesh_default_on: bool = True # PINI_CONFIG False
         self.mesh_freq_frame: int = 20  # do the reconstruction per x frames
         self.sdf_default_on: bool = False # visualize the SDF slice or not
         self.sdfslice_freq_frame: int = 1 # visualize the SDF slice per x frames
@@ -552,6 +552,13 @@ class Config:
             self.save_map = config_args["eval"].get('save_map', self.save_map)
             self.save_merged_pc = config_args["eval"].get('save_merged_pc', self.save_merged_pc)
             self.save_mesh = config_args["eval"].get('save_mesh', self.save_mesh)
+####################################################  PINI-start ####################################################
+        if "sensor_fusion" in config_args:
+            self.imu_topic: dict = config_args["sensor_fusion"]["sensor_types"]["imu"]
+            if "lidar" in config_args["sensor_fusion"]["sensor_types"]:
+                self.lidar_topic: dict = config_args["sensor_fusion"]["sensor_types"]["lidar"]
+            self.sensor_fusion = config_args["sensor_fusion"]
+####################################################  PINI-end   ####################################################
 
         # associated parameters
         self.infer_bs = self.bs * 32

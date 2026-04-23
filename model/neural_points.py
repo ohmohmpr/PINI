@@ -90,6 +90,8 @@ class NeuralPoints(nn.Module):
         )
 
         self.neural_points = torch.empty((0, 3), dtype=self.dtype, device=self.device)
+        self.neural_points_res = torch.empty((0), device=self.device, dtype=self.dtype) # PINI
+        self.neural_points_res_idx = torch.empty((0), device=self.device, dtype=torch.int) # PINI
         self.point_orientations = torch.empty(
             (0, 4), dtype=self.dtype, device=self.device
         )  # as quaternion
@@ -388,8 +390,14 @@ class NeuralPoints(nn.Module):
         new_points_ts = (
             torch.ones(new_point_count, device=self.device, dtype=torch.int) * cur_ts
         )
+
+        new_res = (
+            torch.zeros(new_point_count, device=self.device, dtype=torch.int)
+        ) # PINI
+
         self.point_ts_create = torch.cat((self.point_ts_create, new_points_ts), 0)
         self.point_ts_update = torch.cat((self.point_ts_update, new_points_ts), 0)
+        self.neural_points_res = torch.cat((self.neural_points_res, new_res), 0) # PINI
 
         # with padding in the end
         new_fts = self.geo_feature_std * torch.randn(
@@ -594,7 +602,7 @@ class NeuralPoints(nn.Module):
         # T2 = get_time()
 
         valid_mask = idx >= 0  # [N, K]
-
+        self.neural_points_res_idx = idx # PINI
         if query_geo_feature:
             geo_features = torch.zeros(
                 batch_size,
@@ -777,6 +785,7 @@ class NeuralPoints(nn.Module):
             self.point_ts_create = self.point_ts_create[~prune_mask]
             self.point_ts_update = self.point_ts_update[~prune_mask]
             self.point_certainties = self.point_certainties[~prune_mask]
+            self.neural_points_res = self.neural_points_res[~prune_mask] # PINI
 
             # with padding
             prune_mask = torch.cat(
@@ -882,6 +891,7 @@ class NeuralPoints(nn.Module):
             self.point_ts_create = self.point_ts_create[sample_idx]
             self.point_ts_update = self.point_ts_update[sample_idx]
             self.point_certainties = self.point_certainties[sample_idx]
+            self.neural_points_res = self.neural_points_res[sample_idx] # PINI
 
             sample_idx_pad = torch.cat((sample_idx, torch.tensor([-1]).to(sample_idx)))
             self.geo_features = self.geo_features[
